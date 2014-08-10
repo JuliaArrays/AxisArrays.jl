@@ -14,15 +14,15 @@ axisnames{T,N,A,axisnames}(::Type{NamedAxesArray{T,N,A,axisnames}}) = axisnames
     ndims{T,N,A,axisnames}(A::NamedAxesArray{T,N,A,axisnames}) = N
 axisnames{T,N,A,axisnames}(A::NamedAxesArray{T,N,A,axisnames}) = axisnames
 
-immutable NamedAxis{axisname<:Symbol,T}
+immutable Ax{axisname<:Symbol,T}
     I::T
 end
-NamedAxis{T}(name::Symbol, I::T) = NamedAxis{name,T}(I)
+Ax{T}(name::Symbol, I::T) = Ax{name,T}(I)
 
-axisname{S,T}(i::NamedAxis{S,T}) = S
-axistype{S,T}(i::NamedAxis{S,T}) = T
-axisname{S,T}(::Type{NamedAxis{S,T}}) = S
-axistype{S,T}(::Type{NamedAxis{S,T}}) = T
+axisname{S,T}(i::Ax{S,T}) = S
+axistype{S,T}(i::Ax{S,T}) = T
+axisname{S,T}(::Type{Ax{S,T}}) = S
+axistype{S,T}(::Type{Ax{S,T}}) = T
 
 
 ### Traditional position-based indexing ###
@@ -47,16 +47,16 @@ setindex!(A::NamedAxesArray, v, I::Union(Real, AbstractVector)...) = A.data[I...
 
 ### Indexing using the axis names ###
 # For integer-valued dimensions, this has slicing semantics
-stagedfunction getindex(A::NamedAxesArray, i1::NamedAxis)
+stagedfunction getindex(A::NamedAxesArray, i1::Ax)
     getindex_gen(A, i1)
 end
-stagedfunction getindex(A::NamedAxesArray, i1::NamedAxis, i2::NamedAxis)
+stagedfunction getindex(A::NamedAxesArray, i1::Ax, i2::Ax)
     getindex_gen(A, i1, i2)
 end
-stagedfunction getindex(A::NamedAxesArray, i1::NamedAxis, i2::NamedAxis, i3::NamedAxis)
+stagedfunction getindex(A::NamedAxesArray, i1::Ax, i2::Ax, i3::Ax)
     getindex_gen(A, i1, i2, i3)
 end
-stagedfunction getindex(A::NamedAxesArray, i1::NamedAxis, i2::NamedAxis, i3::NamedAxis, i4::NamedAxis)
+stagedfunction getindex(A::NamedAxesArray, i1::Ax, i2::Ax, i3::Ax, i4::Ax)
     getindex_gen(A, i1, i2, i3, i4)
 end
 
