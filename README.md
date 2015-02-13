@@ -1,6 +1,6 @@
-# NamedAxesArrays
+# AxisArrays
 
-[![Build Status](https://travis-ci.org/timholy/NamedAxesArrays.jl.svg?branch=master)](https://travis-ci.org/timholy/NamedAxesArrays.jl)
+[![Build Status](https://travis-ci.org/mbauman/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/mbauman/AxisArrays.jl)
 
 This package (not yet functional) for the Julia language will allow you to index arrays using names for the individual axes.
 This permits one to implement algorithms that are oblivious to the storage order of the underlying arrays.
