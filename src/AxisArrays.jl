@@ -8,7 +8,7 @@ immutable AxisArray{T,N,D<:AbstractArray,names,Ax,AxElts} <: AbstractArray{T,N}
 end
 # Allow AxisArrays that are missing dimensions and/or names?
 AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=()) =
-    AxisArray(A, axes, N==0 ? () : N==1 ? (:col,) : N==2 ? (:col,:row) : (:col,:row,:page))
+    AxisArray(A, axes, N==0 ? () : N==1 ? (:row,) : N==2 ? (:row,:col) : (:row,:col,:page))
 stagedfunction AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...))
     Ax = axes == Type{()} ? () : axes # Tuple's Type/Value duality is painful
     AxElts = map(eltype,Ax)
@@ -65,6 +65,7 @@ Base.ndims(::Colon) = 1
 # TODO: do we want to be dogmatic about using views? For the data? For the axes?
 # TODO: perhaps it would be better to return an entirely lazy SubAxisArray view
 # TODO: avoid splatting for low dimensions by splitting into a function
+# TODO: what does linear indexing with ranges mean with regards to axes?
 stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, idxs::Idx...)
     # There might be a case here for preserving trailing scalar dimensions
     # within the axes... but for now let's drop them.
