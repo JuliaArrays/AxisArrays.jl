@@ -58,34 +58,35 @@ Base.getindex{T,N}(A::AxisArray{T,N}, idxs::Int...) = A.data[idxs...]
 # More complicated cases where we must create a subindexed AxisArray
 # TODO: do we want to be dogmatic about using views? For the data? For the axes?
 # TODO: perhaps it would be better to return an entirely lazy SubAxisArray view
-# TODO: avoid splatting for low dimensions by splitting into a function
-# TODO: what does linear indexing with ranges mean with regards to axes?
 stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, idxs::Idx...)
     newdims = length(idxs)
+    # If the last index is a linear indexing range that may span multiple
+    # dimensions in the original AxisArray, we can no longer track those axes.
+    droplastaxis = N > newdims && !(idxs[end] <: Real) ? 1 : 0
     # There might be a case here for preserving trailing scalar dimensions
     # within the axes... but for now let's drop them.
     while newdims > 0 && idxs[newdims] <: Real
         newdims -= 1
     end
-    # If the last index isn't the last dimension and it's indexed by a nonscalar
-    # it might return a vector that spans multiple dimensions, so we can't
-    # possibly return an AxisArray
-    N > newdims && !isa(idxs[end], Real) && return :(sub(A.data, idxs...))
     newdata = _sub_type(D, idxs)
-    newnames = names[1:min(newdims, length(names))]
-    newaxes = Ax[1:min(newdims, length(Ax))]
-    newaxelts = AxElt[1:min(newdims, length(AxElt))]
-    quote
-        data = sub(A.data, idxs...)
-        isa(data, $newdata) || error("miscomputed dimensionality: computed ", $newdims, ", got ", ndims(data))
-        axes = ntuple(min(length(A.axes), $newdims)) do i
+    newnames = names[1:min(newdims-droplastaxis, length(names))]
+    newaxes = Ax[1:min(newdims-droplastaxis, length(Ax))]
+    newaxelts = AxElt[1:min(newdims-droplastaxis, length(AxElt))]
+    axes = Expr(:tuple)
+    for i = 1:length(newaxes)
+        if idxs[i] <: Real
             # This needs to preserve the type of the axes, so scalar indices
             # must become ranges. This is really hacky and will fail if
             # indexing the axis vector by a UnitRange returns a different type.
-            # TODO: do this during staging, and do it better.
-            isa(idxs[i], Real) ? A.axes[i][idxs[i]:idxs[i]] : A.axes[i][idxs[i]]
-        end::$(newaxes)
-        $(AxisArray{T,newdims,newdata,newnames,newaxes,newaxelts})(data, axes)
+            push!(axes.args, :(A.axes[$i][idxs[$i]:idxs[$i]]))
+        else
+            push!(axes.args, :(A.axes[$i][idxs[$i]]))
+        end
+    end
+    quote
+        data = sub(A.data, idxs...) # TODO: create this Expr to avoid splatting
+        isa(data, $newdata) || error("miscomputed subarray type: computed ", $newdata, ", got ", typeof(data))
+        $(AxisArray{T,newdims,newdata,newnames,newaxes,newaxelts})(data, $axes)
     end
 end
 
