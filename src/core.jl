@@ -135,3 +135,40 @@ stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,A
 
     return :(A[$(idxs...)])
 end
+
+### Indexing with the element type of the axes ###
+
+# Default axes indexing does nothing
+axesindexes(ax, idx) = idx
+
+# A Symbol vector is an Axis to be indexed by a Symbol or Array of Symbols
+axesindexes(ax::Array{Symbol,1}, idx::Symbol) = findfirst(ax, idx) || error("index $idx not found") # BROKEN
+axesindexes(ax::Array{Symbol,1}, idx::Array{Symbol,1}) = findin(ax, idx)
+
+# FloatRange is a Regular Signal Axis to be indexed by an array to select a range (from min to max)
+function axesindexes{T}(ax::FloatRange{T}, idx::Array{T,1})
+    mn = minimum(idx)
+    mx = maximum(idx)
+    from = mn <= minimum(ax) ? 1 : 1 + int(ceil(ax.divisor * (mn - minimum(ax)) / ax.step))
+    to = mx >= maximum(ax) ? length(ax) : length(ax) - int(ceil(ax.divisor * (maximum(ax) - mx) / ax.step))
+    from:to
+end
+
+
+# Ordered is an irregular Signal Axis to be indexed by an array to select a range (from min to max)
+export Ordered
+type Ordered{T,S} <: AbstractArray{T,1}
+    # TODO: needs checks
+    data::S
+end
+Ordered{T}(a::AbstractVector{T}) = Ordered{T, typeof(a)}(a)
+Base.getindex(a::Ordered, idx::UnitRange) = Ordered(a.data[idx])
+Base.length(a::Ordered) = length(a.data)
+Base.eltype{T,S}(a::Ordered{T,S}) = T
+function axesindexes{T,S}(ax::Ordered{T,S}, idx::Array{T,1})
+    mn = minimum(idx)
+    mx = maximum(idx)
+    from = mn <= ax.data[1] ? 1 : searchsortedfirst(ax.data, mn)
+    to = mx >= ax.data[end] ? length(ax.data) : searchsortedlast(ax.data, mx)
+    from:to
+end
