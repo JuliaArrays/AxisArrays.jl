@@ -12,10 +12,12 @@ end
 
 # Test slices
 @test A == A.data
-# TODO: how should the axes behave here?
-@test A[:] == A.data[:]
-@test A[:,1] == A.data[:,1]
-@test A[1,:] == A.data[1,:]
-@test A[:,1,1] == A.data[:,1,1]
-@test A[1,:,1] == A.data[1,:,1]
-@test A[1,1,:] == A.data[1,1,:]
+@test A[:,:,:] == A.data[:,:,:] == A[Axis{:row}(:)] == A[Axis{:col}(:)] == A[Axis{:page}(:)]
+# Test UnitRange slices
+@test A[1:2,:,:] == A.data[1:2,:,:] == A[Axis{:row}(1:2)]
+@test A[:,1:2,:] == A.data[:,1:2,:] == A[Axis{:col}(1:2)]
+@test A[:,:,1:2] == A.data[:,:,1:2] == A[Axis{:page}(1:2)]
+# Test scalar slices
+@test A[2,:,:] == A.data[2,:,:] == A[Axis{:row}(2)]
+@test A[:,2,:] == A.data[:,2,:] == A[Axis{:col}(2)]
+@test A[:,:,2] == A.data[:,:,2] == A[Axis{:page}(2)]

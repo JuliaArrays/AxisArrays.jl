@@ -55,26 +55,24 @@ let args = Expr[], idxs = Symbol[]
 end
 Base.getindex{T,N}(A::AxisArray{T,N}, idxs::Int...) = A.data[idxs...]
 
-# TODO: don't do this. This is needed for nonscalar identification of `:`
-Base.ndims(::Type{Colon}) = 1
-Base.ndims(::Colon) = 1
-
 # More complicated cases where we must create a subindexed AxisArray
 # TODO: do we want to be dogmatic about using views? For the data? For the axes?
 # TODO: perhaps it would be better to return an entirely lazy SubAxisArray view
 # TODO: avoid splatting for low dimensions by splitting into a function
 # TODO: what does linear indexing with ranges mean with regards to axes?
 stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, idxs::Idx...)
+    newdims = length(idxs)
     # There might be a case here for preserving trailing scalar dimensions
     # within the axes... but for now let's drop them.
-    nonscalardims = map(x->ndims(x) > 0, idxs) # this is pretty hacky
-    newdims = findlast(nonscalardims)
-    # TODO: can we pass names in a type-stable manner? https://github.com/JuliaLang/julia/issues/10191
+    while newdims > 0 && idxs[newdims] <: Real
+        newdims -= 1
+    end
+    newdata = _sub_type(D, idxs)
     newnames = names[1:min(newdims, length(names))]
     newaxes = Ax[1:min(newdims, length(Ax))]
     newaxelts = AxElt[1:min(newdims, length(AxElt))]
     quote
-        data = sub(A.data, idxs...)
+        data = sub(A.data, idxs...)::$newdata
         ndims(data) == $newdims || error("miscomputed dimensionality: computed ", $newdims, ", got ", ndims(data))
         axes = ntuple(min(length(A.axes), $newdims)) do i
             # This needs to preserve the type of the axes, so scalar indices
@@ -83,9 +81,31 @@ stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,A
             # TODO: do this during staging, and do it better.
             ndims(idxs[i]) == 0 ? A.axes[i][idxs[i]:idxs[i]] : A.axes[i][idxs[i]]
         end::$(newaxes)
-        AxisArray{$T,$newdims,typeof(data),$newnames,$newaxes,$newaxelts}(data, axes)
+        $(AxisArray{T,newdims,newdata,newnames,newaxes,newaxelts})(data, axes)
     end
 end
+
+# Stolen and stripped down from the Base stagedfunction _sub:
+function _sub_type(A, I)
+    sizeexprs = Array(Any, 0)
+    Itypes = Array(Any, 0)
+    T = eltype(A)
+    N = length(I)
+    while N > 0 && I[N] <: Real
+        N -= 1
+    end
+    for k = 1:length(I)
+        if k < N && I[k] <: Real
+            push!(Itypes, UnitRange{Int})
+        else
+            push!(Itypes, I[k])
+        end
+    end
+    It = tuple(Itypes...)
+    LD = Base.subarray_linearindexing_dim(A, I)
+    SubArray{T,N,A,It,LD}
+end
+
 
 ### Fancier indexing capabilities provided only by AxisArrays ###
 
