@@ -1,6 +1,6 @@
 # AxisArrays
 
-[![Build Status](https://travis-ci.org/mbauman/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/mbauman/AxisArrays.jl)
+[![Build Status](https://travis-ci.org/mbauman/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/mbauman/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/mbauman/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/r/mbauman/AxisArrays.jl?branch=master)
 
 This package for the Julia language allows you to index arrays using names for the individual axes and keep track of dimensional axes.
 This permits one to implement algorithms that are oblivious to the storage order of the underlying arrays.
