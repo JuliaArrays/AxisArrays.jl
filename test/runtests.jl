@@ -1,7 +1,7 @@
 using AxisArrays
 using Base.Test
 
-A = AxisArray(reshape(1:24, 2,3,4))
+A = AxisArray(reshape(1:24, 2,3,4), (.1:.1:.2, .1:.1:.3, .1:.1:.4))
 # Test enumeration
 for (a,b) in zip(A, A.data)
     @test a == b

@@ -67,19 +67,23 @@ stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,A
     while newdims > 0 && idxs[newdims] <: Real
         newdims -= 1
     end
+    # If the last index isn't the last dimension and it's indexed by a nonscalar
+    # it might return a vector that spans multiple dimensions, so we can't
+    # possibly return an AxisArray
+    N > newdims && !isa(idxs[end], Real) && return :(sub(A.data, idxs...))
     newdata = _sub_type(D, idxs)
     newnames = names[1:min(newdims, length(names))]
     newaxes = Ax[1:min(newdims, length(Ax))]
     newaxelts = AxElt[1:min(newdims, length(AxElt))]
     quote
-        data = sub(A.data, idxs...)::$newdata
-        ndims(data) == $newdims || error("miscomputed dimensionality: computed ", $newdims, ", got ", ndims(data))
+        data = sub(A.data, idxs...)
+        isa(data, $newdata) || error("miscomputed dimensionality: computed ", $newdims, ", got ", ndims(data))
         axes = ntuple(min(length(A.axes), $newdims)) do i
             # This needs to preserve the type of the axes, so scalar indices
             # must become ranges. This is really hacky and will fail if
             # indexing the axis vector by a UnitRange returns a different type.
             # TODO: do this during staging, and do it better.
-            ndims(idxs[i]) == 0 ? A.axes[i][idxs[i]:idxs[i]] : A.axes[i][idxs[i]]
+            isa(idxs[i], Real) ? A.axes[i][idxs[i]:idxs[i]] : A.axes[i][idxs[i]]
         end::$(newaxes)
         $(AxisArray{T,newdims,newdata,newnames,newaxes,newaxelts})(data, axes)
     end
