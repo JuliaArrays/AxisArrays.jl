@@ -193,6 +193,12 @@ function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::T)
     i == 0 && error("index $idx not found")
     i
 end
+# Categorical axes may be indexed by a vector of their elements
+function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::AbstractVector{T}) 
+    res = findin(ax, idx)
+    length(res) == 0 && error("index $idx not found")
+    res
+end
 
 # TODO: why do I need the unused static parameters? (stack overflow otherwise)
 # TODO: this throws ambiguity warnings for idxs that are covered in Unions above

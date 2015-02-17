@@ -37,3 +37,20 @@ end
 # Linear indexing across multiple dimensions drops tracking of those dims
 @test A[:].axes == ()
 @test A[1:2,:].axes == (A.axes[1][1:2],)
+
+B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
+
+# Test indexing by Intervals
+@test B[Interval(0.0,  0.5), :] == B[:,:]
+@test B[Interval(0.0,  0.3), :] == B[1:3,:]
+@test B[Interval(0.15, 0.3), :] == B[2:3,:]
+@test B[Interval(0.2,  0.5), :] == B[2:end,:]
+@test B[Interval(0.2,  0.6), :] == B[2:end,:]
+
+# Test Categorical indexing
+@test B[:, :a] == B[:,1]
+@test B[:, :c] == B[:,3]
+@test B[:, [:a]] == B[:,[1]]
+@test B[:, [:a,:c]] == B[:,[1,3]]
+
+@test B[Axis{:row}(Interval(0.15, 0.3))] == B[2:3,:]
