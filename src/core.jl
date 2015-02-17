@@ -138,37 +138,65 @@ end
 
 ### Indexing with the element type of the axes ###
 
-# Default axes indexing does nothing
-axesindexes(ax, idx) = idx
+abstract AxisType
+immutable Dimensional <: AxisType end
+immutable Categorical <: AxisType end
+immutable Unsupported <: AxisType end
 
-# A Symbol vector is an Axis to be indexed by a Symbol or Array of Symbols
-axesindexes(ax::Array{Symbol,1}, idx::Symbol) = findfirst(ax, idx) || error("index $idx not found") # BROKEN
-axesindexes(ax::Array{Symbol,1}, idx::Array{Symbol,1}) = findin(ax, idx)
+axistype(v::Any) = error("axes must be vectors of concrete types; $(typeof(v)) is not supported")
+axistype(v::AbstractVector) = axistype(eltype(v))
+axistype(T::Type) = Unsupported
+axistype(T::Type{Int}) = Unsupported # Ints are exclusively for real indexing
+axistype{T<:Union(Number, Dates.AbstractTime)}(::Type{T}) = Dimensional
+axistype{T<:Union(Symbol, AbstractString)}(::Type{T}) = Categorical
 
-# FloatRange is a Regular Signal Axis to be indexed by an array to select a range (from min to max)
-function axesindexes{T}(ax::FloatRange{T}, idx::Array{T,1})
-    mn = minimum(idx)
-    mx = maximum(idx)
-    from = mn <= minimum(ax) ? 1 : 1 + int(ceil(ax.divisor * (mn - minimum(ax)) / ax.step))
-    to = mx >= maximum(ax) ? length(ax) : length(ax) - int(ceil(ax.divisor * (maximum(ax) - mx) / ax.step))
-    from:to
+checkaxis(ax) = checkaxes(axistype(ax), ax)
+checkaxis(::Type{Unsupported}, ax) = nothing # TODO: warn or error?
+# Dimensional axes must be monotonically increasing
+checkaxis{T}(::Type{Dimensional}, ax::Range{T}) = step(ax) > zero(T) || error("Dimensional axes must be monotonically increasing")
+checkaxis(::Type{Dimensional}, ax) = issorted(ax, lt=(<=)) || error("Dimensional axes must be monotonically increasing")
+# Categorical axes must simply be unique
+function checkaxis(::Type{Categorical}, ax)
+    seen = Set(eltype(ax))
+    for elt in ax
+        elt in seen && error("Categorical axes must be unique")
+        push!(seen, elt)
+    end
 end
 
-
-# Ordered is an irregular Signal Axis to be indexed by an array to select a range (from min to max)
-export Ordered
-type Ordered{T,S} <: AbstractArray{T,1}
-    # TODO: needs checks
-    data::S
+# A very primitive interval type
+type Interval{T}
+    lo::T
+    hi::T
+    Interval(lo, hi) = lo <= hi ? new(lo, hi) : error("lo must be less than or equal to hi")
 end
-Ordered{T}(a::AbstractVector{T}) = Ordered{T, typeof(a)}(a)
-Base.getindex(a::Ordered, idx::UnitRange) = Ordered(a.data[idx])
-Base.length(a::Ordered) = length(a.data)
-Base.eltype{T,S}(a::Ordered{T,S}) = T
-function axesindexes{T,S}(ax::Ordered{T,S}, idx::Array{T,1})
-    mn = minimum(idx)
-    mx = maximum(idx)
-    from = mn <= ax.data[1] ? 1 : searchsortedfirst(ax.data, mn)
-    to = mx >= ax.data[end] ? length(ax.data) : searchsortedlast(ax.data, mx)
-    from:to
+Interval{T}(a::T,b::T) = Interval{T}(a,b)
+Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}
+Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{S}) = Interval{promote_type(T,S)}
+Base.convert{T,S}(::Type{Interval{T}}, x::Interval{S}) = (R = promote_type(T,S); Interval{R}(convert(R,x.lo),(convert(R,x.hi))))
+Base.convert{T}(::Type{Interval{T}}, x) = Interval(x,x)
+Base.isless(a::Interval, b::Interval) = isless(a.hi, b.lo)
+Base.isless(a::Interval, b) = isless(promote(a,b)...)
+Base.isless(a, b::Interval) = isless(promote(a,b)...)
+
+# Default axes indexing throws an error
+axisindexes(ax, idx) = axisindexes(axistype(ax), ax, idx)
+axisindexes(::Type{Unsupported}, ax, idx) = error("elementwise indexing is not supported for axes of type $(typeof(ax))")
+# Dimensional axes may be indexed by intervals of their elements
+axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::Interval{T}) = searchsorted(ax, idx)
+# Categorical axes may be indexed by their elements
+function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::T)
+    i = findfirst(ax, idx)
+    i == 0 && error("index $idx not found")
+    i
+end
+
+# TODO: why do I need the unused static parameters? (stack overflow otherwise)
+# TODO: this throws ambiguity warnings for idxs that are covered in Unions above
+# TODO: this could be much more efficient, eliminate splatting, etc.
+function Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, idxs...)
+    reidx = ntuple(length(idxs)) do i
+        isa(idxs[i], Idx) || i > length(A.axes) ? idxs[i] : axisindexes(A.axes[i], idxs[i])
+    end
+    getindex(A, reidx...)
 end
