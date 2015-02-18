@@ -210,7 +210,7 @@ end
 # Categorical axes may be indexed by a vector of their elements
 function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::AbstractVector{T}) 
     res = findin(ax, idx)
-    length(res) == 0 && error("index $idx not found")
+    length(res) == length(idx) || error("index $(setdiff(idx,ax)) not found")
     res
 end
 
