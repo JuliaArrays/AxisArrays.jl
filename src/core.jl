@@ -53,11 +53,18 @@ let args = Expr[], idxs = Symbol[]
         @eval Base.getindex{T}(A::AxisArray{T,$i}, $(args...)) = A.data[$(idxs...)]
     end
 end
-Base.getindex{T,N}(A::AxisArray{T,N}, idxs::Int...) = A.data[idxs...]
+Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idxs::Int...) = A.data[idxs...]
+
+# No-op
+Base.getindex{T,D,names,Ax}(A::AxisArray{T,1,D,names,Ax}, idx::Colon) = A
+
+# Linear indexing with an array
+Base.getindex{T,N,D,names,Ax,S<:Int}(A::AxisArray{T,N,D,names,Ax}, idx::AbstractArray{S}) = A.data[idx]
 
 # Cartesian iteration
 Base.eachindex(A::AxisArray) = eachindex(A.data)
 Base.getindex(A::AxisArray, idx::Base.IteratorsMD.CartesianIndex) = A.data[idx]
+
 # More complicated cases where we must create a subindexed AxisArray
 # TODO: do we want to be dogmatic about using views? For the data? For the axes?
 # TODO: perhaps it would be better to return an entirely lazy SubAxisArray view
@@ -153,14 +160,14 @@ axistype(T::Type{Int}) = Unsupported # Ints are exclusively for real indexing
 axistype{T<:Union(Number, Dates.AbstractTime)}(::Type{T}) = Dimensional
 axistype{T<:Union(Symbol, AbstractString)}(::Type{T}) = Categorical
 
-checkaxis(ax) = checkaxes(axistype(ax), ax)
+checkaxis(ax) = checkaxis(axistype(ax), ax)
 checkaxis(::Type{Unsupported}, ax) = nothing # TODO: warn or error?
 # Dimensional axes must be monotonically increasing
 checkaxis{T}(::Type{Dimensional}, ax::Range{T}) = step(ax) > zero(T) || error("Dimensional axes must be monotonically increasing")
 checkaxis(::Type{Dimensional}, ax) = issorted(ax, lt=(<=)) || error("Dimensional axes must be monotonically increasing")
 # Categorical axes must simply be unique
 function checkaxis(::Type{Categorical}, ax)
-    seen = Set(eltype(ax))
+    seen = Set{eltype(ax)}()
     for elt in ax
         elt in seen && error("Categorical axes must be unique")
         push!(seen, elt)
@@ -168,7 +175,7 @@ function checkaxis(::Type{Categorical}, ax)
 end
 
 # A very primitive interval type
-type Interval{T}
+immutable Interval{T}
     lo::T
     hi::T
     Interval(lo, hi) = lo <= hi ? new(lo, hi) : error("lo must be less than or equal to hi")
@@ -200,12 +207,54 @@ function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::Abstrac
     res
 end
 
-# TODO: why do I need the unused static parameters? (stack overflow otherwise)
-# TODO: this throws ambiguity warnings for idxs that are covered in Unions above
-# TODO: this could be much more efficient, eliminate splatting, etc.
-function Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, idxs...)
-    reidx = ntuple(length(idxs)) do i
-        isa(idxs[i], Idx) || i > length(A.axes) ? idxs[i] : axisindexes(A.axes[i], idxs[i])
+# Defining the fallbacks on getindex are tricky due to ambiguities with 
+# AbstractArray definitions - 
+let args = Expr[], idxs = Symbol[]
+    for i = 1:4
+        isym = symbol("i$i")
+        push!(args, :($isym::Real))
+        push!(idxs, isym)
+        @eval Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, $(args...)) = fallback_getindex(A, $(idxs...))
     end
-    getindex(A, reidx...)
+end
+Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idx::AbstractArray) = fallback_getindex(A, idx)
+Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idxs...) = fallback_getindex(A, idxs...)
+
+# These catch-all methods attempt to convert any axis-specific non-standard
+# indexing types to their integer or integer range equivalents using the
+# They are separate from the `Base.getindex` function to help alleviate 
+# ambiguity warnings from, e.g., `getindex(::AbstractArray, ::Real...)`.
+# TODO: These could be generated with meta-meta-programming
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I1)
+    ex = :(getindex(A))
+    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
+    ex
+end
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I1, I2)
+    ex = :(getindex(A))
+    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
+    push!(ex.args, I2 <: Idx || length(Ax) < 2 ? :(I2) : :(axisindexes(A.axes[2], I2)))
+    ex
+end
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I1, I2, I3)
+    ex = :(getindex(A))
+    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
+    push!(ex.args, I2 <: Idx || length(Ax) < 2 ? :(I2) : :(axisindexes(A.axes[2], I2)))
+    push!(ex.args, I3 <: Idx || length(Ax) < 3 ? :(I3) : :(axisindexes(A.axes[3], I3)))
+    ex
+end
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I1, I2, I3, I4)
+    ex = :(getindex(A))
+    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
+    push!(ex.args, I2 <: Idx || length(Ax) < 2 ? :(I2) : :(axisindexes(A.axes[2], I2)))
+    push!(ex.args, I3 <: Idx || length(Ax) < 3 ? :(I3) : :(axisindexes(A.axes[3], I3)))
+    push!(ex.args, I4 <: Idx || length(Ax) < 4 ? :(I4) : :(axisindexes(A.axes[4], I4)))
+    ex
+end
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I...)
+    ex = :(getindex(A))
+    for i=1:length(I)
+        push!(ex.args, I[1] <: Idx || length(Ax) < i ? :(I[$i]) : :(axisindexes(A.axes[$i], I[$i])))
+    end
+    ex
 end
