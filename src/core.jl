@@ -1,17 +1,14 @@
 # Core types and definitions
 
-immutable AxisArray{T,N,D<:AbstractArray,names,Ax,AxElts} <: AbstractArray{T,N}
+immutable AxisArray{T,N,D<:AbstractArray,names,Ax} <: AbstractArray{T,N}
     data::D
     axes::Ax
 end
 # Allow AxisArrays that are missing dimensions and/or names?
 AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=()) =
     AxisArray(A, axes, N==0 ? () : N==1 ? (:row,) : N==2 ? (:row,:col) : (:row,:col,:page))
-stagedfunction AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...))
-    Ax = axes == Type{()} ? () : axes # Tuple's Type/Value duality is painful
-    AxElts = map(eltype,Ax)
-    :(AxisArray{T,N,$A,names,$Ax,$AxElts}(A, axes))
-end
+AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...)) =
+    AxisArray{T,N,typeof(A),names,typeof(axes)}(A, axes)
 
 # Type-stable axis-specific indexing and identification with a parametric type:
 immutable Axis{name,T}
@@ -31,7 +28,7 @@ Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
 
 # Custom methods specific to AxisArrays
 axisnames(A::AxisArray) = axisnames(typeof(A))
-axisnames{T,N,D,names,Ax,AxElts}(::Type{AxisArray{T,N,D,names,Ax,AxElts}}) = names
+axisnames{T,N,D,names,Ax}(::Type{AxisArray{T,N,D,names,Ax}}) = names
 axisnames{T,N,D,names,Ax}(::Type{AxisArray{T,N,D,names,Ax}}) = names
 axisnames{T,N,D,names}(::Type{AxisArray{T,N,D,names}}) = names
 axes(A::AxisArray) = A.axes
@@ -43,8 +40,7 @@ axes(A::AxisArray,i::Int) = A.axes[i]
 typealias Idx Union(Colon,Int,Array{Int,1},Range{Int})
 
 # Simple scalar indexing where we return scalars
-Base.getindex(A::AxisArray) = A.data[]
-Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}) = A.data[]
+Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}) = A.data[]
 let args = Expr[], idxs = Symbol[]
     for i = 1:4
         isym = symbol("i$i")
@@ -68,7 +64,7 @@ Base.getindex(A::AxisArray, idx::Base.IteratorsMD.CartesianIndex) = A.data[idx]
 # More complicated cases where we must create a subindexed AxisArray
 # TODO: do we want to be dogmatic about using views? For the data? For the axes?
 # TODO: perhaps it would be better to return an entirely lazy SubAxisArray view
-stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, idxs::Idx...)
+stagedfunction Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idxs::Idx...)
     newdims = length(idxs)
     # If the last index is a linear indexing range that may span multiple
     # dimensions in the original AxisArray, we can no longer track those axes.
@@ -81,7 +77,6 @@ stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,A
     newdata = _sub_type(D, idxs)
     newnames = names[1:min(newdims-droplastaxis, length(names))]
     newaxes = Ax[1:min(newdims-droplastaxis, length(Ax))]
-    newaxelts = AxElt[1:min(newdims-droplastaxis, length(AxElt))]
     axes = Expr(:tuple)
     for i = 1:length(newaxes)
         if idxs[i] <: Real
@@ -96,7 +91,7 @@ stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,A
     quote
         data = sub(A.data, idxs...) # TODO: create this Expr to avoid splatting
         isa(data, $newdata) || error("miscomputed subarray type: computed ", $newdata, ", got ", typeof(data))
-        $(AxisArray{T,newdims,newdata,newnames,newaxes,newaxelts})(data, $axes)
+        $(AxisArray{T,newdims,newdata,newnames,newaxes})(data, $axes)
     end
 end
 
@@ -129,7 +124,7 @@ end
 # TODO: should we handle multidimensional Axis indexes? It could be interpreted
 #       as adding dimensions in the middle of an AxisArray.
 # TODO: should we allow repeated axes? As a union of indices of the duplicates?
-stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, I::Axis...)
+stagedfunction Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I::Axis...)
     Inames = Symbol[axisname(i) for i in I]
     Anames = Symbol[names...]
     ind = indexin(Inames, Anames)
