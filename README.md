@@ -80,13 +80,32 @@ julia> ans.axes
 (0.2:0.1:0.5,0.3:0.1:0.4)
 ```
 
-## Other possibilities (not implemented)
+## Indexing 
 
-### Indexing axes with their element types
+### Indexing axes
+
+Two main types of Axes supported by default include:
+
+* Categorical axis -- These are vectors of labels, normally symbols or
+  strings. Elements or slices can be selected by elements or vectors
+  of elements.
+
+* Dimensional axis -- These are sorted vectors or iterators that can
+  be selected by `Intervals`. These are commonly used for sequences of
+  times or date-times. For regular sample rates, ranges can be used.
+
+Here is an example with a Dimensional axis representing a time
+sequence along rows and a Categorical axis of symbols for column
+headers.
+
 ```julia
-A[Axis{:time}(Interval(10s,20s))] # restrict the AxisArray along the time axis
-A[Axis{:time}(Interval(-.1s, .1s) .+ event_times)] # returns an AxisArray with windowed repetions about event_times
+B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
+A[Axis{:row}(Interval(.2,.4))] # restrict the AxisArray along the time axis
+A[Interval(0.,.3), [:a, :c]]      # select an interval and two of the columns 
 ```
+
+User-defined axis types can be added along with custom indexing
+behaviors.
 
 ### Compute the intensity-weighted mean along the z axis
 ```
