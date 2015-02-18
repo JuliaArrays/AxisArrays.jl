@@ -124,7 +124,7 @@ Axis{name}(I)
 
 ### Arguments
 
-* `name` : the name of the axis, a Symbol
+* `name` : the axis name symbol or integer dimension
 * `I` : the indexer, any indexing type that the axis supports
 
 ### Examples
@@ -136,8 +136,8 @@ headers.
 ```julia
 A = AxisArray(reshape(1:60, 12, 5), (.1:.1:1.2, .1:.1:.5), (:row, :col))
 A[Axis{:col}(2)] # grabs the second column
-A[Axis{:row}(2)] # grabs the second column
-A[Axis{:col}(2:5)] # grabs the second through 5th columns
+A[Axis{:row}(2)] # grabs the second row
+A[Axis{2}(2:5)] # grabs the second through 5th columns
 ```
 
 """ ->
@@ -147,10 +147,18 @@ end
 # Constructed exclusively through Axis{:symbol}(...)
 call{name,T}(::Type{Axis{name}}, I::T=()) = Axis{name,T}(I)
 Base.isempty(ax::Axis) = isempty(ax.I)
-# TODO: I'd really like to only have one of axisnames/axisname.
-axisname(ax::Axis) = axisname(typeof(ax))
-axisname{name,T}(::Type{Axis{name,T}}) = name
-axisname{name}(::Type{Axis{name}}) = name # Invariance. Is this a real concern?
+@doc """
+axisdim(::Type{AxisArray}, ::Type{Axis}) -> Int
+
+Given the types of an AxisArray and an Axis, return the integer dimension of 
+the Axis within the array.
+"""
+function axisdim{T,N,D,names,Ax,name,S}(::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Axis{name,S}})
+    isa(name, Int) && return name <= N ? name : error("axis $name greater than array dimensionality $N")
+    idx = findfirst(names, name)
+    idx == 0 && error("axis $name not found in array axes $names")
+    idx
+end
 
 # Base definitions that aren't provided by AbstractArray
 Base.size(A::AxisArray) = size(A.data)
@@ -255,17 +263,11 @@ end
 #       as adding dimensions in the middle of an AxisArray.
 # TODO: should we allow repeated axes? As a union of indices of the duplicates?
 stagedfunction Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I::Axis...)
-    Inames = Symbol[axisname(i) for i in I]
-    Anames = Symbol[names...]
-    ind = indexin(Inames, Anames)
-    for i = 1:length(ind)
-        ind[i] == 0 && return :(error("axis name ", $(Inames[i]), " is not in ", $names))
-    end
-
+    dims = Int[axisdim(A, ax) for ax in I]
     idxs = Expr[:(Colon()) for d = 1:N]
-    for i=1:length(ind)
-        idxs[ind[i]] == :(Colon()) || return :(error("multiple indices provided on axis ", $(names[ind[i]])))
-        idxs[ind[i]] = :(I[$i].I)
+    for i=1:length(dims)
+        idxs[dims[i]] == :(Colon()) || return :(error("multiple indices provided on axis ", $(names[dims[i]])))
+        idxs[dims[i]] = :(I[$i].I)
     end
 
     return :(A[$(idxs...)])

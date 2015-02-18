@@ -15,9 +15,9 @@ end
 @test A == A.data
 @test A[:,:,:] == A[Axis{:row}(:)] == A[Axis{:col}(:)] == A[Axis{:page}(:)] == A.data[:,:,:]
 # Test UnitRange slices
-@test A[1:2,:,:] == A.data[1:2,:,:] == A[Axis{:row}(1:2)]  == A[Axis{:row}(Interval(-Inf,Inf))] 
-@test A[:,1:2,:] == A.data[:,1:2,:] == A[Axis{:col}(1:2)]  == A[Axis{:col}(Interval(0.0, .25))] 
-@test A[:,:,1:2] == A.data[:,:,1:2] == A[Axis{:page}(1:2)] == A[Axis{:page}(Interval(-1., .22))]
+@test A[1:2,:,:] == A.data[1:2,:,:] == A[Axis{:row}(1:2)]  == A[Axis{1}(1:2)] == A[Axis{:row}(Interval(-Inf,Inf))]
+@test A[:,1:2,:] == A.data[:,1:2,:] == A[Axis{:col}(1:2)]  == A[Axis{2}(1:2)] == A[Axis{:col}(Interval(0.0, .25))]
+@test A[:,:,1:2] == A.data[:,:,1:2] == A[Axis{:page}(1:2)] == A[Axis{3}(1:2)] == A[Axis{:page}(Interval(-1., .22))]
 # Test scalar slices
 @test A[2,:,:] == A.data[2,:,:] == A[Axis{:row}(2)]
 @test A[:,2,:] == A.data[:,2,:] == A[Axis{:col}(2)]
