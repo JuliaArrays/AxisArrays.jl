@@ -261,7 +261,7 @@ end
 stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I...)
     ex = :(getindex(A))
     for i=1:length(I)
-        push!(ex.args, I[1] <: Idx || length(Ax) < i ? :(I[$i]) : :(axisindexes(A.axes[$i], I[$i])))
+        push!(ex.args, I[i] <: Idx || length(Ax) < i ? :(I[$i]) : :(axisindexes(A.axes[$i], I[$i])))
     end
     ex
 end
