@@ -3,6 +3,15 @@
 immutable AxisArray{T,N,D<:AbstractArray,names,Ax} <: AbstractArray{T,N}
     data::D
     axes::Ax
+    function AxisArray(data, axes)
+        for i = 1:length(axes)
+            checkaxis(axes[i])
+            length(axes[i]) == size(data, i) || error("the length of each axis must match the corresponding size of data")
+        end
+        length(axes) <= ndims(data) || error("there may not be more axes than dimensions of data")
+        length(names) <= ndims(data) || error("there may not be more axis names than dimensions of data")
+        new{T,N,D,names,Ax}(data, axes)
+    end
 end
 # Allow AxisArrays that are missing dimensions and/or names?
 AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=()) =
