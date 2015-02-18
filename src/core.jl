@@ -1,5 +1,86 @@
 # Core types and definitions
 
+@doc """
+An AxisArray is an AbstractArray that wraps another AbstractArray and
+adds named axes to each array dimension. AxisArrays can be indexed by
+using the named axes as an alternative to positional indexing by
+dimension. Other advanced indexing along axes are also provided.
+
+### Type parameters
+
+The AxisArray contains several type parameters:
+
+```julia
+immutable AxisArray{T,N,D<:AbstractArray,names,Ax} <: AbstractArray{T,N}
+```
+* `T` : the elemental type of the AbstractArray
+* `N` : the number of dimensions
+* `D` : the type of the wrapped AbstractArray
+* `names` : the names of each axis, a tuple of Symbols of length `D`
+* `Ax` : the types of each axis, a tuple of types of length `D`
+
+### Constructors
+
+```julia
+AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=())
+AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...))
+```
+
+### Arguments
+
+* `A::AbstractArray` : the wrapped array data
+* `axes::(AbstractVector...)` : a tuple of AbstractVectors, one for
+  each dimension of `A`
+* `names::(Symbol...)` : the name of each axis, a tuple of Symbols,
+  one for each dimension of `A`; for dimensions up to three, defaults
+  to (:row,:col,:page)
+
+### Indexing
+
+Indexing returns a view into the original data. The returned view is a
+new AxisArray that wraps a SubArray. Indexing should be type
+stable. Use `Axis{axisname}(idx)` to index based on a specific
+axis. `axisname` is a Symbol specifying the axis to index/slice, and
+`idx` is a normal indexing object (`Int`, `Array{Int,1}`, etc.) or a
+custom indexing type for that particular type of axis.
+
+Two main types of axes supported by default include:
+
+* Categorical axis -- These are vectors of labels, normally symbols or
+  strings. Elements or slices can be indexed by elements or vectors
+  of elements.
+
+* Dimensional axis -- These are sorted vectors or iterators that can
+  be indexed by `Interval()`. These are commonly used for sequences of
+  times or date-times. For regular sample rates, ranges can be used.
+
+User-defined axis types can be added along with custom indexing
+behaviors. To add add a custom type as a Categorical or Dimensional
+axis, add a trait using `AxisArrays.axistype`. Here is the example of
+adding a custom Dimensional axis:
+
+```julia
+AxisArrays.axistype(v::MyCustomAxis) = AxisArrays.Dimensional
+```
+
+For more advanced indexing, you can define custom methods for
+`AxisArrays.axisindexes`.
+
+
+### Examples
+
+Here is an example with a Dimensional axis representing a time
+sequence along rows (it's a FloatRange) and a Categorical axis of
+symbols for column headers.
+
+```julia
+B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
+A[Axis{:row}(1:3))]   # equivalent to A[1:3,:]
+A[Axis{:row}(Interval(.2,.4))] # restrict the AxisArray along the time axis
+A[Interval(0.,.3), [:a, :c]]   # select an interval and two columns 
+```
+
+""" ->
 immutable AxisArray{T,N,D<:AbstractArray,names,Ax} <: AbstractArray{T,N}
     data::D
     axes::Ax
@@ -19,7 +100,43 @@ AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=()) =
 AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...)) =
     AxisArray{T,N,typeof(A),names,typeof(axes)}(A, axes)
 
-# Type-stable axis-specific indexing and identification with a parametric type:
+@doc """
+Type-stable axis-specific indexing and identification with a
+parametric type.
+
+### Type parameters
+
+```julia
+immutable Axis{name,T}
+```
+* `name` : the name of the axis, a Symbol
+* `T` : the type of the axis
+
+### Constructors
+
+```julia
+Axis{name}(I)
+```
+
+### Arguments
+
+* `name` : the name of the axis, a Symbol
+* `I` : the indexer, any indexing type that the axis supports
+
+### Examples
+
+Here is an example with a Dimensional axis representing a time
+sequence along rows and a Categorical axis of symbols for column
+headers.
+
+```julia
+A = AxisArray(reshape(1:60, 12, 5), (.1:.1:1.2, .1:.1:.5), (:row, :col))
+A[Axis{:col}(2)] # grabs the second column
+A[Axis{:row}(2)] # grabs the second column
+A[Axis{:col}(2:5)] # grabs the second through 5th columns
+```
+
+""" ->
 immutable Axis{name,T}
     I::T
 end
@@ -178,7 +295,36 @@ function checkaxis(::Type{Categorical}, ax)
     end
 end
 
-# A very primitive interval type
+@doc """
+A primitive interval type.
+
+### Type parameters
+
+```julia
+immutable Interval{T}
+```
+* `T` : the type of the interval
+
+### Constructors
+
+```julia
+Interval{T}(a::T,b::T)
+```
+
+### Arguments
+
+* `a` : lower bound of the interval
+* `b` : upper bound of the interval
+
+### Examples
+
+```julia
+A = AxisArray(collect(1:20), (.1:.1:2.0,), (:time,))
+A[Interval(0.0,0.5)] 
+A[Interval(0.2,0.5)] 
+```
+
+""" ->
 immutable Interval{T}
     lo::T
     hi::T
