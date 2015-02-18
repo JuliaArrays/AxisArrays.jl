@@ -2,10 +2,11 @@ using AxisArrays
 using Base.Test
 
 A = AxisArray(reshape(1:24, 2,3,4), (.1:.1:.2, .1:.1:.3, .1:.1:.4))
-# Test enumeration
+# Test iteration
 for (a,b) in zip(A, A.data)
     @test a == b
 end
+# Cartesian indexing
 for idx in eachindex(A)
     @test A[idx] == A.data[idx]
 end
@@ -14,9 +15,9 @@ end
 @test A == A.data
 @test A[:,:,:] == A[Axis{:row}(:)] == A[Axis{:col}(:)] == A[Axis{:page}(:)] == A.data[:,:,:]
 # Test UnitRange slices
-@test A[1:2,:,:] == A.data[1:2,:,:] == A[Axis{:row}(1:2)]
-@test A[:,1:2,:] == A.data[:,1:2,:] == A[Axis{:col}(1:2)]
-@test A[:,:,1:2] == A.data[:,:,1:2] == A[Axis{:page}(1:2)]
+@test A[1:2,:,:] == A.data[1:2,:,:] == A[Axis{:row}(1:2)]  == A[Axis{:row}(Interval(-Inf,Inf))] 
+@test A[:,1:2,:] == A.data[:,1:2,:] == A[Axis{:col}(1:2)]  == A[Axis{:col}(Interval(0.0, .25))] 
+@test A[:,:,1:2] == A.data[:,:,1:2] == A[Axis{:page}(1:2)] == A[Axis{:page}(Interval(-1., .22))]
 # Test scalar slices
 @test A[2,:,:] == A.data[2,:,:] == A[Axis{:row}(2)]
 @test A[:,2,:] == A.data[:,2,:] == A[Axis{:col}(2)]
