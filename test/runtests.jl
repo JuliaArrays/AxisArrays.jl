@@ -63,3 +63,9 @@ A = AxisArray(reshape(1:256, 4,4,4,4), (.1:.1:.4, 1//10:1//10:4//10, ["1","2","3
 @test A.data[:,1:2,:,:] == A[Axis{:d2}(Interval(1//10,2//10))] == A[:,Interval(1//10,2//10),:,:] == A[:,Interval(1//10,2//10),:,:,1]
 @test A.data[:,:,1:2,:] == A[Axis{:d3}(["1","2"])]             == A[:,:,["1","2"],:]             == A[:,:,["1","2"],:,1]
 @test A.data[:,:,:,1:2] == A[Axis{:d4}([:a,:b])]               == A[:,:,:,[:a,:b]]               == A[:,:,:,[:a,:b],1]
+
+# Test vectors
+v = AxisArray(collect(.1:.1:10.0), (.1:.1:10.0,))
+@test v[Colon()] === v
+@test v[:] == v.data[:] == v[Axis{:row}(:)]
+@test v[3:8] == v.data[3:8] == v[Interval(.25,.85)] == v[Axis{:row}(3:8)] == v[Axis{:row}(Interval(.22,.88))]
