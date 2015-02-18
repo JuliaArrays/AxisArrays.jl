@@ -1,17 +1,23 @@
 # Core types and definitions
 
-immutable AxisArray{T,N,D<:AbstractArray,names,Ax,AxElts} <: AbstractArray{T,N}
+immutable AxisArray{T,N,D<:AbstractArray,names,Ax} <: AbstractArray{T,N}
     data::D
     axes::Ax
+    function AxisArray(data, axes)
+        for i = 1:length(axes)
+            checkaxis(axes[i])
+            length(axes[i]) == size(data, i) || error("the length of each axis must match the corresponding size of data")
+        end
+        length(axes) <= ndims(data) || error("there may not be more axes than dimensions of data")
+        length(names) <= ndims(data) || error("there may not be more axis names than dimensions of data")
+        new{T,N,D,names,Ax}(data, axes)
+    end
 end
 # Allow AxisArrays that are missing dimensions and/or names?
 AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=()) =
     AxisArray(A, axes, N==0 ? () : N==1 ? (:row,) : N==2 ? (:row,:col) : (:row,:col,:page))
-stagedfunction AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...))
-    Ax = axes == Type{()} ? () : axes # Tuple's Type/Value duality is painful
-    AxElts = map(eltype,Ax)
-    :(AxisArray{T,N,$A,names,$Ax,$AxElts}(A, axes))
-end
+AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...)) =
+    AxisArray{T,N,typeof(A),names,typeof(axes)}(A, axes)
 
 # Type-stable axis-specific indexing and identification with a parametric type:
 immutable Axis{name,T}
@@ -31,7 +37,7 @@ Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
 
 # Custom methods specific to AxisArrays
 axisnames(A::AxisArray) = axisnames(typeof(A))
-axisnames{T,N,D,names,Ax,AxElts}(::Type{AxisArray{T,N,D,names,Ax,AxElts}}) = names
+axisnames{T,N,D,names,Ax}(::Type{AxisArray{T,N,D,names,Ax}}) = names
 axisnames{T,N,D,names,Ax}(::Type{AxisArray{T,N,D,names,Ax}}) = names
 axisnames{T,N,D,names}(::Type{AxisArray{T,N,D,names}}) = names
 axes(A::AxisArray) = A.axes
@@ -43,8 +49,7 @@ axes(A::AxisArray,i::Int) = A.axes[i]
 typealias Idx Union(Colon,Int,Array{Int,1},Range{Int})
 
 # Simple scalar indexing where we return scalars
-Base.getindex(A::AxisArray) = A.data[]
-Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}) = A.data[]
+Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}) = A.data[]
 let args = Expr[], idxs = Symbol[]
     for i = 1:4
         isym = symbol("i$i")
@@ -53,12 +58,25 @@ let args = Expr[], idxs = Symbol[]
         @eval Base.getindex{T}(A::AxisArray{T,$i}, $(args...)) = A.data[$(idxs...)]
     end
 end
-Base.getindex{T,N}(A::AxisArray{T,N}, idxs::Int...) = A.data[idxs...]
+Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idxs::Int...) = A.data[idxs...]
 
+# No-op
+Base.getindex{T,D,names,Ax}(A::AxisArray{T,1,D,names,Ax}, idx::Colon) = A
+
+# Linear indexing with an array
+Base.getindex{T,N,D,names,Ax,S<:Int}(A::AxisArray{T,N,D,names,Ax}, idx::AbstractArray{S}) = A.data[idx]
+
+# Cartesian iteration
+Base.eachindex(A::AxisArray) = eachindex(A.data)
+Base.getindex(A::AxisArray, idx::Base.IteratorsMD.CartesianIndex) = A.data[idx]
+
+# Cartesian iteration
+Base.eachindex(A::AxisArray) = eachindex(A.data)
+Base.getindex(A::AxisArray, idx::Base.IteratorsMD.CartesianIndex) = A.data[idx]
 # More complicated cases where we must create a subindexed AxisArray
 # TODO: do we want to be dogmatic about using views? For the data? For the axes?
 # TODO: perhaps it would be better to return an entirely lazy SubAxisArray view
-stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, idxs::Idx...)
+stagedfunction Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idxs::Idx...)
     newdims = length(idxs)
     # If the last index is a linear indexing range that may span multiple
     # dimensions in the original AxisArray, we can no longer track those axes.
@@ -71,7 +89,6 @@ stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,A
     newdata = _sub_type(D, idxs)
     newnames = names[1:min(newdims-droplastaxis, length(names))]
     newaxes = Ax[1:min(newdims-droplastaxis, length(Ax))]
-    newaxelts = AxElt[1:min(newdims-droplastaxis, length(AxElt))]
     axes = Expr(:tuple)
     for i = 1:length(newaxes)
         if idxs[i] <: Real
@@ -86,7 +103,7 @@ stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,A
     quote
         data = sub(A.data, idxs...) # TODO: create this Expr to avoid splatting
         isa(data, $newdata) || error("miscomputed subarray type: computed ", $newdata, ", got ", typeof(data))
-        $(AxisArray{T,newdims,newdata,newnames,newaxes,newaxelts})(data, $axes)
+        $(AxisArray{T,newdims,newdata,newnames,newaxes})(data, $axes)
     end
 end
 
@@ -119,7 +136,7 @@ end
 # TODO: should we handle multidimensional Axis indexes? It could be interpreted
 #       as adding dimensions in the middle of an AxisArray.
 # TODO: should we allow repeated axes? As a union of indices of the duplicates?
-stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,AxElt}, I::Axis...)
+stagedfunction Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I::Axis...)
     Inames = Symbol[axisname(i) for i in I]
     Anames = Symbol[names...]
     ind = indexin(Inames, Anames)
@@ -134,4 +151,117 @@ stagedfunction Base.getindex{T,N,D,names,Ax,AxElt}(A::AxisArray{T,N,D,names,Ax,A
     end
 
     return :(A[$(idxs...)])
+end
+
+### Indexing with the element type of the axes ###
+
+abstract AxisType
+immutable Dimensional <: AxisType end
+immutable Categorical <: AxisType end
+immutable Unsupported <: AxisType end
+
+axistype(v::Any) = error("axes must be vectors of concrete types; $(typeof(v)) is not supported")
+axistype(v::AbstractVector) = axistype(eltype(v))
+axistype(T::Type) = Unsupported
+axistype(T::Type{Int}) = Unsupported # Ints are exclusively for real indexing
+axistype{T<:Union(Number, Dates.AbstractTime)}(::Type{T}) = Dimensional
+axistype{T<:Union(Symbol, AbstractString)}(::Type{T}) = Categorical
+
+checkaxis(ax) = checkaxis(axistype(ax), ax)
+checkaxis(::Type{Unsupported}, ax) = nothing # TODO: warn or error?
+# Dimensional axes must be monotonically increasing
+checkaxis{T}(::Type{Dimensional}, ax::Range{T}) = step(ax) > zero(T) || error("Dimensional axes must be monotonically increasing")
+checkaxis(::Type{Dimensional}, ax) = issorted(ax, lt=(<=)) || error("Dimensional axes must be monotonically increasing")
+# Categorical axes must simply be unique
+function checkaxis(::Type{Categorical}, ax)
+    seen = Set{eltype(ax)}()
+    for elt in ax
+        elt in seen && error("Categorical axes must be unique")
+        push!(seen, elt)
+    end
+end
+
+# A very primitive interval type
+immutable Interval{T}
+    lo::T
+    hi::T
+    Interval(lo, hi) = lo <= hi ? new(lo, hi) : error("lo must be less than or equal to hi")
+end
+Interval{T}(a::T,b::T) = Interval{T}(a,b)
+Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}
+Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{S}) = Interval{promote_type(T,S)}
+Base.convert{T,S}(::Type{Interval{T}}, x::Interval{S}) = (R = promote_type(T,S); Interval{R}(convert(R,x.lo),(convert(R,x.hi))))
+Base.convert{T}(::Type{Interval{T}}, x) = Interval(x,x)
+Base.isless(a::Interval, b::Interval) = isless(a.hi, b.lo)
+Base.isless(a::Interval, b) = isless(promote(a,b)...)
+Base.isless(a, b::Interval) = isless(promote(a,b)...)
+
+# Default axes indexing throws an error
+axisindexes(ax, idx) = axisindexes(axistype(ax), ax, idx)
+axisindexes(::Type{Unsupported}, ax, idx) = error("elementwise indexing is not supported for axes of type $(typeof(ax))")
+# Dimensional axes may be indexed by intervals of their elements
+axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::Interval{T}) = searchsorted(ax, idx)
+# Categorical axes may be indexed by their elements
+function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::T)
+    i = findfirst(ax, idx)
+    i == 0 && error("index $idx not found")
+    i
+end
+# Categorical axes may be indexed by a vector of their elements
+function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::AbstractVector{T}) 
+    res = findin(ax, idx)
+    length(res) == length(idx) || error("index $(setdiff(idx,ax)) not found")
+    res
+end
+
+# Defining the fallbacks on getindex are tricky due to ambiguities with 
+# AbstractArray definitions - 
+let args = Expr[], idxs = Symbol[]
+    for i = 1:4
+        isym = symbol("i$i")
+        push!(args, :($isym::Real))
+        push!(idxs, isym)
+        @eval Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, $(args...)) = fallback_getindex(A, $(idxs...))
+    end
+end
+Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idx::AbstractArray) = fallback_getindex(A, idx)
+Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idxs...) = fallback_getindex(A, idxs...)
+
+# These catch-all methods attempt to convert any axis-specific non-standard
+# indexing types to their integer or integer range equivalents using the
+# They are separate from the `Base.getindex` function to help alleviate 
+# ambiguity warnings from, e.g., `getindex(::AbstractArray, ::Real...)`.
+# TODO: These could be generated with meta-meta-programming
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I1)
+    ex = :(getindex(A))
+    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
+    ex
+end
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I1, I2)
+    ex = :(getindex(A))
+    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
+    push!(ex.args, I2 <: Idx || length(Ax) < 2 ? :(I2) : :(axisindexes(A.axes[2], I2)))
+    ex
+end
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I1, I2, I3)
+    ex = :(getindex(A))
+    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
+    push!(ex.args, I2 <: Idx || length(Ax) < 2 ? :(I2) : :(axisindexes(A.axes[2], I2)))
+    push!(ex.args, I3 <: Idx || length(Ax) < 3 ? :(I3) : :(axisindexes(A.axes[3], I3)))
+    ex
+end
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I1, I2, I3, I4)
+    ex = :(getindex(A))
+    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
+    push!(ex.args, I2 <: Idx || length(Ax) < 2 ? :(I2) : :(axisindexes(A.axes[2], I2)))
+    push!(ex.args, I3 <: Idx || length(Ax) < 3 ? :(I3) : :(axisindexes(A.axes[3], I3)))
+    push!(ex.args, I4 <: Idx || length(Ax) < 4 ? :(I4) : :(axisindexes(A.axes[4], I4)))
+    ex
+end
+stagedfunction fallback_getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, I...)
+    ex = :(getindex(A))
+    for i=1:length(I)
+        push!(ex.args, I[1] <: Idx || length(Ax) < i ? :(I[$i]) : :(axisindexes(A.axes[$i], I[$i])))
+    end
+    ex
 end
