@@ -70,3 +70,46 @@ v = AxisArray(collect(.1:.1:10.0), (.1:.1:10.0,))
 @test v[Colon()] === v
 @test v[:] == v.data[:] == v[Axis{:row}(:)]
 @test v[3:8] == v.data[3:8] == v[Interval(.25,.85)] == v[Axis{:row}(3:8)] == v[Axis{:row}(Interval(.22,.88))]
+
+## Test constructors
+# No axis or time args
+A = AxisArray(1:3)
+@test A.axes == ()
+@test A.data == 1:3
+@test axisnames(A) == (:row,)
+A = AxisArray(reshape(1:16, 2,2,2,2))
+@test A.axes == ()
+@test A.data == reshape(1:16, 2,2,2,2)
+@test axisnames(A) == (:row,:col,:page)
+# Empty axis
+A = AxisArray(1:3, ())
+@test A.axes == ()
+@test A.data == 1:3
+@test axisnames(A) == (:row,)
+# Both empty
+A = AxisArray(1:3, (), ())
+@test A.axes == ()
+@test A.data == 1:3
+@test axisnames(A) == ()
+# Names first
+A = AxisArray(1:3, (:a,))
+@test A.axes == ()
+@test A.data == 1:3
+@test axisnames(A) == (:a,)
+A = AxisArray(1:3, (:a,), (1:3,))
+@test A.axes == (1:3,)
+@test A.data == 1:3
+@test axisnames(A) == (:a,)
+# Axes first
+A = AxisArray(1:3, (1:3,))
+@test A.axes == (1:3,)
+@test A.data == 1:3
+@test axisnames(A) == (:row,)
+A = AxisArray(reshape(1:16, 2,2,2,2), (1:2,))
+@test A.axes == (1:2,)
+@test A.data == reshape(1:16, 2,2,2,2)
+@test axisnames(A) == (:row,:col,:page)
+A = AxisArray(1:3, (1:3,), (:a,))
+@test A.axes == (1:3,)
+@test A.data == 1:3
+@test axisnames(A) == (:a,)

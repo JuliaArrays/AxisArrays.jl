@@ -2,9 +2,9 @@
 
 @doc """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
-adds named axes to each array dimension. AxisArrays can be indexed by
-using the named axes as an alternative to positional indexing by
-dimension. Other advanced indexing along axes are also provided.
+adds axis names and values to each array dimension. AxisArrays can be indexed
+by using the named axes as an alternative to positional indexing by
+dimension. Other advanced indexing along axis values are also provided.
 
 ### Type parameters
 
@@ -16,24 +16,25 @@ immutable AxisArray{T,N,D<:AbstractArray,names,Ax} <: AbstractArray{T,N}
 * `T` : the elemental type of the AbstractArray
 * `N` : the number of dimensions
 * `D` : the type of the wrapped AbstractArray
-* `names` : the names of each axis, a tuple of Symbols of length `D`
-* `Ax` : the types of each axis, a tuple of types of length `D`
+* `names` : the names of each axis, a tuple of Symbols of length `D` or less
+* `Ax` : the types of each axis, a tuple of types of length `D` or less
 
 ### Constructors
 
 ```julia
-AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=())
-AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...))
+AxisArray(A::AbstractArray[, names::(Symbol...)][, axes::(AbstractVector...)])
 ```
 
 ### Arguments
 
 * `A::AbstractArray` : the wrapped array data
-* `axes::(AbstractVector...)` : a tuple of AbstractVectors, one for
-  each dimension of `A`
-* `names::(Symbol...)` : the name of each axis, a tuple of Symbols,
-  one for each dimension of `A`; for dimensions up to three, defaults
-  to (:row,:col,:page)
+* `axes::(AbstractVector...)` : an optional tuple of AbstractVectors, one for
+  each dimension of `A`. The length of the `i`th vector must equal `size(A, i)`.
+  Defaults to `()`.
+* `names::(Symbol...)` : an optional tuple of Symbols, to name
+  the dimensions of `A`. For dimensions up to three, defaults
+  to `(:row,:col,:page)` with any higher dimensions unnamed.
+* The `names` and `axes` arguments may be given in either order.
 
 ### Indexing
 
@@ -74,9 +75,9 @@ sequence along rows (it's a FloatRange) and a Categorical axis of
 symbols for column headers.
 
 ```julia
-B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
-A[Axis{:row}(1:3))]   # equivalent to A[1:3,:]
-A[Axis{:row}(Interval(.2,.4))] # restrict the AxisArray along the time axis
+A = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]), (:time, :col))
+A[Axis{:time}(1:3)]   # equivalent to A[1:3,:]
+A[Axis{:time}(Interval(.2,.4))] # restrict the AxisArray along the time axis
 A[Interval(0.,.3), [:a, :c]]   # select an interval and two columns 
 ```
 
@@ -94,10 +95,13 @@ immutable AxisArray{T,N,D<:AbstractArray,names,Ax} <: AbstractArray{T,N}
         new{T,N,D,names,Ax}(data, axes)
     end
 end
-# Allow AxisArrays that are missing dimensions and/or names?
-AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=()) =
-    AxisArray(A, axes, N==0 ? () : N==1 ? (:row,) : N==2 ? (:row,:col) : (:row,:col,:page))
-AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...), names::(Symbol...)) =
+AxisArray{T,N}(A::AbstractArray{T,N}, ::()) =
+    AxisArray{T,N,typeof(A),(:row,:col,:page)[1:min(N,3)],()}(A, ())
+AxisArray{T,N}(A::AbstractArray{T,N}, ::(), ::()) =
+    AxisArray{T,N,typeof(A),(),()}(A, ())
+AxisArray{T,N}(A::AbstractArray{T,N}, names::(Symbol...)=(:row,:col,:page)[1:min(N,3)], axes::(AbstractVector...)=()) =
+    AxisArray{T,N,typeof(A),names,typeof(axes)}(A, axes)
+AxisArray{T,N}(A::AbstractArray{T,N}, axes::(AbstractVector...)=(), names::(Symbol...)=(:row,:col,:page)[1:min(N,3)]) =
     AxisArray{T,N,typeof(A),names,typeof(axes)}(A, axes)
 
 @doc """
