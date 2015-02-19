@@ -148,11 +148,11 @@ end
 call{name,T}(::Type{Axis{name}}, I::T=()) = Axis{name,T}(I)
 Base.isempty(ax::Axis) = isempty(ax.I)
 @doc """
-axisdim(::Type{AxisArray}, ::Type{Axis}) -> Int
+    axisdim(::Type{AxisArray}, ::Type{Axis}) -> Int
 
 Given the types of an AxisArray and an Axis, return the integer dimension of 
 the Axis within the array.
-"""
+""" ->
 function axisdim{T,N,D,names,Ax,name,S}(::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Axis{name,S}})
     isa(name, Int) && return name <= N ? name : error("axis $name greater than array dimensionality $N")
     idx = findfirst(names, name)
@@ -165,6 +165,12 @@ Base.size(A::AxisArray) = size(A.data)
 Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
 
 # Custom methods specific to AxisArrays
+@doc """
+    axisnames(A::AxisArray) -> (Symbol...)
+    axisnames(::Type{AxisArray{...}}) -> (Symbol...)
+
+Returns the axis names of an AxisArray or AxisArray Type as a tuple of symbols.
+""" ->
 axisnames(A::AxisArray) = axisnames(typeof(A))
 axisnames{T,N,D,names,Ax}(::Type{AxisArray{T,N,D,names,Ax}}) = names
 axisnames{T,N,D,names,Ax}(::Type{AxisArray{T,N,D,names,Ax}}) = names
