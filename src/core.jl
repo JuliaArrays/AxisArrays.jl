@@ -160,7 +160,7 @@ stagedfunction axisdim{T<:Axis}(A::AxisArray, ax::Type{T})
     :($dim)
 end
 # The actual computation is done in the type domain, which is a little tricky
-# because we allow both Axis{:ax} and Axis{:ax}() and type invariance.
+# due to type invariance.
 axisdim{T,N,D,names,Ax,name,S}(A::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Axis{name,S}}) = axisdim(A, Axis{name})
 function axisdim{T,N,D,names,Ax,name}(::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Axis{name}})
     isa(name, Int) && return name <= N ? name : error("axis $name greater than array dimensionality $N")
@@ -194,11 +194,10 @@ immutable Categorical <: AxisType end
 immutable Unsupported <: AxisType end
 
 axistype(v::Any) = error("axes must be vectors of concrete types; $(typeof(v)) is not supported")
-axistype(v::AbstractVector) = axistype(eltype(v))
-axistype(T::Type) = Unsupported
-axistype(T::Type{Int}) = Unsupported # Ints are exclusively for real indexing
-axistype{T<:Union(Number, Dates.AbstractTime)}(::Type{T}) = Dimensional
-axistype{T<:Union(Symbol, AbstractString)}(::Type{T}) = Categorical
+axistype(::AbstractVector) = Unsupported
+axistype(::AbstractVector{Int}) = Unsupported
+axistype{T<:Union(Number, Dates.AbstractTime)}(::AbstractVector{T}) = Dimensional
+axistype{T<:Union(Symbol, AbstractString)}(::AbstractVector{T}) = Categorical
 
 checkaxis(ax) = checkaxis(axistype(ax), ax)
 checkaxis(::Type{Unsupported}, ax) = nothing # TODO: warn or error?
