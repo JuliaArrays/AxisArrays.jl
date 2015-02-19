@@ -1,6 +1,6 @@
 module AxisArrays
 
-export AxisArray, Axis, Interval, axisnames
+export AxisArray, Axis, Interval, axisnames, axisdim
 
 include("core.jl")
 include("intervals.jl")

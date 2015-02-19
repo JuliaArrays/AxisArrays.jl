@@ -153,7 +153,10 @@ Base.isempty(ax::Axis) = isempty(ax.I)
 Given the types of an AxisArray and an Axis, return the integer dimension of 
 the Axis within the array.
 """ ->
-function axisdim{T,N,D,names,Ax,name,S}(::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Axis{name,S}})
+axisdim{T<:Axis}(A::AxisArray, ax::Type{T}) = axisdim(typeof(A), ax)
+axisdim{T,N,D,names,Ax}(A::Type{AxisArray{T,N,D,names,Ax}}, ax::Axis) = axisdim(A, typeof(ax))
+axisdim{T,N,D,names,Ax,name,S}(A::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Axis{name,S}}) = axisdim(A, Axis{name})
+function axisdim{T,N,D,names,Ax,name}(::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Axis{name}})
     isa(name, Int) && return name <= N ? name : error("axis $name greater than array dimensionality $N")
     idx = findfirst(names, name)
     idx == 0 && error("axis $name not found in array axes $names")
