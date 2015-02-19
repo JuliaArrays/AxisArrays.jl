@@ -151,7 +151,7 @@ Base.isempty(ax::Axis) = isempty(ax.I)
     axisdim(::AxisArray, ::Axis) -> Int
     axisdim(::AxisArray, ::Type{Axis}) -> Int
 
-Given the an AxisArray and an Axis, return the integer dimension of 
+Given an AxisArray and an Axis, return the integer dimension of 
 the Axis within the array.
 """ ->
 axisdim(A::AxisArray, ax::Axis) = axisdim(A, typeof(ax))
