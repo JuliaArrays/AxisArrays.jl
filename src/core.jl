@@ -78,7 +78,7 @@ symbols for column headers.
 A = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]), (:time, :col))
 A[Axis{:time}(1:3)]   # equivalent to A[1:3,:]
 A[Axis{:time}(Interval(.2,.4))] # restrict the AxisArray along the time axis
-A[Interval(0.,.3), [:a, :c]]   # select an interval and two columns 
+A[Interval(0.,.3), [:a, :c]]   # select an interval and two columns
 ```
 
 """ ->
@@ -151,7 +151,7 @@ Base.isempty(ax::Axis) = isempty(ax.I)
     axisdim(::AxisArray, ::Axis) -> Int
     axisdim(::AxisArray, ::Type{Axis}) -> Int
 
-Given an AxisArray and an Axis, return the integer dimension of 
+Given an AxisArray and an Axis, return the integer dimension of
 the Axis within the array.
 """ ->
 axisdim(A::AxisArray, ax::Axis) = axisdim(A, typeof(ax))
@@ -182,10 +182,23 @@ Returns the axis names of an AxisArray or AxisArray Type as a tuple of symbols.
 """ ->
 axisnames(A::AxisArray) = axisnames(typeof(A))
 axisnames{T,N,D,names,Ax}(::Type{AxisArray{T,N,D,names,Ax}}) = names
-axisnames{T,N,D,names,Ax}(::Type{AxisArray{T,N,D,names,Ax}}) = names
 axisnames{T,N,D,names}(::Type{AxisArray{T,N,D,names}}) = names
+
+@doc """
+    axes(A::AxisArray) -> (AbstractVector...)
+    axes(A::AxisArray, ax::Axis) -> AbstractVector
+
+Returns the tuple of axis vectors for an AxisArray. If an specific `Axis` is
+specified, then only that axis vector is returned.  Note that when extracting a
+single axis vector, `axes(A, Axis{1})`) is type-stable and will perform better
+than `axes(A)[1]`.
+""" ->
 axes(A::AxisArray) = A.axes
-axes(A::AxisArray,i::Int) = A.axes[i]
+axes(A::AxisArray, ax::Axis) = axes(A, typeof(ax))
+stagedfunction axes{T<:Axis}(A::AxisArray, ax::Type{T})
+    dim = axisdim(A, T)
+    :(A.axes[$dim])
+end
 
 ### Axis traits ###
 abstract AxisType

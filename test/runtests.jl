@@ -115,7 +115,12 @@ A = AxisArray(1:3, (1:3,), (:a,))
 @test axisnames(A) == (:a,)
 
 # Test axisdim
-A = AxisArray(reshape(1:24, 2,3,4), (:x,:y,:z))
+A = AxisArray(reshape(1:24, 2,3,4), (:x,:y,:z), (.1:.1:.2, 1//10:1//10:3//10, ["a", "b", "c", "d"]))
 @test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == 1
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2
 @test axisdim(A, Axis{:z}) == axisdim(A, Axis{:z}()) == 3
+# Test axes
+@test @inferred(axes(A)) == (.1:.1:.2, 1//10:1//10:3//10, ["a", "b", "c", "d"])
+@test @inferred(axes(A, Axis{:x})) == @inferred(axes(A, Axis{:x}())) == .1:.1:.2
+@test @inferred(axes(A, Axis{:y})) == @inferred(axes(A, Axis{:y}())) == 1//10:1//10:3//10
+@test @inferred(axes(A, Axis{:z})) == @inferred(axes(A, Axis{:z}())) == ["a", "b", "c", "d"]
