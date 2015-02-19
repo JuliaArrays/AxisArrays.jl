@@ -148,16 +148,21 @@ end
 call{name,T}(::Type{Axis{name}}, I::T=()) = Axis{name,T}(I)
 Base.isempty(ax::Axis) = isempty(ax.I)
 @doc """
-    axisdim(::Type{AxisArray}, ::Type{Axis}) -> Int
+    axisdim(::AxisArray, ::Axis) -> Int
+    axisdim(::AxisArray, ::Type{Axis}) -> Int
 
-Given the types of an AxisArray and an Axis, return the integer dimension of 
+Given the an AxisArray and an Axis, return the integer dimension of 
 the Axis within the array.
 """ ->
+axisdim(A::AxisArray, ax::Axis) = axisdim(A, typeof(ax))
 stagedfunction axisdim{T<:Axis}(A::AxisArray, ax::Type{T})
     dim = axisdim(A, ax)
     :($dim)
 end
+# The actual computation is done in the type domain, which is a little tricky
+# because we allow both Axis{:ax} and Axis{:ax}() and type invariance.
 axisdim{T,N,D,names,Ax,name,S}(A::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Axis{name,S}}) = axisdim(A, Type{Axis{name}})
+axisdim{T,N,D,names,Ax,name,S}(A::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Type{Axis{name,S}}}) = axisdim(A, Type{Axis{name}})
 function axisdim{T,N,D,names,Ax,name}(::Type{AxisArray{T,N,D,names,Ax}}, ::Type{Type{Axis{name}}})
     isa(name, Int) && return name <= N ? name : error("axis $name greater than array dimensionality $N")
     idx = findfirst(names, name)

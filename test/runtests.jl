@@ -113,3 +113,9 @@ A = AxisArray(1:3, (1:3,), (:a,))
 @test A.axes == (1:3,)
 @test A.data == 1:3
 @test axisnames(A) == (:a,)
+
+# Test axisdim
+A = AxisArray(reshape(1:24, 2,3,4), (:x,:y,:z))
+@test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == 1
+@test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2
+@test axisdim(A, Axis{:z}) == axisdim(A, Axis{:z}()) == 3
