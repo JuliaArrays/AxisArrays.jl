@@ -107,13 +107,14 @@ A[Interval(0.,.3), [:a, :c]]      # select an interval and two of the columns
 User-defined axis types can be added along with custom indexing
 behaviors.
 
-### Compute the intensity-weighted mean along the z axis
+### Example: compute the intensity-weighted mean along the z axis
 ```
+B = AxisArray(randn(100,100,100), (:x,:y,:z))
 Itotal = sumz = 0.0
-for iter in eachelement(B)  # traverses in storage order for cache efficiency
+for iter in eachindex(B)  # traverses in storage order for cache efficiency
     I = B[iter]  # intensity in a single voxel
     Itotal += I
-    sumz += I * iter.z  # iter.z "looks up" the current z position
+    sumz += I * iter[axisdim(B, Axis{:z})]  # axisdim "looks up" the z dimension
 end
 meanz = sumz/Itotal
 ```
