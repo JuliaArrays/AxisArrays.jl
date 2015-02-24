@@ -66,11 +66,11 @@ D[1,1,1,1,1] = 10
 B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
 
 # Test indexing by Intervals
-@test B[Interval(0.0,  0.5), :] == B[:,:]
-@test B[Interval(0.0,  0.3), :] == B[1:3,:]
-@test B[Interval(0.15, 0.3), :] == B[2:3,:]
-@test B[Interval(0.2,  0.5), :] == B[2:end,:]
-@test B[Interval(0.2,  0.6), :] == B[2:end,:]
+@test B[Interval(0.0,  0.5), :] == B[Interval(0.0,  0.5)] == B[:,:]
+@test B[Interval(0.0,  0.3), :] == B[Interval(0.0,  0.3)] == B[1:3,:]
+@test B[Interval(0.15, 0.3), :] == B[Interval(0.15, 0.3)] == B[2:3,:]
+@test B[Interval(0.2,  0.5), :] == B[Interval(0.2,  0.5)] == B[2:end,:]
+@test B[Interval(0.2,  0.6), :] == B[Interval(0.2,  0.6)] == B[2:end,:]
 
 # Test Categorical indexing
 @test B[:, :a] == B[:,1]
@@ -81,9 +81,9 @@ B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
 @test B[Axis{:row}(Interval(0.15, 0.3))] == B[2:3,:]
 
 A = AxisArray(reshape(1:256, 4,4,4,4), (.1:.1:.4, 1//10:1//10:4//10, ["1","2","3","4"], [:a, :b, :c, :d]), (:d1,:d2,:d3,:d4))
-@test A.data[1:2,:,:,:] == A[Axis{:d1}(Interval(.1,.2))]       == A[Interval(.1,.2),:,:,:]       == A[Interval(.1,.2),:,:,:,1]
-@test A.data[:,1:2,:,:] == A[Axis{:d2}(Interval(1//10,2//10))] == A[:,Interval(1//10,2//10),:,:] == A[:,Interval(1//10,2//10),:,:,1]
-@test A.data[:,:,1:2,:] == A[Axis{:d3}(["1","2"])]             == A[:,:,["1","2"],:]             == A[:,:,["1","2"],:,1]
+@test A.data[1:2,:,:,:] == A[Axis{:d1}(Interval(.1,.2))]       == A[Interval(.1,.2),:,:,:]       == A[Interval(.1,.2),:,:,:,1]       == A[Interval(.1,.2)] 
+@test A.data[:,1:2,:,:] == A[Axis{:d2}(Interval(1//10,2//10))] == A[:,Interval(1//10,2//10),:,:] == A[:,Interval(1//10,2//10),:,:,1] == A[:,Interval(1//10,2//10)]
+@test A.data[:,:,1:2,:] == A[Axis{:d3}(["1","2"])]             == A[:,:,["1","2"],:]             == A[:,:,["1","2"],:,1]             == A[:,:,["1","2"]]
 @test A.data[:,:,:,1:2] == A[Axis{:d4}([:a,:b])]               == A[:,:,:,[:a,:b]]               == A[:,:,:,[:a,:b],1]
 
 # Test vectors
