@@ -35,8 +35,8 @@ immutable Interval{T}
 end
 Interval{T}(a::T,b::T) = Interval{T}(a,b)
 Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}
-Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{S}) = Interval{promote_type(T,S)}
-Base.convert{T,S}(::Type{Interval{T}}, x::Interval{S}) = (R = promote_type(T,S); Interval{R}(convert(R,x.lo),(convert(R,x.hi))))
+Base.promote_rule{T}(::Type{Interval{T}}, ::Type{T}) = Interval{T}
+Base.convert{T,S}(::Type{Interval{T}}, x::Interval{S}) = Interval{T}(convert(T,x.lo),(convert(T,x.hi)))
 Base.convert{T}(::Type{Interval{T}}, x) = Interval(x,x)
 Base.isless(a::Interval, b::Interval) = isless(a.hi, b.lo)
 Base.isless(a::Interval, b) = isless(promote(a,b)...)
