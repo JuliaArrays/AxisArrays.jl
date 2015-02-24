@@ -3,17 +3,19 @@
 # Limit indexing to types supported by SubArrays, at least initially
 typealias Idx Union(Colon,Int,Array{Int,1},Range{Int})
 
-# Simple scalar indexing where we return scalars
+# Simple scalar indexing where we just set or return scalars
 Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}) = A.data[]
 let args = Expr[], idxs = Symbol[]
     for i = 1:4
         isym = symbol("i$i")
         push!(args, :($isym::Int))
         push!(idxs, isym)
-        @eval Base.getindex{T}(A::AxisArray{T,$i}, $(args...)) = A.data[$(idxs...)]
+        @eval Base.getindex(A::AxisArray, $(args...)) = A.data[$(idxs...)]
+        @eval Base.setindex!(A::AxisArray, v, $(args...)) = (A.data[$(idxs...)] = v)
     end
 end
 Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idxs::Int...) = A.data[idxs...]
+Base.setindex!{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, v, idxs::Int...) = (A.data[idxs...] = v)
 
 # No-op
 Base.getindex{T,D,names,Ax}(A::AxisArray{T,1,D,names,Ax}, idx::Colon) = A

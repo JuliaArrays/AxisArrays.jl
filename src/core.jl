@@ -172,6 +172,17 @@ end
 # Base definitions that aren't provided by AbstractArray
 Base.size(A::AxisArray) = size(A.data)
 Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
+Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A.data)
+# Similar is tricky. If we're just changing the element type, it can stay as an
+# AxisArray. But if we're changing dimensions, there's no way it can know how
+# to keep track of the axes, so just punt and return a regular old Array.
+# TODO: would it feel more consistent to return an AxisArray without any axes?
+# Note: dispatch is wonky due to https://github.com/JuliaLang/julia/issues/6383
+Base.similar{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax})    = (d = similar(A.data, T); AxisArray{T,N,typeof(d),names,Ax}(d, A.axes))
+Base.similar{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, S) = (d = similar(A.data, S); AxisArray{S,N,typeof(d),names,Ax}(d, A.axes))
+Base.similar{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, dims::Int64...)   = similar(A, T, dims)
+Base.similar{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, dims::(Int64...)) = similar(A, T, dims)
+Base.similar{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, S, dims) = similar(A.data, S, dims)
 
 # Custom methods specific to AxisArrays
 @doc """

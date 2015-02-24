@@ -10,6 +10,26 @@ end
 for idx in eachindex(A)
     @test A[idx] == A.data[idx]
 end
+# Conversion and similar
+@test Array(A) == A.data
+@test reshape(A, length(A)) == A.data[:]
+@test [A A] == [A.data A.data]
+B = similar(A, Float64)
+for i in eachindex(A)
+    B[i] = A[i]
+end
+@test A == B
+for i=1:length(A)
+    @test float(A[i]) === B[i]
+end
+C = similar(A, 0)
+@test isa(C, Array{Int,1})
+@test C == []
+D = similar(A)
+@test size(A) == size(D)
+@test eltype(A) == eltype(D)
+D[1,1,1,1,1] = 10
+@test D[1,1,1,1,1] == D[1] == D.data[1] == 10
 
 # Test slices
 @test A == A.data
@@ -25,6 +45,7 @@ end
 
 # Test fallback methods
 @test A[[1 2; 3 4]] == A.data[[1 2; 3 4]]
+@test A[] == A.data[]
 
 # Test axis restrictions
 @test A[:,:,:].axes == A.axes
