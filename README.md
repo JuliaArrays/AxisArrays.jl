@@ -2,19 +2,20 @@
 
 [![Build Status](https://travis-ci.org/mbauman/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/mbauman/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/mbauman/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/r/mbauman/AxisArrays.jl?branch=master)
 
-This package for the Julia language allows you to index arrays using names for the individual axes and keep track of dimensional axes.
+This package for the Julia language provides an array type (the `AxisArray`) that knows about its dimension names and axis values.
+This allows for indexing with the axis name without incurring any runtime overhead.
+AxisArrays can also be indexed by the values of their axes, allowing column names or interval selections.
 This permits one to implement algorithms that are oblivious to the storage order of the underlying arrays.
-In contrast to similar approaches in [Images.jl](https://github.com/timholy/Images.jl) and [NamedArrays.jl](https://github.com/davidavdav/NamedArrays),
-this should enable implementation of all basic operations without introducing any runtime overhead.
+In contrast to similar approaches in [Images.jl](https://github.com/timholy/Images.jl) and [NamedArrays.jl](https://github.com/davidavdav/NamedArrays), this allows for type-stable selection of dimensions and compile-time axis lookup.  It is also better suited for regularly sampled axes, like samples over time.
 
-See https://github.com/mbauman/Signals.jl/issues/12 for a design sketch.
+Collaboration is welcome! This is still a work-in-progress. See [the roadmap](https://github.com/mbauman/AxisArrays.jl/issues/7) for the project's current direction.
 
 ## Here's what's currently implemented:
 
 ```julia
 julia> using AxisArrays
 
-julia> A = AxisArray(reshape(1:60, 12, 5), (.1:.1:1.2, .1:.1:.5))
+julia> A = AxisArray(reshape(1:60, 12, 5), (.1:.1:1.2, .1:.1:.5)) # Add FloatRange axes to a 12x5 array
 12x5 AxisArrays.AxisArray{Int64,2,Array{Int64,2},(:row,:col),(FloatRange{Float64},FloatRange{Float64}),(Float64,Float64)}:
   1  13  25  37  49
   2  14  26  38  50
