@@ -17,7 +17,7 @@
       added for each axis plus one column for the data (named `:data`).
 
     """
-    function DataFrames.DataFrame(A::AxisArray)
+    function Base.convert(::Type{DataFrames.DataFrame}, A::AxisArray)
         colnames = Symbol[axisnames(A)..., :data]
         sz = [1; size(A)...; 1]
         columns = Any[DataFrames.RepeatedVector(a, prod(sz[1:i]), prod(sz[i+2:end])) for (i,a) in enumerate(axes(A))]
