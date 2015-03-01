@@ -13,3 +13,18 @@ facts("conversion from TimeArray to AxisArray") do
         @fact AxisArray(AAPL).data[8336] => 554.17
     end
 end
+
+facts("moving") do
+
+    context("moving only works on single column") do
+        @fact moving(AxisArray(cl), mean, 10)[1] => roughly(98.782)
+        @fact_throws moving(AxisArray(AAPL), mean, 10) 
+    end
+end
+
+facts("merge") do
+
+    context("only inner join supported") do
+        @fact size(merge(AxisArray(AAPL), AxisArray(BA)),1) => 8335
+    end
+end
