@@ -54,8 +54,9 @@ stagedfunction Base.getindex{T,N,D,names,Ax}(A::AxisArray{T,N,D,names,Ax}, idxs:
             push!(axes.args, :(A.axes[$i][idxs[$i]]))
         end
     end
+    Isplat = Expr[:(idxs[$d]) for d=1:length(idxs)]
     quote
-        data = sub(A.data, idxs...) # TODO: create this Expr to avoid splatting
+        data = sub(A.data, $(Isplat...))
         isa(data, $newdata) || error("miscomputed subarray type: computed ", $newdata, ", got ", typeof(data))
         $(AxisArray{T,newdims,newdata,newnames,newaxes})(data, $axes)
     end
