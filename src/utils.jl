@@ -65,3 +65,36 @@ end
     Gadfly.plot(A::AxisArray, args...; kwargs...) = Gadfly.plot(DataFrames.DataFrame(A), args...; kwargs...)
     
 end
+
+@require TimeSeries begin
+
+    """
+    Convert a TimeArray into an AxisArray 
+    
+    ```julia
+    AxisArray(a::TimeArray)
+    ```
+    
+    ### Arguments
+    
+    * `a::TimeArray`
+    
+    ### Returns
+    
+    * `::AxisArray` : an AxisArray from a TimeArray. The first axis
+      is of type Base.Dates and the second axis is String.
+
+    ### Examples
+
+    ```julia
+    using MarketData
+    Apple = AxisArray(AAPL)
+    ```
+
+    """
+    function Base.convert(::Type{AxisArrays.AxisArray}, A::TimeSeries.TimeArray)
+        length(A.colnames) > 1 ?
+        AxisArray(A.values, (A.timestamp,A.colnames)) :
+        AxisArray(A.values, (A.timestamp,)) 
+    end
+end
