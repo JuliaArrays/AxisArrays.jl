@@ -171,6 +171,8 @@ end
 
 # Base definitions that aren't provided by AbstractArray
 Base.size(A::AxisArray) = size(A.data)
+Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
+Base.size{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = size(A.data, axisdim(A, Ax))
 Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
 Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A.data)
 # Similar is tricky. If we're just changing the element type, it can stay as an
