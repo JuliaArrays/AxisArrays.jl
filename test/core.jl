@@ -34,6 +34,20 @@ F = similar(A, Axis{:row}())
 @test eltype(F) == eltype(A)
 @test axisvalues(F) == axisvalues(A)[2:end]
 @test axisnames(F) == axisnames(A)[2:end]
+G = similar(A, Float64)
+@test size(G) == size(A)
+@test eltype(G) == Float64
+@test axisvalues(A) == axisvalues(G)
+@test axisnames(A) == axisnames(G)
+H = similar(A, 1,1,1)
+@test size(H) == (1,1,1)
+@test eltype(H) == eltype(A)
+@test typeof(H) <: Array
+H = similar(A, Float64, 1,1,1)
+@test size(H) == (1,1,1)
+@test eltype(H) == Float64
+@test typeof(H) <: Array
+
 
 # Size
 @test size(A, 1) == size(A, Axis{1}) == size(A, Axis{:row}) == size(A, Axis{:row}())
@@ -83,3 +97,4 @@ A = AxisArray(reshape(1:24, 2,3,4), Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//
 @test hash(Axis{:col}(1)) == hash(Axis{:col}(1.0))
 @test hash(Axis{:row}()) != hash(Axis{:col}())
 @test AxisArrays.axistype(Axis{1}(1:2)) == typeof(1:2)
+@test axisnames(Axis{1}, Axis{2}, Axis{3}) == (1,2,3)

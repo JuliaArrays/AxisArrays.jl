@@ -136,17 +136,6 @@ stagedfunction fallback_getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I1, I2, I3)
     end
     ex
 end
-stagedfunction fallback_getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I1, I2, I3, I4)
-    ex = :(getindex(A))
-    push!(ex.args, I1 <: Idx || length(Ax) < 1 ? :(I1) : :(axisindexes(A.axes[1], I1)))
-    push!(ex.args, I2 <: Idx || length(Ax) < 2 ? :(I2) : :(axisindexes(A.axes[2], I2)))
-    push!(ex.args, I3 <: Idx || length(Ax) < 3 ? :(I3) : :(axisindexes(A.axes[3], I3)))
-    push!(ex.args, I4 <: Idx || length(Ax) < 4 ? :(I4) : :(axisindexes(A.axes[4], I4)))
-    for _=5:N
-        push!(ex.args, :(Colon()))
-    end
-    ex
-end
 stagedfunction fallback_getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...)
     ex = :(getindex(A))
     for i=1:length(I)

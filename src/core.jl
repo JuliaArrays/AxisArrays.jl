@@ -198,8 +198,9 @@ Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A
 # AxisArray. But if we're changing dimensions, there's no way it can know how
 # to keep track of the axes, so just punt and return a regular old Array.
 # TODO: would it feel more consistent to return an AxisArray without any axes?
-Base.similar{T}(A::AxisArray{T})    = (d = similar(A.data, T); AxisArray(d, A.axes))
-Base.similar{T}(A::AxisArray{T}, S) = (d = similar(A.data, S); AxisArray(d, A.axes))
+Base.similar{T}(A::AxisArray{T})          = (d = similar(A.data, T); AxisArray(d, A.axes))
+Base.similar{T}(A::AxisArray{T}, S)       = (d = similar(A.data, S); AxisArray(d, A.axes))
+Base.similar{T}(A::AxisArray{T}, S, ::()) = (d = similar(A.data, S); AxisArray(d, A.axes))
 Base.similar{T}(A::AxisArray{T}, dims::Int64)         = similar(A, T, (dims,))
 Base.similar{T}(A::AxisArray{T}, dims::Int64...)      = similar(A, T, dims)
 Base.similar{T}(A::AxisArray{T}, dims::(Int64...))    = similar(A, T, dims)
@@ -207,9 +208,9 @@ Base.similar{T}(A::AxisArray{T}, S, dims::Int64...)   = similar(A.data, S, dims)
 Base.similar{T}(A::AxisArray{T}, S, dims::(Int64...)) = similar(A.data, S, dims)
 # If, however, we pass Axis objects containing the new axis for that dimension,
 # we can return a similar AxisArray with an appropriately modified size
-Base.similar{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, axs::Axis...) = similar(A, T, axs)
-Base.similar{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, S::Type, axs::Axis...) = similar(A, S, axs)
-stagedfunction Base.similar{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, S, axs::(Axis...))
+Base.similar{T}(A::AxisArray{T}, axs::Axis...) = similar(A, T, axs)
+Base.similar{T}(A::AxisArray{T}, S, axs::Axis...) = similar(A, S, axs)
+stagedfunction Base.similar{T,N}(A::AxisArray{T,N}, S, axs::(Axis...))
     sz = Expr(:tuple)
     ax = Expr(:tuple)
     for d=1:N
