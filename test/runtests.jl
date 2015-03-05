@@ -1,7 +1,7 @@
 using AxisArrays
 using Base.Test
 
-A = AxisArray(reshape(1:24, 2,3,4), (.1:.1:.2, .1:.1:.3, .1:.1:.4))
+A = AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4)
 # Test iteration
 for (a,b) in zip(A, A.data)
     @test a == b
@@ -50,20 +50,21 @@ D[1,1,1,1,1] = 10
 # Test axis restrictions
 @test A[:,:,:].axes == A.axes
 
-@test A[Axis{:row}(1:2)].axes[1] == A.axes[1][1:2]
+@test A[Axis{:row}(1:2)].axes[1].val == A.axes[1].val[1:2]
 @test A[Axis{:row}(1:2)].axes[2:3] == A.axes[2:3]
 
-@test A[Axis{:col}(1:2)].axes[2] == A.axes[2][1:2]
+@test A[Axis{:col}(1:2)].axes[2].val == A.axes[2].val[1:2]
 @test A[Axis{:col}(1:2)].axes[[1,3]] == A.axes[[1,3]]
 
-@test A[Axis{:page}(1:2)].axes[3] == A.axes[3][1:2]
+@test A[Axis{:page}(1:2)].axes[3].val == A.axes[3].val[1:2]
 @test A[Axis{:page}(1:2)].axes[1:2] == A.axes[1:2]
 
 # Linear indexing across multiple dimensions drops tracking of those dims
-@test A[:].axes == ()
-@test A[1:2,:].axes == (A.axes[1][1:2],)
+@test A[:].axes[1].val == 1:length(A)
+@test A[1:2,:].axes[1].val == A.axes[1].val[1:2]
+@test A[1:2,:].axes[2].val == 1:Base.trailingsize(A,2)
 
-B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
+B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 
 # Test indexing by Intervals
 @test B[Interval(0.0,  0.5), :] == B[Interval(0.0,  0.5)] == B[:,:]
@@ -80,14 +81,14 @@ B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
 
 @test B[Axis{:row}(Interval(0.15, 0.3))] == B[2:3,:]
 
-A = AxisArray(reshape(1:256, 4,4,4,4), (.1:.1:.4, 1//10:1//10:4//10, ["1","2","3","4"], [:a, :b, :c, :d]), (:d1,:d2,:d3,:d4))
+A = AxisArray(reshape(1:256, 4,4,4,4), Axis{:d1}(.1:.1:.4), Axis{:d2}(1//10:1//10:4//10), Axis{:d3}(["1","2","3","4"]), Axis{:d4}([:a, :b, :c, :d]))
 @test A.data[1:2,:,:,:] == A[Axis{:d1}(Interval(.1,.2))]       == A[Interval(.1,.2),:,:,:]       == A[Interval(.1,.2),:,:,:,1]       == A[Interval(.1,.2)] 
 @test A.data[:,1:2,:,:] == A[Axis{:d2}(Interval(1//10,2//10))] == A[:,Interval(1//10,2//10),:,:] == A[:,Interval(1//10,2//10),:,:,1] == A[:,Interval(1//10,2//10)]
 @test A.data[:,:,1:2,:] == A[Axis{:d3}(["1","2"])]             == A[:,:,["1","2"],:]             == A[:,:,["1","2"],:,1]             == A[:,:,["1","2"]]
 @test A.data[:,:,:,1:2] == A[Axis{:d4}([:a,:b])]               == A[:,:,:,[:a,:b]]               == A[:,:,:,[:a,:b],1]
 
 # Test vectors
-v = AxisArray(collect(.1:.1:10.0), (.1:.1:10.0,))
+v = AxisArray(collect(.1:.1:10.0), .1:.1:10.0)
 @test v[Colon()] === v
 @test v[:] == v.data[:] == v[Axis{:row}(:)]
 @test v[3:8] == v.data[3:8] == v[Interval(.25,.85)] == v[Axis{:row}(3:8)] == v[Axis{:row}(Interval(.22,.88))]
@@ -95,53 +96,39 @@ v = AxisArray(collect(.1:.1:10.0), (.1:.1:10.0,))
 ## Test constructors
 # No axis or time args
 A = AxisArray(1:3)
-@test A.axes == ()
 @test A.data == 1:3
 @test axisnames(A) == (:row,)
+@test axisvalues(A) == (1:3,)
 A = AxisArray(reshape(1:16, 2,2,2,2))
-@test A.axes == ()
 @test A.data == reshape(1:16, 2,2,2,2)
-@test axisnames(A) == (:row,:col,:page)
-# Empty axis
-A = AxisArray(1:3, ())
-@test A.axes == ()
+@test axisnames(A) == (:row,:col,:page,:dim_4)
+@test axisvalues(A) == (1:2, 1:2, 1:2, 1:2)
+# Just axis names
+A = AxisArray(1:3, :a)
+@test A.data == 1:3
+@test axisnames(A) == (:a,)
+@test axisvalues(A) == (1:3,)
+A = AxisArray([1 3; 2 4], :a)
+@test A.data == [1 3; 2 4]
+@test axisnames(A) == (:a, :col)
+@test axisvalues(A) == (1:2, 1:2)
+# Just axis values
+A = AxisArray(1:3, .1:.1:.3)
 @test A.data == 1:3
 @test axisnames(A) == (:row,)
-# Both empty
-A = AxisArray(1:3, (), ())
-@test A.axes == ()
-@test A.data == 1:3
-@test axisnames(A) == ()
-# Names first
-A = AxisArray(1:3, (:a,))
-@test A.axes == ()
-@test A.data == 1:3
-@test axisnames(A) == (:a,)
-A = AxisArray(1:3, (:a,), (1:3,))
-@test A.axes == (1:3,)
-@test A.data == 1:3
-@test axisnames(A) == (:a,)
-# Axes first
-A = AxisArray(1:3, (1:3,))
-@test A.axes == (1:3,)
-@test A.data == 1:3
-@test axisnames(A) == (:row,)
-A = AxisArray(reshape(1:16, 2,2,2,2), (1:2,))
-@test A.axes == (1:2,)
+@test axisvalues(A) == (.1:.1:.3,)
+A = AxisArray(reshape(1:16, 2,2,2,2), .5:.5:1)
 @test A.data == reshape(1:16, 2,2,2,2)
-@test axisnames(A) == (:row,:col,:page)
-A = AxisArray(1:3, (1:3,), (:a,))
-@test A.axes == (1:3,)
-@test A.data == 1:3
-@test axisnames(A) == (:a,)
+@test axisnames(A) == (:row,:col,:page,:dim_4)
+@test axisvalues(A) == (.5:.5:1, 1:2, 1:2, 1:2)
 
 # Test axisdim
-A = AxisArray(reshape(1:24, 2,3,4), (:x,:y,:z), (.1:.1:.2, 1//10:1//10:3//10, ["a", "b", "c", "d"]))
+A = AxisArray(reshape(1:24, 2,3,4), Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//10), Axis{:z}(["a", "b", "c", "d"]))
 @test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == 1
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2
 @test axisdim(A, Axis{:z}) == axisdim(A, Axis{:z}()) == 3
 # Test axes
-@test @inferred(axes(A)) == (.1:.1:.2, 1//10:1//10:3//10, ["a", "b", "c", "d"])
-@test @inferred(axes(A, Axis{:x})) == @inferred(axes(A, Axis{:x}())) == .1:.1:.2
-@test @inferred(axes(A, Axis{:y})) == @inferred(axes(A, Axis{:y}())) == 1//10:1//10:3//10
-@test @inferred(axes(A, Axis{:z})) == @inferred(axes(A, Axis{:z}())) == ["a", "b", "c", "d"]
+@test @inferred(axes(A)) == (Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//10), Axis{:z}(["a", "b", "c", "d"]))
+@test @inferred(axes(A, Axis{:x})) == @inferred(axes(A, Axis{:x}())) == Axis{:x}(.1:.1:.2)
+@test @inferred(axes(A, Axis{:y})) == @inferred(axes(A, Axis{:y}())) == Axis{:y}(1//10:1//10:3//10)
+@test @inferred(axes(A, Axis{:z})) == @inferred(axes(A, Axis{:z}())) == Axis{:z}(["a", "b", "c", "d"])
