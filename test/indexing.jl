@@ -1,7 +1,10 @@
+A = AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4)
+D = similar(A)
 D[1,1,1,1,1] = 10
 @test D[1,1,1,1,1] == D[1] == D.data[1] == 10
 
 # Test slices
+
 @test A == A.data
 @test A[:,:,:] == A[Axis{:row}(:)] == A[Axis{:col}(:)] == A[Axis{:page}(:)] == A.data[:,:,:]
 # Test UnitRange slices

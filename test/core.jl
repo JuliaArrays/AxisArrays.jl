@@ -25,6 +25,18 @@ C = similar(A, 0)
 D = similar(A)
 @test size(A) == size(D)
 @test eltype(A) == eltype(D)
+# Test modifying a particular axis
+E = similar(A, Float64, Axis{:col}(1:2))
+@test size(E) == (2,2,4)
+@test eltype(E) == Float64
+F = similar(A, Axis{:row}())
+@test size(F) == size(A)[2:end]
+@test eltype(F) == eltype(A)
+@test axisvalues(F) == axisvalues(A)[2:end]
+@test axisnames(F) == axisnames(A)[2:end]
+
+# Size
+@test size(A, 1) == size(A, Axis{1}) == size(A, Axis{:row}) == size(A, Axis{:row}())
 
 ## Test constructors
 # No axis or time args
@@ -65,3 +77,9 @@ A = AxisArray(reshape(1:24, 2,3,4), Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//
 @test @inferred(axes(A, Axis{:x})) == @inferred(axes(A, Axis{:x}())) == Axis{:x}(.1:.1:.2)
 @test @inferred(axes(A, Axis{:y})) == @inferred(axes(A, Axis{:y}())) == Axis{:y}(1//10:1//10:3//10)
 @test @inferred(axes(A, Axis{:z})) == @inferred(axes(A, Axis{:z}())) == Axis{:z}(["a", "b", "c", "d"])
+
+@test Axis{:col}(1) == Axis{:col}(1)
+@test Axis{:col}(1) != Axis{:com}(1)
+@test hash(Axis{:col}(1)) == hash(Axis{:col}(1.0))
+@test hash(Axis{:row}()) != hash(Axis{:col}())
+@test AxisArrays.axistype(Axis{1}(1:2)) == typeof(1:2)
