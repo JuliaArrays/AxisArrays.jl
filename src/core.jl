@@ -291,7 +291,7 @@ checkaxis(ax) = checkaxis(axistrait(ax), ax)
 checkaxis(::Type{Unsupported}, ax) = nothing # TODO: warn or error?
 # Dimensional axes must be monotonically increasing
 checkaxis{T}(::Type{Dimensional}, ax::Range{T}) = step(ax) > zero(T) || error("Dimensional axes must be monotonically increasing")
-checkaxis(::Type{Dimensional}, ax) = issorted(ax, lt=(<=)) || error("Dimensional axes must be monotonically increasing")
+checkaxis(::Type{Dimensional}, ax) = issorted(ax) || error("Dimensional axes must be monotonically increasing")
 # Categorical axes must simply be unique
 function checkaxis(::Type{Categorical}, ax)
     seen = Set{eltype(ax)}()

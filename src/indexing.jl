@@ -78,6 +78,8 @@ axisindexes(ax, idx) = axisindexes(axistrait(ax.val), ax.val, idx)
 axisindexes(::Type{Unsupported}, ax, idx) = error("elementwise indexing is not supported for axes of type $(typeof(ax))")
 # Dimensional axes may be indexed by intervals of their elements
 axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::Interval{T}) = searchsorted(ax, idx)
+# Dimensional axes may also be indexed directy by their elements
+axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::T) = searchsorted(ax, Interval(idx,idx))
 # Categorical axes may be indexed by their elements
 function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::T)
     i = findfirst(ax, idx)
