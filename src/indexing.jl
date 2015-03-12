@@ -83,18 +83,18 @@ axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::T) = searchsorte
 # Categorical axes may be indexed by their elements
 function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::T)
     i = findfirst(ax, idx)
-    i == 0 && error("index $idx not found")
+    i == 0 && throw(ArgumentError("index $idx not found"))
     i
 end
 # Categorical axes may be indexed by a vector of their elements
-function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::AbstractVector{T}) 
+function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::AbstractVector{T})
     res = findin(ax, idx)
-    length(res) == length(idx) || error("index $(setdiff(idx,ax)) not found")
+    length(res) == length(idx) || throw(ArgumentError("index $(setdiff(idx,ax)) not found"))
     res
 end
 
-# Defining the fallbacks on getindex are tricky due to ambiguities with 
-# AbstractArray definitions - 
+# Defining the fallbacks on getindex are tricky due to ambiguities with
+# AbstractArray definitions -
 let args = Expr[], idxs = Symbol[]
     for i = 1:4
         isym = symbol("i$i")
@@ -108,7 +108,7 @@ Base.getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, idxs...) = fallback_getindex(A, 
 
 # These catch-all methods attempt to convert any axis-specific non-standard
 # indexing types to their integer or integer range equivalents using the
-# They are separate from the `Base.getindex` function to help alleviate 
+# They are separate from the `Base.getindex` function to help alleviate
 # ambiguity warnings from, e.g., `getindex(::AbstractArray, ::Real...)`.
 # TODO: These could be generated with meta-meta-programming
 stagedfunction fallback_getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I1)
@@ -148,4 +148,3 @@ stagedfunction fallback_getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...)
     end
     ex
 end
-
