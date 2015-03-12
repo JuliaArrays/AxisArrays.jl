@@ -23,15 +23,15 @@ Interval{T}(a::T,b::T)
 
 ```julia
 A = AxisArray(collect(1:20), (.1:.1:2.0,), (:time,))
-A[Interval(0.0,0.5)] 
-A[Interval(0.2,0.5)] 
+A[Interval(0.0,0.5)]
+A[Interval(0.2,0.5)]
 ```
 
 """ ->
 immutable Interval{T}
     lo::T
     hi::T
-    Interval(lo, hi) = lo <= hi ? new(lo, hi) : error("lo must be less than or equal to hi")
+    Interval(lo, hi) = lo <= hi ? new(lo, hi) : throw(ArgumentError("lo must be less than or equal to hi"))
 end
 Interval{T}(a::T,b::T) = Interval{T}(a,b)
 Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}

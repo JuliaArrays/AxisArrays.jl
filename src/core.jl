@@ -43,7 +43,7 @@ immutable Axis{name,T}
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
 Base.call{name,T}(::Type{Axis{name}}, I::T=()) = Axis{name,T}(I)
-=={name,T}(A::Axis{name,T}, B::Axis{name,T}) = A.val == B.val
+Base.(:(==)){name,T}(A::Axis{name,T}, B::Axis{name,T}) = A.val == B.val
 Base.hash{name}(A::Axis{name}, hx::Uint) = hash(A.val, hash(name, hx))
 axistype{name,T}(::Axis{name,T}) = T
 axistype{name,T}(::Type{Axis{name,T}}) = T
@@ -143,7 +143,9 @@ stagedfunction AxisArray{T,N}(A::AbstractArray{T,N}, axs::(Axis...))
     L = length(axs)
     ax = Expr(:tuple)
     Ax = tuple(axs..., ntuple(N-L, i->Axis{_defaultdimname(i+L),UnitRange{Int64}})...)
-    isa(axisnames(axs...), (Symbol...)) || return :(error("the Axis names must be symbols"))
+    if !isa(axisnames(axs...), (Symbol...))
+        return :(throw(ArgumentError("the Axis names must be symbols")))
+    end
     for i=1:L
         push!(ax.args, :(axs[$i]))
     end
@@ -153,9 +155,13 @@ stagedfunction AxisArray{T,N}(A::AbstractArray{T,N}, axs::(Axis...))
     quote
         for i = 1:length(axs)
             checkaxis(axs[i].val)
-            length(axs[i].val) == size(A, i) || error("the length of each axis must match the corresponding size of data")
+            if length(axs[i].val) != size(A, i)
+                throw(ArgumentError("the length of each axis must match the corresponding size of data"))
+            end
         end
-        length(unique(axisnames($(ax.args...)))) == N || error("axis names ", axisnames($(ax.args...)), " must be unique")
+        if length(unique(axisnames($(ax.args...)))) != N
+            throw(ArgumentError("axis names $(axisnames($(ax.args...))) must be unique"))
+        end
         $(AxisArray{T,N,A,Ax})(A, $ax)
     end
 end
@@ -290,13 +296,15 @@ axistrait{T<:Union(Symbol, AbstractString)}(::AbstractVector{T}) = Categorical
 checkaxis(ax) = checkaxis(axistrait(ax), ax)
 checkaxis(::Type{Unsupported}, ax) = nothing # TODO: warn or error?
 # Dimensional axes must be monotonically increasing
-checkaxis{T}(::Type{Dimensional}, ax::Range{T}) = step(ax) > zero(T) || error("Dimensional axes must be monotonically increasing")
-checkaxis(::Type{Dimensional}, ax) = issorted(ax) || error("Dimensional axes must be monotonically increasing")
+checkaxis{T}(::Type{Dimensional}, ax::Range{T}) = step(ax) > zero(T) || throw(ArgumentError("Dimensional axes must be monotonically increasing"))
+checkaxis(::Type{Dimensional}, ax) = issorted(ax) || throw(ArgumentError("Dimensional axes must be monotonically increasing"))
 # Categorical axes must simply be unique
 function checkaxis(::Type{Categorical}, ax)
     seen = Set{eltype(ax)}()
     for elt in ax
-        elt in seen && error("Categorical axes must be unique")
+        if elt in seen
+            throw(ArgumentError("Categorical axes must be unique"))
+        end
         push!(seen, elt)
     end
 end

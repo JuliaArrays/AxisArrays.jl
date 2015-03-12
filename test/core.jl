@@ -1,4 +1,6 @@
 A = AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4)
+@test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3, .1:.1:.4)
+@test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3)
 # Test iteration
 for (a,b) in zip(A, A.data)
     @test a == b
@@ -82,7 +84,16 @@ A = AxisArray(reshape(1:16, 2,2,2,2), .5:.5:1)
 @test axisvalues(A) == (.5:.5:1, 1:2, 1:2, 1:2)
 
 # Test axisdim
-A = AxisArray(reshape(1:24, 2,3,4), Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//10), Axis{:z}(["a", "b", "c", "d"]))
+@test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4),
+                                     Axis{1}(.1:.1:.2),
+                                     Axis{2}(1//10:1//10:3//10),
+                                     Axis{3}(["a", "b", "c", "d"])) # Axis need to be symbols
+
+A = AxisArray(reshape(1:24, 2,3,4),
+              Axis{:x}(.1:.1:.2),
+              Axis{:y}(1//10:1//10:3//10),
+              Axis{:z}(["a", "b", "c", "d"]))
+
 @test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == 1
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2
 @test axisdim(A, Axis{:z}) == axisdim(A, Axis{:z}()) == 3
