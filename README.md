@@ -15,7 +15,7 @@ Collaboration is welcome! This is still a work-in-progress. See [the roadmap](ht
 ```julia
 julia> using AxisArrays
 
-julia> A = AxisArray(reshape(1:60, 12, 5), (.1:.1:1.2, .1:.1:.5)) # Add FloatRange axes to a 12x5 array
+julia> A = AxisArray(reshape(1:60, 12, 5), .1:.1:1.2, .1:.1:.5) # Add FloatRange axes to a 12x5 array
 12x5 AxisArrays.AxisArray{Int64,2,Array{Int64,2},(:row,:col),(FloatRange{Float64},FloatRange{Float64}),(Float64,Float64)}:
   1  13  25  37  49
   2  14  26  38  50
@@ -81,7 +81,7 @@ julia> ans.axes
 (0.2:0.1:0.5,0.3:0.1:0.4)
 ```
 
-## Indexing 
+## Indexing
 
 ### Indexing axes
 
@@ -100,9 +100,9 @@ sequence along rows and a Categorical axis of symbols for column
 headers.
 
 ```julia
-B = AxisArray(reshape(1:15, 5,3), (.1:.1:0.5, [:a, :b, :c]))
-A[Axis{:row}(Interval(.2,.4))] # restrict the AxisArray along the time axis
-A[Interval(0.,.3), [:a, :c]]      # select an interval and two of the columns 
+B = AxisArray(reshape(1:15, 5, 3), .1:.1:0.5, [:a, :b, :c])
+B[Axis{:row}(Interval(.2,.4))] # restrict the AxisArray along the time axis
+B[Interval(0.,.3), [:a, :c]]   # select an interval and two of the columns
 ```
 
 User-defined axis types can be added along with custom indexing
@@ -110,7 +110,7 @@ behaviors.
 
 ### Example: compute the intensity-weighted mean along the z axis
 ```
-B = AxisArray(randn(100,100,100), (:x,:y,:z))
+B = AxisArray(randn(100,100,100), :x, :y, :z)
 Itotal = sumz = 0.0
 for iter in eachindex(B)  # traverses in storage order for cache efficiency
     I = B[iter]  # intensity in a single voxel
