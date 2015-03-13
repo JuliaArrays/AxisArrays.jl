@@ -109,7 +109,7 @@ User-defined axis types can be added along with custom indexing
 behaviors.
 
 ### Example: compute the intensity-weighted mean along the z axis
-```
+```julia
 B = AxisArray(randn(100,100,100), :x, :y, :z)
 Itotal = sumz = 0.0
 for iter in eachindex(B)  # traverses in storage order for cache efficiency
