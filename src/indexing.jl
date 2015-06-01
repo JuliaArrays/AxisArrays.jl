@@ -3,6 +3,28 @@
 # Limit indexing to types supported by SubArrays, at least initially
 typealias Idx Union(Colon,Int,Array{Int,1},Range{Int})
 
+# Patch Array indexing to convert Colon() indices to the appropriate UnitRange
+if isempty(methods(getindex, (Matrix, Colon, Int)))
+    stagedfunction Base.getindex(A::Array, I::Union(Colon,Real,AbstractVector)...)
+        N = length(I)
+        idxs = Array(Expr, N)
+        for d=1:N-1
+            idxs[d] = I[d] <: Colon ? :(1:size(A, $d)) : :(I[$d])
+        end
+        idxs[N] = I[N] <: Colon ? :(1:Base.trailingsize(A, $N)) : :(I[$N])
+        return :(A[$(idxs...)])
+    end
+    stagedfunction Base.setindex!(A::Array, v, I::Union(Colon,Real,AbstractArray)...)
+        N = length(I)
+        idxs = Array(Expr, N)
+        for d=1:N-1
+            idxs[d] = I[d] <: Colon ? :(1:size(A, $d)) : :(I[$d])
+        end
+        idxs[N] = I[N] <: Colon ? :(1:Base.trailingsize(A, $N)) : :(I[$N])
+        return :(A[$(idxs...)] = v)
+    end
+end
+
 # Simple scalar indexing where we just set or return scalars
 Base.getindex(A::AxisArray) = A.data[]
 let args = Expr[], idxs = Symbol[]
