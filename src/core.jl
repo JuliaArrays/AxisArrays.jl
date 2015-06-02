@@ -166,8 +166,8 @@ AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
 end
 # Simple non-type-stable constructors to specify just the name or axis values
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
-AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, ntuple(length(names), i->Axis{names[i]}(1:size(A, i))))
-AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(length(vects), i->Axis{_defaultdimname(i)}(vects[i])))
+AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, ntuple(i->Axis{names[i]}(1:size(A, i)), length(names)))
+AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(i->Axis{_defaultdimname(i)}(vects[i]), length(vects)))
 
 # Axis definitions
 @doc """
