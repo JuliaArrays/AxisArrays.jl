@@ -139,11 +139,10 @@ end
 #
 _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : symbol(:dim_, i)
 AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
-stagedfunction AxisArray{T,N}(A::AbstractArray{T,N}, axs::(Axis...))
-    L = length(axs)
+stagedfunction AxisArray{T,N,L}(A::AbstractArray{T,N}, axs::NTuple{L,Axis})
     ax = Expr(:tuple)
-    Ax = tuple(axs..., ntuple(N-L, i->Axis{_defaultdimname(i+L),UnitRange{Int64}})...)
-    if !isa(axisnames(axs...), (Symbol...))
+    Ax = Tuple{axs..., ntuple(i->Axis{_defaultdimname(i+L),UnitRange{Int64}},N-L)...}
+    if !isa(axisnames(axs...), Tuple{Vararg{Symbol}})
         return :(throw(ArgumentError("the Axis names must be symbols")))
     end
     for i=1:L
@@ -206,17 +205,17 @@ Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A
 # TODO: would it feel more consistent to return an AxisArray without any axes?
 Base.similar{T}(A::AxisArray{T})          = (d = similar(A.data, T); AxisArray(d, A.axes))
 Base.similar{T}(A::AxisArray{T}, S)       = (d = similar(A.data, S); AxisArray(d, A.axes))
-Base.similar{T}(A::AxisArray{T}, S, ::()) = (d = similar(A.data, S); AxisArray(d, A.axes))
-Base.similar{T}(A::AxisArray{T}, dims::Int64)         = similar(A, T, (dims,))
-Base.similar{T}(A::AxisArray{T}, dims::Int64...)      = similar(A, T, dims)
-Base.similar{T}(A::AxisArray{T}, dims::(Int64...))    = similar(A, T, dims)
-Base.similar{T}(A::AxisArray{T}, S, dims::Int64...)   = similar(A.data, S, dims)
-Base.similar{T}(A::AxisArray{T}, S, dims::(Int64...)) = similar(A.data, S, dims)
+Base.similar{T}(A::AxisArray{T}, S, ::Tuple{}) = (d = similar(A.data, S); AxisArray(d, A.axes))
+Base.similar{T}(A::AxisArray{T}, dims::Int)         = similar(A, T, (dims,))
+Base.similar{T}(A::AxisArray{T}, dims::Int...)      = similar(A, T, dims)
+Base.similar{T}(A::AxisArray{T}, dims::Tuple{Vararg{Int}})    = similar(A, T, dims)
+Base.similar{T}(A::AxisArray{T}, S, dims::Int...)   = similar(A.data, S, dims)
+Base.similar{T}(A::AxisArray{T}, S, dims::Tuple{Vararg{Int}}) = similar(A.data, S, dims)
 # If, however, we pass Axis objects containing the new axis for that dimension,
 # we can return a similar AxisArray with an appropriately modified size
 Base.similar{T}(A::AxisArray{T}, axs::Axis...) = similar(A, T, axs)
 Base.similar{T}(A::AxisArray{T}, S, axs::Axis...) = similar(A, S, axs)
-stagedfunction Base.similar{T,N}(A::AxisArray{T,N}, S, axs::(Axis...))
+stagedfunction Base.similar{T,N}(A::AxisArray{T,N}, S, axs::Tuple{Vararg{Axis}})
     sz = Expr(:tuple)
     ax = Expr(:tuple)
     for d=1:N
@@ -224,9 +223,9 @@ stagedfunction Base.similar{T,N}(A::AxisArray{T,N}, S, axs::(Axis...))
         push!(ax.args, :(axes(A, Axis{$d})))
     end
     to_delete = Int[]
-    for i=1:length(axs)
-        d = axisdim(A, axs[i])
-        axistype(axs[i]) <: () && push!(to_delete, d)
+    for (i,a) in enumerate(axs)
+        d = axisdim(A, a)
+        axistype(a) <: Tuple{} && push!(to_delete, d)
         sz.args[d] = :(length(axs[$i].val))
         ax.args[d] = :(axs[$i])
     end

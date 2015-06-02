@@ -54,7 +54,7 @@ immutable SortedVector{T} <: AbstractVector{T}
 end
 
 Base.getindex(v::SortedVector, idx::Int) = v.data[idx]
-Base.getindex(v::SortedVector, idx::Range1) = SortedVector(v.data[idx])
+Base.getindex(v::SortedVector, idx::UnitRange) = SortedVector(v.data[idx])
 Base.getindex(v::SortedVector, idx::StepRange) =
     step(idx) > 0 ? SortedVector(v.data[idx]) : error("step must be positive to index a SortedVector")
 Base.getindex(v::SortedVector, idx::AbstractVector) =
