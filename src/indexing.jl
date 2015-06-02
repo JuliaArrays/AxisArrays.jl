@@ -5,7 +5,7 @@ typealias Idx Union(Colon,Int,Array{Int,1},Range{Int})
 
 # Patch Array indexing to convert Colon() indices to the appropriate UnitRange
 if isempty(methods(getindex, (Matrix, Colon, Int)))
-    stagedfunction Base.getindex(A::Array, I::Union(Colon,Real,AbstractVector)...)
+    @generated function Base.getindex(A::Array, I::Union(Colon,Real,AbstractVector)...)
         N = length(I)
         idxs = Array(Expr, N)
         for d=1:N-1
@@ -14,7 +14,7 @@ if isempty(methods(getindex, (Matrix, Colon, Int)))
         idxs[N] = I[N] <: Colon ? :(1:Base.trailingsize(A, $N)) : :(I[$N])
         return :(A[$(idxs...)])
     end
-    stagedfunction Base.setindex!(A::Array, v, I::Union(Colon,Real,AbstractArray)...)
+    @generated function Base.setindex!(A::Array, v, I::Union(Colon,Real,AbstractArray)...)
         N = length(I)
         idxs = Array(Expr, N)
         for d=1:N-1
@@ -54,7 +54,7 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
 # More complicated cases where we must create a subindexed AxisArray
 # TODO: do we want to be dogmatic about using views? For the data? For the axes?
 # TODO: perhaps it would be better to return an entirely lazy SubAxisArray view
-stagedfunction Base.getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, idxs::Idx...)
+@generated function Base.getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, idxs::Idx...)
     newdims = length(idxs)
     # If the last index is a linear indexing range that may span multiple
     # dimensions in the original AxisArray, we can no longer track those axes.
@@ -106,7 +106,7 @@ Base.setindex!(A::AxisArray, v, idxs...) = (A[to_index(A,idxs...)...] = v)
 # TODO: should we handle multidimensional Axis indexes? It could be interpreted
 #       as adding dimensions in the middle of an AxisArray.
 # TODO: should we allow repeated axes? As a union of indices of the duplicates?
-stagedfunction to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I::Axis...)
+@generated function to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I::Axis...)
     dims = Int[axisdim(A, ax) for ax in I]
     idxs = Expr[:(Colon()) for d = 1:N]
     names = axisnames(A)
@@ -145,7 +145,7 @@ end
 # indexing types to their integer or integer range equivalents using axisindexes
 # They are separate from the `Base.getindex` function to help alleviate 
 # ambiguity warnings from, e.g., `getindex(::AbstractArray, ::Real...)`.
-stagedfunction to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...)
+@generated function to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...)
     ex = Expr(:tuple)
     for i=1:length(I)
         if I[i] <: Idx

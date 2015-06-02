@@ -139,7 +139,7 @@ end
 #
 _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : symbol(:dim_, i)
 AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
-stagedfunction AxisArray{T,N,L}(A::AbstractArray{T,N}, axs::NTuple{L,Axis})
+@generated function AxisArray{T,N,L}(A::AbstractArray{T,N}, axs::NTuple{L,Axis})
     ax = Expr(:tuple)
     Ax = Tuple{axs..., ntuple(i->Axis{_defaultdimname(i+L),UnitRange{Int64}},N-L)...}
     if !isa(axisnames(axs...), Tuple{Vararg{Symbol}})
@@ -178,7 +178,7 @@ Given an AxisArray and an Axis, return the integer dimension of
 the Axis within the array.
 """ ->
 axisdim(A::AxisArray, ax::Axis) = axisdim(A, typeof(ax))
-stagedfunction axisdim{T<:Axis}(A::AxisArray, ax::Type{T})
+@generated function axisdim{T<:Axis}(A::AxisArray, ax::Type{T})
     dim = axisdim(A, T)
     :($dim)
 end
@@ -215,7 +215,7 @@ Base.similar{T}(A::AxisArray{T}, S, dims::Tuple{Vararg{Int}}) = similar(A.data, 
 # we can return a similar AxisArray with an appropriately modified size
 Base.similar{T}(A::AxisArray{T}, axs::Axis...) = similar(A, T, axs)
 Base.similar{T}(A::AxisArray{T}, S, axs::Axis...) = similar(A, S, axs)
-stagedfunction Base.similar{T,N}(A::AxisArray{T,N}, S, axs::Tuple{Vararg{Axis}})
+@generated function Base.similar{T,N}(A::AxisArray{T,N}, S, axs::Tuple{Vararg{Axis}})
     sz = Expr(:tuple)
     ax = Expr(:tuple)
     for d=1:N
@@ -277,7 +277,7 @@ than `axes(A)[1]`.
 axes(A::AxisArray) = A.axes
 axes(A::AxisArray, dim::Int) = A.axes[dim]
 axes(A::AxisArray, ax::Axis) = axes(A, typeof(ax))
-stagedfunction axes{T<:Axis}(A::AxisArray, ax::Type{T})
+@generated function axes{T<:Axis}(A::AxisArray, ax::Type{T})
     dim = axisdim(A, T)
     :(A.axes[$dim])
 end
