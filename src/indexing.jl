@@ -150,7 +150,7 @@ end
     for i=1:length(I)
         if I[i] <: Idx
             push!(ex.args, :(I[$i]))
-        elseif i <= length(Ax)
+        elseif i <= length(TupleTypes.parameters(Ax))
             push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
         else
             push!(ex.args, :(error("dimension ", $i, " does not have an axis to index")))
