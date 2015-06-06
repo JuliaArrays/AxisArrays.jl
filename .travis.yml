@@ -9,6 +9,6 @@ notifications:
 # uncomment the following lines to override the default test script
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("AxisArrays"); Pkg.test("AxisArrays"; coverage=true)'
+  - julia --check-bounds=yes -e 'Pkg.add("https://github.com/mbauman/TupleTypes.jl"); Pkg.clone(pwd()); Pkg.build("AxisArrays"); Pkg.test("AxisArrays"; coverage=true)'
 after_success:
     - julia -e 'cd(Pkg.dir("AxisArrays")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
