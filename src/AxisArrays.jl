@@ -1,6 +1,6 @@
 module AxisArrays
 
-using Requires, TupleTypes
+using Requires, Tuples
 
 export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes
 
