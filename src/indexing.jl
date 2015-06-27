@@ -26,7 +26,7 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
 # More complicated cases where we must create a subindexed AxisArray
 # TODO: do we want to be dogmatic about using views? For the data? For the axes?
 # TODO: perhaps it would be better to return an entirely lazy SubAxisArray view
-@generated function Base.getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, idxs::Idx...)
+@generated function Base.getindex{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, idxs::Union(Idx,AxisArray)...)
     newdims = length(idxs)
     # If the last index is a linear indexing range that may span multiple
     # dimensions in the original AxisArray, we can no longer track those axes.
@@ -38,7 +38,11 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
     names = axisnames(A)
     axes = Expr(:tuple)
     for i = 1:newdims-droplastaxis
-        idx = idxs[i] <: Real ? (:(idxs[$i]:idxs[$i])) : (:(idxs[$i]))
+        if idxs[i] <: Real
+            idx = :(idxs[$i]:idxs[$i])
+        elseif idxs[i] <: Vector{UnitRange{Int}}
+            # Indexing by a vector of unitranges *adds* a dimension...
+        idx = idxs[i] <: Real ? ( : (:(idxs[$i]))
         push!(axes.args, :($(Axis{names[i]})(A.axes[$i].val[$idx])))
     end
     Isplat = Expr[:(idxs[$d]) for d=1:length(idxs)]
@@ -79,6 +83,8 @@ axisindexes(ax, idx) = axisindexes(axistrait(ax.val), ax.val, idx)
 axisindexes(::Type{Unsupported}, ax, idx) = error("elementwise indexing is not supported for axes of type $(typeof(ax))")
 # Dimensional axes may be indexed by intervals of their elements
 axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::Interval{T}) = searchsorted(ax, idx)
+# Or an array of intervals of their elements - convert the interval of elements to an interval of idices
+axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, I::RepeatedInterval{T,T}) = [searchsorted(ax, idx) for idx in I]
 # Dimensional axes may also be indexed directy by their elements
 axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::T) = searchsorted(ax, Interval(idx,idx))
 # Categorical axes may be indexed by their elements

@@ -50,10 +50,23 @@ Base.in{T}(a::Interval{T}, b::Interval{T}) = b.lo <= a.lo && a.hi <= b.hi
 +(a::Interval, b::Interval) = Interval(a.lo + b.lo, a.hi + b.hi)
 +{T}(a::Interval{T}, b::T) = Interval(a.lo + b, a.hi + b)
 +{T}(a::T, b::Interval{T}) = Interval(a + b.lo, a + b.hi)
-+{T}(a::Interval{T}, B::AbstractArray{T}) = [Interval(a.lo + b, a.hi + b) for a in A]
-+{T}(A::AbstractArray{T}, b::Interval{T}) = [Interval(a + b.lo, a + b.hi) for b in B]
+# +{T}(a::Interval{T}, B::AbstractArray{T}) = [Interval(a.lo + b, a.hi + b) for b in B]
+# +{T}(A::AbstractArray{T}, b::Interval{T}) = [Interval(a + b.lo, a + b.hi) for a in A]
+
 +(a::Interval) = a
 
 
 -(a::Interval) = Interval(-a.hi, -a.lo)
 -(a::Interval, b::Interval) = a + (-b)
+
+
+# Maybe use defer computation to allow a mix of indices and values
+immutable RepeatedInterval{T, S, A}
+    i::Interval{T}
+    at::A # A <: AbstractArray{S}
+end
+
+RepeatedInterval{T,S}(i::Interval{T}, at::AbstractArray{S}) = RepeatedInterval{T,S,typeof(A)}(i, at)
+
++{T}(a::Interval{T}, b::AbstractArray) = RepeatedInterval(a, b)
++{T}(b::AbstractArray, a::Interval{T}) = RepeatedInterval(a, b)
