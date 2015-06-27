@@ -1,5 +1,5 @@
 @doc """
-A primitive interval type.
+An Interval is a primitive closed interval type.
 
 ### Type parameters
 
@@ -12,6 +12,7 @@ immutable Interval{T}
 
 ```julia
 Interval{T}(a::T,b::T)
+a .. b
 ```
 
 ### Arguments
@@ -22,9 +23,9 @@ Interval{T}(a::T,b::T)
 ### Examples
 
 ```julia
-A = AxisArray(collect(1:20), (.1:.1:2.0,), (:time,))
-A[Interval(0.0,0.5)]
+A = AxisArray(collect(1:20), Axis{:time}(.1:.1:2.0))
 A[Interval(0.2,0.5)]
+A[0.0 .. 0.5]
 ```
 
 """ ->
@@ -34,10 +35,25 @@ immutable Interval{T}
     Interval(lo, hi) = lo <= hi ? new(lo, hi) : throw(ArgumentError("lo must be less than or equal to hi"))
 end
 Interval{T}(a::T,b::T) = Interval{T}(a,b)
-Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}
-Base.promote_rule{T}(::Type{Interval{T}}, ::Type{T}) = Interval{T}
-Base.convert{T,S}(::Type{Interval{T}}, x::Interval{S}) = Interval{T}(convert(T,x.lo),(convert(T,x.hi)))
-Base.convert{T}(::Type{Interval{T}}, x) = Interval(x,x)
+const .. = Interval
+
+# It'd be nice to use the promotion system for this, but it is intrinsically
+# unable to coexist with other "promiscuous" types (like SIUnits)
+
 Base.isless(a::Interval, b::Interval) = isless(a.hi, b.lo)
-Base.isless(a::Interval, b) = isless(promote(a,b)...)
-Base.isless(a, b::Interval) = isless(promote(a,b)...)
+Base.isless{T}(a::Interval{T}, b::T) = isless(a.hi, b)
+Base.isless{T}(a::T, b::Interval{T}) = isless(a, b.lo)
+
+Base.in{T}(a::T, b::Interval{T}) = b.lo <= a <= b.hi
+Base.in{T}(a::Interval{T}, b::Interval{T}) = b.lo <= a.lo && a.hi <= b.hi
+
++(a::Interval, b::Interval) = Interval(a.lo + b.lo, a.hi + b.hi)
++{T}(a::Interval{T}, b::T) = Interval(a.lo + b, a.hi + b)
++{T}(a::T, b::Interval{T}) = Interval(a + b.lo, a + b.hi)
++{T}(a::Interval{T}, B::AbstractArray{T}) = [Interval(a.lo + b, a.hi + b) for a in A]
++{T}(A::AbstractArray{T}, b::Interval{T}) = [Interval(a + b.lo, a + b.hi) for b in B]
++(a::Interval) = a
+
+
+-(a::Interval) = Interval(-a.hi, -a.lo)
+-(a::Interval, b::Interval) = a + (-b)
