@@ -130,8 +130,8 @@ to rudimentarily display the first ten repetitions:
 
 ```jl
 julia> using Sparklines
+       t = axes(spks, 2)
        for i=1:10
-           t = axes(spks)[2].val
            print(t[i], ":\t")
            sparkln(spks[:, i])
        end

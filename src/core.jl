@@ -47,6 +47,13 @@ Base.(:(==)){name,T}(A::Axis{name,T}, B::Axis{name,T}) = A.val == B.val
 Base.hash{name}(A::Axis{name}, hx::Uint) = hash(A.val, hash(name, hx))
 axistype{name,T}(::Axis{name,T}) = T
 axistype{name,T}(::Type{Axis{name,T}}) = T
+# Pass indexing and related functions straight through to the wrapped value
+# TODO: should Axis be an AbstractArray? AbstractArray{T,0} for scalar T?
+Base.getindex(A::Axis, i...) = A.val[i...]
+Base.unsafe_getindex(A::Axis, i...) = Base.unsafe_getindex(A, i...)
+Base.eltype{_,T}(::Type{Axis{_,T}}) = eltype(T)
+Base.size(A::Axis) = size(A.val)
+Base.length(A::Axis) = length(A.val)
 
 @doc """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
