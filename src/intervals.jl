@@ -1,5 +1,3 @@
-abstract AbstractInterval
-
 @doc """
 An Interval represents all values between and including its two endpoints.
 Intervals are parameterized by the type of its endpoints; this type must be
@@ -34,19 +32,18 @@ A[0.0 .. 0.5]
 ```
 
 """ ->
-immutable Interval{T} <: AbstractInterval
+immutable Interval{T}
     lo::T
     hi::T
     function Interval(lo, hi)
-        isleaftype(T) || throw(ArgumentError("type parameter $T is not concrete"))
         lo <= hi ? new(lo, hi) : throw(ArgumentError("lo must be less than or equal to hi"))
     end
 end
 Interval{T}(a::T,b::T) = Interval{T}(a,b)
-# Allow promotion, but only if it results in a leaf type
+# Allow promotion during construction, but only if it results in a leaf type
 function Interval{T,S}(a::T, b::S)
     R = promote_type(T,S)
-    isleaftype(R) || throw_promotion_error(a,b)
+    isleaftype(R) || throw(ArgumentError("cannot promote $a and $b to a common leaf type"))
     Interval{R}(promote(a,b)...)
 end
 const .. = Interval
@@ -54,8 +51,6 @@ const .. = Interval
 Base.convert{T}(::Type{Interval{T}}, x::T) = Interval{T}(x,x)
 Base.convert{T,S}(::Type{Interval{T}}, x::S) = (y=convert(T, x); Interval{T}(y,y))
 Base.convert{T}(::Type{Interval{T}}, w::Interval) = Interval{T}(convert(T, w.lo), convert(T, w.hi))
-
-@noinline throw_promotion_error(a,b) = throw(ArgumentError("cannot promote $a and $b to a common leaf type"))
 
 # Promotion rules for "promiscuous" types like Intervals and SIUnits, which both
 # simply wrap any Number, are often ambiguous. That is, which type should "win"
@@ -78,16 +73,8 @@ Base.convert{T}(::Type{Interval{T}}, w::Interval) = Interval{T}(convert(T, w.lo)
 # supported Scalar:
 typealias Scalar Union{Number, Dates.AbstractTime}
 Base.promote_rule{T<:Scalar}(::Type{Interval{T}}, ::Type{T}) = Interval{T}
-@inline function Base.promote_rule{T,S<:Scalar}(::Type{Interval{T}}, ::Type{S})
-    R = promote_type(T,S)
-    isleaftype(R) || throw_promotion_error(T,S)
-    Interval{R}
-end
-@inline function Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}})
-    R = promote_type(T,S)
-    isleaftype(R) || throw_promotion_error(T,S)
-    Interval{R}
-end
+Base.promote_rule{T,S<:Scalar}(::Type{Interval{T}}, ::Type{S}) = Interval{promote_type(T,S)}
+Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}
 
 import Base: isless, <=, ==, +, -, *, /, ^
 # TODO: Do I want 0..2 < 1..2 ? Should the upper bound be <=?
@@ -119,44 +106,45 @@ Base.in(a::Interval, b::Interval) = b.lo <= a.lo && a.hi <= b.hi
 Base.minimum(a::Interval) = a.lo
 Base.maximum(a::Interval) = a.hi
 # Extend the promoting operators to include Intervals. The comparison operators
-# (<, <=, and ==) are a pain since they are non-promoting fallback that call
+# (<, <=, and ==) are a pain since they are non-promoting fallbacks that call
 # isless, !(y < x) (which is wrong), and ===. So implementing promotion with
 # Union{T, Interval} causes stack overflows for the base types. This is safer:
-for f in (:isless, :(<=), :(==), #=:(+), :(-),=# :(*), :(/))
+for f in (:isless, :(<=), :(==), :(+), :(-), :(*), :(/))
     @eval $(f)(x::Interval, y::Scalar) = $(f)(promote(x,y)...)
     @eval $(f)(x::Scalar, y::Interval) = $(f)(promote(x,y)...)
 end
 
-# For this application (use in AxisArrays), we don't want to promote for
-# addition between Interval{T} and a scalar S since it represents mixed indexing
-# with an interval specified in terms of the axis and the offset(s) in terms of
-# indices (or vice versa). Even if the types are the same, the semantics aren't:
-# we always snap to the offset *first*. No math is defined for OffsetIntervals
-# since they *only* exist "in transit" and typically only have meaning in the
-# context of the Axis they index into (unless T === S).
-immutable OffsetInterval{T, S} <: AbstractInterval
-    window::Interval{T}
-    offset::S
-end
-# TODO: We could implement this with the new operator promotion instead
-# Adding or subtracting a scalar from an interval creates an offset interval
-+(window::Interval, at::Scalar) = OffsetInterval(window, at)
-+(at::Scalar, window::Interval) = OffsetInterval(window, at)
--(window::Interval, at::Scalar) = OffsetInterval(window, -at)
--(at::Scalar, window::Interval) = OffsetInterval(-window, at)
-
 # And, finally, we have an Array-of-Structs to Struct-of-Arrays transform for
 # the common case where the interval is constant over many offsets:
-immutable RepeatedInterval{T,S,A} <: AbstractVector{OffsetInterval{T,S}}
-    window::Interval{T}
-    offsets::A # A <: AbstractArray{S}
+immutable RepeatedInterval{T,S,A} <: AbstractVector{T}
+    window::Interval{S}
+    offsets::A # A <: AbstractVector
 end
-RepeatedInterval{T,S}(window::Interval{T}, offsets::AbstractVector{S}) = RepeatedInterval{T,S,typeof(offsets)}(window, offsets)
-Base.size(r::RepeatedInterval) = (length(r.offsets),)
-Base.length(r::RepeatedInterval) = length(r.offsets)
+RepeatedInterval{S,A<:AbstractVector}(window::Interval{S}, offsets::A) = RepeatedInterval{promote_type(Interval{S}, eltype(A)), S, A}(window, offsets)
+Base.size(r::RepeatedInterval) = size(r.offsets)
 Base.linearindexing{R<:RepeatedInterval}(::Type{R}) = Base.LinearFast()
-Base.getindex(r::RepeatedInterval, i::Int) = OffsetInterval(r.window, r.offsets[i])
-+(window::Interval, at::AbstractArray) = RepeatedInterval(window, at)
-+(at::AbstractArray, window::Interval) = RepeatedInterval(window, at)
--(window::Interval, at::AbstractArray) = RepeatedInterval(window, -at)
--(at::AbstractArray, window::Interval) = RepeatedInterval(window, -at)
+Base.getindex(r::RepeatedInterval, i::Int) = r.window + r.offsets[i]
++(window::Interval, offsets::AbstractVector) = RepeatedInterval(window, offsets)
++(offsets::AbstractVector, window::Interval) = RepeatedInterval(window, offsets)
+-(window::Interval, offsets::AbstractVector) = RepeatedInterval(window, -offsets)
+-(offsets::AbstractVector, window::Interval) = RepeatedInterval(-window, offsets)
+
+# As a special extension to intervals, we allow specifying Intervals about a
+# particular index, which is resolved by an axis upon indexing.
+immutable IntervalAtIndex{T}
+    window::Interval{T}
+    index::Int
+end
+# TODO: is there a better operator? Maybe a boxed plus ⊞? Or a unicode arrow?
+import Base: <|
+<|(window::Interval, index::Integer) = IntervalAtIndex(window, index)
+
+# And similarly, an AoS -> SoA transform:
+immutable RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{IntervalAtIndex{T}}
+    window::Interval{T}
+    indexes::A # A <: AbstractVector{Int}
+end
+<|(window::Interval, indexes::AbstractVector) = RepeatedIntervalAtIndexes(window, indexes)
+Base.size(r::RepeatedIntervalAtIndexes) = size(r.offsets)
+Base.linearindexing{R<:RepeatedIntervalAtIndexes}(::Type{R}) = Base.LinearFast()
+Base.getindex(r::RepeatedIntervalAtIndexes, i::Int) = IntervalAtIndex(r.window, r.offsets[i])

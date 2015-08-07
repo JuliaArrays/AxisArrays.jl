@@ -31,27 +31,27 @@ julia> fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added f
 
 julia> A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
 2400001x2 AxisArrays.AxisArray{Float64,2,Array{Float64,2},Tuple{AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}},AxisArrays.Axis{:chan,Array{Symbol,1}}}}:
-  0.801979    1.60396
- -0.279391   -0.558783
-  0.798178    1.59636
-  3.6787      7.35741
- -1.75009    -3.50019
-  3.51868     7.03736
- -2.99218    -5.98437
- -8.29006   -16.5801
- -1.04566    -2.09132
- -1.06588    -2.13175
+ -0.987931  -1.97586
+ -0.719792  -1.43958
+ -0.4038    -0.8076
+ -1.12146   -2.24293
+  3.31236    6.62473
+ -2.38934   -4.77868
+ -3.65712   -7.31424
+ -1.57186   -3.14373
+ -3.89403   -7.78806
+ -3.48901   -6.97803
   ⋮
-  3.34157     6.68314
- -0.478451   -0.956903
- -3.31583    -6.63166
-  1.71842     3.43684
- -1.12155    -2.2431
- -0.357933   -0.715867
- -1.76172    -3.52344
- -2.80488    -5.60975
-  3.40475     6.80951
- -0.397644   -0.795288
+  1.16204    2.32408
+  0.105888   0.211777
+ -4.5175    -9.03501
+ -0.792749  -1.5855
+  1.99229    3.98458
+  1.44092    2.88184
+ -1.06677   -2.13353
+  3.03809    6.07619
+ -2.90052   -5.80104
+ -0.519704  -1.03941
  ```
  
 AxisArrays behave like regular arrays, but they additionally use the axis
@@ -61,15 +61,15 @@ indices in *any* order, just so long as we annotate them with the axis name:
 ```jl
 julia> A[Axis{:time}(4)]
 1x2 AxisArrays.AxisArray{Float64,2,SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},Colon},2},Tuple{AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}},AxisArrays.Axis{:chan,Array{Symbol,1}}}}:
- 3.6787  7.35741
+ -1.12146  -2.24293
 
 julia> A[Axis{:chan}(:c2), Axis{:time}(1:5)]
 5-element AxisArrays.AxisArray{Float64,1,SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2},Tuple{AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}}:
-  1.60396
- -0.558783
-  1.59636
-  7.35741
- -3.50019
+ -1.97586
+ -1.43958
+ -0.8076
+ -2.24293
+  6.62473
 ```
 
 We can also index by the *values* of each axis using an `Interval` type that
@@ -78,15 +78,36 @@ Notice that the returned AxisArray still has axis information itself... and it
 still has the correct time information for those datapoints!
 
 ```jl
-julia> A[30.0µs .. 130.0µs, :c2]
-4-element AxisArrays.AxisArray{Float64,1,SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2},Tuple{AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}}:
-  1.59636
-  7.35741
- -3.50019
-  7.03736
+julia> A[40µs .. 220µs, :c1]
+7-element AxisArrays.AxisArray{Float64,1,SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2},Tuple{AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}}:
+ -0.4038
+ -1.12146
+  3.31236
+ -2.38934
+ -3.65712
+ -1.57186
+ -3.89403
 
-julia> axes(ans)
-(AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}(5.0e-5 s:2.5e-5 s:0.000125 s),)
+julia> axes(ans, 1)
+AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}(5.0e-5 s:2.5e-5 s:0.00015 s)
+```
+
+Sometimes, though, what we're really interested in is a window of time about a
+specific index. The operation above (looking for values in the window from 40µs
+to 220µs) might be more clearly expressed as a symmetrical window about a
+specific index where we know something interesting happened. To represent this,
+we use the special `<|` operator:
+
+```jl
+julia> A[(-90µs .. 90µs) <| 5, :c2]
+7-element AxisArrays.AxisArray{Float64,1,SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2},Tuple{AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}}:
+ -1.43958
+ -0.8076
+ -2.24293
+  6.62473
+ -4.77868
+ -7.31424
+ -3.14373
 ```
 
 This simple concept can be extended to some very powerful behaviors. For
@@ -97,7 +118,7 @@ crossings.
 julia> idxs = find(diff(A[:,:c1] .< -15) .> 0)
 248-element Array{Int64,1}: ...
 
-julia> spks = A[(-200.0µs .. 800.0µs) + idxs, :c1]
+julia> spks = A[(-200µs .. 800µs) <| idxs, :c1]
 39x248 AxisArrays.AxisArray{Float64,2,Array{Float64,2},Tuple{AxisArrays.Axis{:time_sub,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}},AxisArrays.Axis{:time_rep,Array{SIUnits.SIQuantity{Float64,0,0,1,0,0,0,0,0,0},1}}}}:
    3.76269     3.20058      6.30581   …    9.6313      9.05193     0.214391
    1.63657     3.26572      5.48104        1.4864      1.44608     6.1742
@@ -126,7 +147,8 @@ By indexing with a repeated interval, we have *added* a dimension to the
 output! The returned AxisArray's columns specify each repetition of the
 interval, and each datapoint in the column represents a timepoint within that
 interval, adjusted by the time of the theshold crossing. We can use sparklines
-to rudimentarily display the first ten repetitions:
+to rudimentarily display the event time and waveform of the first ten
+repetitions:
 
 ```jl
 julia> using Sparklines

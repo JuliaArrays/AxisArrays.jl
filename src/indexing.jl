@@ -136,20 +136,54 @@ end
 # Default axes indexing throws an error
 axisindexes(ax, idx) = axisindexes(axistrait(ax.val), ax.val, idx)
 axisindexes(::Type{Unsupported}, ax, idx) = error("elementwise indexing is not supported for axes of type $(typeof(ax))")
-axisindexes(t, ax, idx) = error("cannot index $(typeof(ax)) with $(typeof(idx)); expected $(eltype(ax)) or Int")
+axisindexes(t, ax, idx) = error("cannot index $(typeof(ax)) with $(typeof(idx)); expected $(eltype(ax)) axis value or Integer index")
 
-# Dimensional axes may be indexed directy by their elements
-axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::T) = searchsorted(ax, Interval(idx,idx))
+# Dimensional axes may be indexed directy by their elements if Non-Real and unique
+# Maybe extend error message to all <: Numbers if Base allows it?
+axisindexes{T<:Real}(::Type{Dimensional}, ax::AbstractVector{T}, idx::T) = error("indexing by axis value is not supported for axes with $(eltype(ax)) elements; use an Interval instead")
+function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx)
+    idxs = searchsorted(ax, Interval(idx,idx))
+    length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
+    idxs[1]
+end
 
-# Dimensional axes may be indexed by intervals of their elements to select a range
-axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::Interval{T}) = searchsorted(ax, idx)
-# Or intervals of Ints, which are equivalent to a index range
-axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Interval{Int}) = minimum(idx):maximum(idx)
+# Dimensional axes may be indexed by intervals to select a range
+axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::Interval) = searchsorted(ax, idx)
 
-# Or offset intervals, which shift the resulting axes of the indexing operation
-# to either an axis of integer offsets or the possibly-extrapolated range
-new_interval_axis(::AbstractVector, idxs) = idxs # TODO: This creates an integer axis, which isn't indexable by value
-new_interval_axis(r::Range, idxs) = unsafe_getindex(r, idxs)
+# Or repeated intervals, which only work if the axis is a range since otherwise
+# there will be a non-constant number of indices in each repetition. 
+# Two small tricks are used here:
+# * Compute the resulting interval axis with unsafe indexing without any offset
+#   - Since it's a range, we can do this, and it makes the resulting axis useful
+# * Snap the offsets to the nearest datapoint to avoid fencepost problems
+# Adds a dimension to the result; rows represent the interval and columns are offsets.
+axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedInterval) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
+function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedInterval)
+    n = length(idx.offsets)
+    V = Vector{UnitRange{Int}}(n)
+    idxs = unsafe_searchsorted(ax, idx.window)
+    offsets = Vector{Int}(n)
+    for i=1:n
+        offsets[i] = searchsortednearest(ax, idx.offsets[i])
+        V[i] = idxs + offsets[i]
+    end
+    AxisArray(RangeMatrix(V), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[offsets]))
+end
+
+# We also have special datatypes to represent intervals about indices
+axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::IntervalAtIndex) = searchsorted(ax, idx.window + ax[idx.index])
+axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedIntervalAtIndexes) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
+function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedIntervalAtIndexes)
+    n = length(idx.indexes)
+    V = Vector{UnitRange{Int}}(n)
+    idxs = unsafe_searchsorted(ax, idx.window)
+    for i=1:n
+        V[i] = idxs + idx.indexes[i]
+    end
+    AxisArray(RangeMatrix(V), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[idx.indexes]))
+end
+
+# Search utilities
 "Return the index of the element in the sorted vector `vec` whose value is closest to `x`"
 function searchsortednearest{T}(vec::AbstractVector{T}, x)
     idx = searchsortedfirst(vec, x) # Returns the first idx | vec[idx] >= x
@@ -209,100 +243,15 @@ end
 function unsafe_searchsorted(a::Range, I::Interval)
     unsafe_searchsortedfirst(a, I.lo):unsafe_searchsortedlast(a, I.hi)
 end
-# Dispatch is a little tricky with ambiguities, so we use inner functions
-axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::OffsetInterval{T,T}) = _tt(ax, idx)
-# Order of operations is tricky.  We want to be careful to always *snap* to the
-# nearest offset first, and then compute the interval about that offset.
-function _tt{T}(ax::AbstractVector{T}, idx::OffsetInterval{T,T})
-    loc = searchsortednearest(ax, idx.offset)
-    idxs = searchsorted(ax, idx.window + ax[loc])
-    AxisArray(idxs, Axis{:sub}(new_interval_axis(ax, idxs - loc)))
-end
-# And for ranges, we want to pre-compute the theoretical range to ensure that
-# there are always the same number of elements at every offset
-function _tt{T}(ax::Range{T}, idx::OffsetInterval{T,T})
-    idxs = unsafe_searchsorted(ax, idx.window)
-    AxisArray(idxs + searchsortednearest(ax, idx.offset), Axis{:sub}(new_interval_axis(ax, idxs)))
-end
-axisindexes(::Type{Dimensional}, ax::AbstractVector{Int}, idx::OffsetInterval{Int,Int}) = _ii(ax, idx) # Just to avoid ambiguity
-axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::OffsetInterval{Int,Int}) = _ii(ax, idx)
-function _ii(ax::AbstractVector{Int}, idx::OffsetInterval{Int,Int})
-    idxs = minimum(idx.window):maximum(idx.window)
-    AxisArray(idxs + idx.offset, Axis{:sub}(new_interval_axis(ax, idxs)))
-end
-axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::OffsetInterval{T,Int}) = _ti(ax, idx)
-function _ti{T}(ax::AbstractVector{T}, idx::OffsetInterval{T,Int})
-    idxs = searchsorted(ax, idx.window + ax[idx.offset])
-    AxisArray(idxs, Axis{:sub}(new_interval_axis(ax, idxs - idx.offset)))
-end
-function _ti{T}(ax::Range{T}, idx::OffsetInterval{T,Int})
-    idxs = unsafe_searchsorted(ax, idx.window)
-    AxisArray(idxs + idx.offset, Axis{:sub}(new_interval_axis(ax, idxs - idx.offset)))
-end
-function axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::OffsetInterval{Int,T})
-    idxs = minimum(idx.window):maximum(idx.window)
-    AxisArray(idxs + searchsortednearest(ax, idx.offset), Axis{:sub}(new_interval_axis(ax, idxs)))
-end
-
-# Or a repeated offset intarval - convert to a Matrix of indices
-axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::RepeatedInterval{T,T}) = _rtt(ax, idx)
-_rtt{T}(ax::AbstractVector{T}, idx::RepeatedInterval{T,T}) = error("intervals specified in axis values may specify a varying number of elements for non-range axes. Use an interval of `Int` instead.")
-# For ranges, we want to pre-compute the theoretical range to ensure that there
-# are always the same number of elements at every offset (without numerical
-# instability)
-function _rtt{T}(ax::Range{T}, idx::RepeatedInterval{T,T})
-    n = length(idx.offsets)
-    V = Vector{UnitRange{Int}}(n)
-    idxs = unsafe_searchsorted(ax, idx.window)
-    offsets = Vector{Int}(n)
-    for i=1:n
-        offsets[i] = searchsortednearest(ax, idx.offsets[i])
-        V[i] = idxs + offsets[i]
-    end
-    AxisArray(RangeMatrix(V), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[offsets]))
-end
-axisindexes(::Type{Dimensional}, ax::AbstractVector{Int}, idx::RepeatedInterval{Int,Int}) = _rii(ax, idx) # Just to avoid ambiguity
-axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedInterval{Int,Int}) = _rii(ax, idx)
-function _rii(ax::AbstractVector{Int}, idx::OffsetInterval{Int,Int})
-    n = length(idx.offsets)
-    V = Vector{UnitRange{Int}}(n)
-    idxs = minimum(idx.window):maximum(idx.window)
-    for i=1:n
-        V[i] = idxs + idx.offsets[i]
-    end
-    AxisArray(RangeMatrix(V), Axis{:sub}(new_interval_axis(ax, idxs)), Axis{:rep}(ax[idx.offsets]))
-end
-axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::RepeatedInterval{T,Int}) = _rti(ax, idx)
-_rti{T}(ax::AbstractVector{T}, idx::RepeatedInterval{T,Int}) = error("intervals specified in axis values may specify a varying number of elements for non-range axes. Use an interval of `Int` instead.")
-function _rti{T}(ax::Range{T}, idx::RepeatedInterval{T,Int})
-    n = length(idx.offsets)
-    V = Vector{UnitRange{Int}}(n)
-    idxs = unsafe_searchsorted(ax, idx.window)
-    for i=1:n
-        V[i] = idxs + idx.offsets[i]
-    end
-    AxisArray(RangeMatrix(V), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[idx.offsets]))
-end
-function axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::RepeatedInterval{Int,T})
-    n = length(idx.offsets)
-    V = Vector{UnitRange{Int}}(n)
-    idxs = minimum(idx.window):maximum(idx.window)
-    offsets = Vector{Int}(n)
-    for i=1:n
-        offsets[i] = searchsortednearest(ax, idx.offsets[i])
-        V[i] = idxs + offsets[i]
-    end
-    AxisArray(RangeMatrix(V), Axis{:sub}(new_interval_axis(ax, idxs)), Axis{:rep}(ax[offsets]))
-end
 
 # Categorical axes may be indexed by their elements
-function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::T)
+function axisindexes(::Type{Categorical}, ax::AbstractVector, idx)
     i = findfirst(ax, idx)
     i == 0 && throw(ArgumentError("index $idx not found"))
     i
 end
 # Categorical axes may be indexed by a vector of their elements
-function axisindexes{T}(::Type{Categorical}, ax::AbstractVector{T}, idx::AbstractVector{T})
+function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::AbstractVector)
     res = findin(ax, idx)
     length(res) == length(idx) || throw(ArgumentError("index $(setdiff(idx,ax)) not found"))
     res

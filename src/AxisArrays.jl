@@ -2,7 +2,7 @@ module AxisArrays
 
 using Requires, Tuples
 
-export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, ..
+export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., <|
 
 include("core.jl")
 include("RangeMatrix.jl")
