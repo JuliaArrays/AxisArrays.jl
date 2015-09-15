@@ -77,9 +77,8 @@ Base.promote_rule{T,S<:Scalar}(::Type{Interval{T}}, ::Type{S}) = Interval{promot
 Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}
 
 import Base: isless, <=, ==, +, -, *, /, ^
-# TODO: Do I want 0..2 < 1..2 ? Should the upper bound be <=?
-# TODO: Is this a total ordering? (antisymmetric, transitive, total)? I think so
-isless(a::Interval, b::Interval) = isless(a.lo, b.lo) && isless(a.hi, b.hi)
+# TODO: Is this a total ordering? (antisymmetric, transitive, total)?
+isless(a::Interval, b::Interval) = isless(a.hi, b.lo)
 # The default definition for <= assumes a strict total order (<=(x,y) = !(y < x))
 <=(a::Interval, b::Interval) = a.lo <= b.lo && a.hi <= b.hi
 ==(a::Interval, b::Interval) = a.hi == b.hi && a.lo == b.lo
