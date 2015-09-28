@@ -1,11 +1,10 @@
 module AxisArrays
 
-using Requires, Tuples
+using Requires, Tuples, RangeArrays, RaggedArrays
 
 export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., <|
 
 include("core.jl")
-include("RangeMatrix.jl")
 include("intervals.jl")
 include("indexing.jl")
 include("sortedvector.jl")

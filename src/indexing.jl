@@ -151,7 +151,7 @@ end
 axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::Interval) = searchsorted(ax, idx)
 
 # Or repeated intervals, which only work if the axis is a range since otherwise
-# there will be a non-constant number of indices in each repetition. 
+# there will be a non-constant number of indices in each repetition.
 # Two small tricks are used here:
 # * Compute the resulting interval axis with unsafe indexing without any offset
 #   - Since it's a range, we can do this, and it makes the resulting axis useful
@@ -160,14 +160,9 @@ axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::Interval) = sear
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedInterval) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedInterval)
     n = length(idx.offsets)
-    V = Vector{UnitRange{Int}}(n)
     idxs = unsafe_searchsorted(ax, idx.window)
-    offsets = Vector{Int}(n)
-    for i=1:n
-        offsets[i] = searchsortednearest(ax, idx.offsets[i])
-        V[i] = idxs + offsets[i]
-    end
-    AxisArray(RangeMatrix(V), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[offsets]))
+    offsets = [searchsortednearest(ax, idx.offsets[i]) for i=1:n]
+    AxisArray(RepeatedRangeMatrix(idxs, offsets), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[offsets]))
 end
 
 # We also have special datatypes to represent intervals about indices
@@ -175,12 +170,8 @@ axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::IntervalAtIndex)
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedIntervalAtIndexes) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedIntervalAtIndexes)
     n = length(idx.indexes)
-    V = Vector{UnitRange{Int}}(n)
     idxs = unsafe_searchsorted(ax, idx.window)
-    for i=1:n
-        V[i] = idxs + idx.indexes[i]
-    end
-    AxisArray(RangeMatrix(V), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[idx.indexes]))
+    AxisArray(RepeatedRangeMatrix(idxs, idx.indexes), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[idx.indexes]))
 end
 
 # Search utilities
