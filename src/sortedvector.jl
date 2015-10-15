@@ -93,8 +93,17 @@ function _isless(t1::Tuple, t2::Tuple)
     end
     return false
 end
-_isless{T<:Tuple}(t1::Interval{T}, t2::Tuple) = _isless(t1, Interval(t2,t2))
-_isless{T<:Tuple}(t1::Tuple, t2::Interval{T}) = _isless(Interval(t1,t1), t2)
+# Additionally, we allow comparing scalars against tuples, which enables
+# indexing by the first scalar in the tuple
 _isless(t1::Tuple, t2) = _isless(t1,(t2,))
 _isless(t1, t2::Tuple) = _isless((t1,),t2)
+
+# And then we add special comparisons to Intervals, because by default they
+# only define comparisons against Numbers and Dates. We're able to do this on
+# our own local function... doing this directly on isless itself would be
+# fraught with trouble.
 _isless(a::Interval, b::Interval) = _isless(a.hi, b.lo)
+_isless{T<:Tuple}(t1::Interval{T}, t2::T) = _isless(t1, Interval(t2,t2))
+_isless{T<:Tuple}(t1::T, t2::Interval{T}) = _isless(Interval(t1,t1), t2)
+_isless{T}(a::Interval{T}, b::T) = _isless(a, Interval(b,b))
+_isless{T}(a::T, b::Interval{T}) = _isless(Interval(a,a), b)
