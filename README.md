@@ -14,6 +14,8 @@ Collaboration is welcome! This is still a work-in-progress. See [the roadmap](ht
 
 ```julia
 julia> Pkg.clone("https://github.com/mbauman/Tuples.jl")
+       Pkg.clone("https://github.com/mbauman/RangeArrays.jl")
+       Pkg.clone("https://github.com/mbauman/RaggedArrays.jl")
        Pkg.clone("https://github.com/mbauman/AxisArrays.jl")
        using AxisArrays, SIUnits
        import SIUnits.ShortUnits: s, ms, µs
@@ -53,7 +55,7 @@ julia> A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
  -2.90052   -5.80104
  -0.519704  -1.03941
  ```
- 
+
 AxisArrays behave like regular arrays, but they additionally use the axis
 information to enable all sorts of fancy behaviors. For example, we can specify
 indices in *any* order, just so long as we annotate them with the axis name:

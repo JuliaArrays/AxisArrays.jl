@@ -166,7 +166,11 @@ function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedInterval)
 end
 
 # We also have special datatypes to represent intervals about indices
-axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::IntervalAtIndex) = searchsorted(ax, idx.window + ax[idx.index])
+axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::IntervalAtIndex) = searchsorted(ax, idx.window + ax[idx.index])
+function axisindexes(::Type{Dimensional}, ax::Range, idx::IntervalAtIndex)
+    idxs = unsafe_searchsorted(ax, idx.window)
+    AxisArray(idxs + idx.index, Axis{:sub}(unsafe_getindex(ax, idxs)))
+end
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedIntervalAtIndexes) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedIntervalAtIndexes)
     n = length(idx.indexes)
@@ -230,7 +234,7 @@ function unsafe_searchsortedlast{T<:Integer}(a::Range{T}, x::Unsigned)
         fld(signed(x)-first(a),step(a))+1
     end
 end
-"Return the indices within an interval, possibly extrapolating if needed"
+"Return the indices within an interval, possibly extrapolating outside the range if needed"
 function unsafe_searchsorted(a::Range, I::Interval)
     unsafe_searchsortedfirst(a, I.lo):unsafe_searchsortedlast(a, I.hi)
 end
