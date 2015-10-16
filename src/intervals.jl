@@ -144,6 +144,6 @@ immutable RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{
     indexes::A # A <: AbstractVector{Int}
 end
 <|(window::Interval, indexes::AbstractVector) = RepeatedIntervalAtIndexes(window, indexes)
-Base.size(r::RepeatedIntervalAtIndexes) = size(r.offsets)
+Base.size(r::RepeatedIntervalAtIndexes) = size(r.indexes)
 Base.linearindexing{R<:RepeatedIntervalAtIndexes}(::Type{R}) = Base.LinearFast()
-Base.getindex(r::RepeatedIntervalAtIndexes, i::Int) = IntervalAtIndex(r.window, r.offsets[i])
+Base.getindex(r::RepeatedIntervalAtIndexes, i::Int) = IntervalAtIndex(r.window, r.indexes[i])
