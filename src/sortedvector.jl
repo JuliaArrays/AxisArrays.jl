@@ -103,7 +103,7 @@ _isless(t1, t2::Tuple) = _isless((t1,),t2)
 # our own local function... doing this directly on isless itself would be
 # fraught with trouble.
 _isless(a::Interval, b::Interval) = _isless(a.hi, b.lo)
-_isless{T<:Tuple}(t1::Interval{T}, t2::T) = _isless(t1, Interval(t2,t2))
-_isless{T<:Tuple}(t1::T, t2::Interval{T}) = _isless(Interval(t1,t1), t2)
-_isless{T}(a::Interval{T}, b::T) = _isless(a, Interval(b,b))
-_isless{T}(a::T, b::Interval{T}) = _isless(Interval(a,a), b)
+_isless(t1::Interval, t2::Tuple) = _isless(t1, Interval(t2,t2))
+_isless(t1::Tuple, t2::Interval) = _isless(Interval(t1,t1), t2)
+_isless(a::Interval, b) = _isless(a, Interval(b,b))
+_isless(a, b::Interval) = _isless(Interval(a,a), b)
