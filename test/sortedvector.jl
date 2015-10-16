@@ -3,8 +3,8 @@
 v = SortedVector(collect([1.; 10.; 10:15.]))
 A = AxisArray(reshape(1:16, 8, 2), v, [:a, :b])
 @test A[Interval(8.,12.), :] == A[2:5, :]
-@test A[1., :] == A[1, :]
-@test A[10., :] == A[2:3, :]
+@test A[1. .. 1., :] == A[1:1, :]
+@test A[10. .. 10., :] == A[2:3, :]
 
 # Test SortedVector with a hierarchical index (indexed using Tuples)
 srand(1234)
