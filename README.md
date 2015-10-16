@@ -104,7 +104,7 @@ we use the `atindex` function:
 ```jl
 julia> A[atindex(-90µs .. 90µs, 5), :c2]
 1-dimensional AxisArray{Float64,1,...} with axes:
-    :time, SIUnits.SIQuantity{Float64,0,0,1,0,0,0,0,0,0}[5.0e-5 s,7.5e-5 s,0.0001 s,0.000125 s,0.00015 s,0.000175 s,0.0002 s]
+    :time_sub, -7.5e-5 s:2.5e-5 s:7.5e-5 s
 And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{AxisArrays.AxisArray{Int64,1,UnitRange{Int64},Tuple{AxisArrays.Axis{:sub,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}},Int64},0}:
  15.7366
  -2.82879
@@ -115,9 +115,10 @@ And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{AxisArrays.AxisA
  -3.95433
 ```
 
-This simple concept can be extended to some very powerful behaviors. For
-example, let's threshold our data and find windows about those threshold
-crossings.
+Note that the returned AxisArray has its time axis shifted to represent the
+interval about the given index!  This simple concept can be extended to some
+very powerful behaviors. For example, let's threshold our data and find windows
+about those threshold crossings.
 
 ```jl
 julia> idxs = find(diff(A[:,:c1] .< -15) .> 0)

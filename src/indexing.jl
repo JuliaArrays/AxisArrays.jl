@@ -37,7 +37,10 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
     reshape = false
     newshape = Expr[]
     for i = 1:newdims-droplastaxis
-        if idxs[i] <: Real
+        if idxs[i] <: AxisArray
+            idxnames = axisnames(idxs[i])
+            push!(axes.args, :($(Axis{symbol(names[i], "_", idxnames[1])})(idxs[$i].axes[1].val)))
+        elseif idxs[i] <: Real
             idx = :(idxs[$i]:idxs[$i])
             push!(axes.args, :($(Axis{names[i]})(A.axes[$i].val[$idx])))
             push!(Isplat, :(idxs[$i]))
