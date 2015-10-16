@@ -33,46 +33,28 @@ function unsafe_searchsorted(a::Range, I::Interval)
 end
 
 function unsafe_searchsortedlast{T<:Number}(a::Range{T}, x::Number)
-    if step(a) == 0
-        isless(x, first(a)) ? 0 : length(a)
-    else
-        n = round(Integer,(x-first(a))/step(a))+1
-        isless(x, unsafe_getindex(a, n)) ? n-1 : n
-    end
+    step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
+    n = round(Integer,(x-first(a))/step(a))+1
+    isless(x, unsafe_getindex(a, n)) ? n-1 : n
 end
 function unsafe_searchsortedfirst{T<:Number}(a::Range{T}, x::Number)
-    if step(a) == 0
-        isless(first(a), x) ? length(a)+1 : 1
-    else
-        n = round(Integer,(x-first(a))/step(a))+1
-        isless(unsafe_getindex(a, n), x) ? n+1 : n
-    end
+    step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
+    n = round(Integer,(x-first(a))/step(a))+1
+    isless(unsafe_getindex(a, n), x) ? n+1 : n
 end
 function unsafe_searchsortedlast{T<:Integer}(a::Range{T}, x::Number)
-    if step(a) == 0
-        isless(x, first(a)) ? 0 : length(a)
-    else
-        fld(floor(Integer,x)-first(a),step(a))+1
-    end
+    step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
+    fld(floor(Integer,x)-first(a),step(a))+1
 end
 function unsafe_searchsortedfirst{T<:Integer}(a::Range{T}, x::Number)
-    if step(a) == 0
-        isless(first(a), x) ? length(a)+1 : 1
-    else
-        -fld(floor(Integer,-x)+first(a),step(a))+1
-    end
+    step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
+    -fld(floor(Integer,-x)+first(a),step(a))+1
 end
 function unsafe_searchsortedfirst{T<:Integer}(a::Range{T}, x::Unsigned)
-    if step(a) == 0
-        isless(first(a), x) ? length(a)+1 : 1
-    else
-        -fld(first(a)-signed(x),step(a))+1
-    end
+    step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
+    -fld(first(a)-signed(x),step(a))+1
 end
 function unsafe_searchsortedlast{T<:Integer}(a::Range{T}, x::Unsigned)
-    if step(a) == 0
-        isless(x, first(a)) ? 0 : length(a)
-    else
-        fld(signed(x)-first(a),step(a))+1
-    end
+    step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
+    fld(signed(x)-first(a),step(a))+1
 end
