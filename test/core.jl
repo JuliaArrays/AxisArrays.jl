@@ -109,3 +109,6 @@ A = AxisArray(reshape(1:24, 2,3,4),
 @test hash(Axis{:row}()) != hash(Axis{:col}())
 @test AxisArrays.axistype(Axis{1}(1:2)) == typeof(1:2)
 @test axisnames(Axis{1}, Axis{2}, Axis{3}) == (1,2,3)
+
+# Simply run the display method to ensure no stupid errors
+writemime(IOBuffer(),MIME("text/plain"),A)
