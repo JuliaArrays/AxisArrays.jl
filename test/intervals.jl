@@ -1,0 +1,46 @@
+# Specific intervals tests
+
+# Promotion behaviors -- we only allow concrete endpoints of the same type
+@test 1.0 .. 2 === 1.0 .. 2.0
+@test 1//2 .. 3.5 === 0.5 .. 3.5
+@test_throws ArgumentError :a .. "b"
+@test_throws ArgumentError 1 .. (2,3)
+
+# Test simple arithmetic, with promotion behaviors
+@test (1.0 .. 2.0) + 1 === (2.0 .. 3.0)
+@test (1 .. 2) + 1.0 === (2.0 .. 3.0)
+@test (1 .. 2) + (1.0 .. 2.0) === (2.0 .. 4.0)
+@test (1 .. 2) - (1 .. 2) === (-1 .. 1)
+@test +(1 .. 2) === (1 .. 2)
+@test -(1 .. 2) === (-2 .. -1)
+
+@test (1..2)*3 === 3..6
+@test (-1..1)*3 === -3..3
+@test (2..4)/2 === 1.0 .. 2.0
+@test 1/(2..4) === 1/4 .. 1/2
+
+@test 3.2 in 3..4
+@test 4 in 2.0 .. 6.0
+@test 4 in 4.0 .. 4.0
+@test 4 in 4.0 .. 5
+@test (1..2) in (0.5 .. 2.5)
+@test !((1..2) in (1.5 .. 2.5))
+
+@test maximum(1..2) === 2
+@test minimum(1..2) === 1
+
+
+# Test repeated intervals:
+@test (1..2) + [1,2,3] == [(1..2)+i for i in [1,2,3]]
+@test (1..2) + (1:3) == [(1..2)+i for i in 1:3]
+@test (1..2) - [1,2,3] == [(1..2)-i for i in [1,2,3]]
+@test (1..2) - (1:3) == [(1..2)-i for i in 1:3]
+
+@test [1,2,3] + (1..2)== [i+(1..2) for i in [1,2,3]]
+@test (1:3) + (1..2)== [i+(1..2) for i in 1:3]
+@test [1,2,3] - (1..2)== [i-(1..2) for i in [1,2,3]]
+@test (1:3) - (1..2)== [i-(1..2) for i in 1:3]
+
+# And intervals at indices
+@test atindex(1..2, [3,4,5]) == [atindex(1..2, i) for i in [3,4,5]]
+@test atindex(1..2, 3:5) == [atindex(1..2, i) for i in 3:5]
