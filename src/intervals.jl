@@ -36,7 +36,6 @@ immutable Interval{T}
     lo::T
     hi::T
     function Interval(lo, hi)
-        isleaftype(T) || throw(ArgumentError("cannot construct Interval with an abstract type parameter"))
         lo <= hi ? new(lo, hi) : throw(ArgumentError("lo must be less than or equal to hi"))
     end
 end

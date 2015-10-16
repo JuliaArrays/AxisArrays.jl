@@ -9,7 +9,6 @@
 v = [1 .. 2, 3.0 .. 4.0]
 @test v[1] === 1.0 .. 2.0
 @test v[2] === 3.0 .. 4.0
-@test_throws ArgumentError [1 .. 2, Dates.today() .. Dates.today()]
 
 # Test simple arithmetic, with promotion behaviors
 @test (1.0 .. 2.0) + 1 === (2.0 .. 3.0)
