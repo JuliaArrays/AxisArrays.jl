@@ -6,6 +6,11 @@
 @test_throws ArgumentError :a .. "b"
 @test_throws ArgumentError 1 .. (2,3)
 
+v = [1 .. 2, 3.0 .. 4.0]
+@test v[1] === 1.0 .. 2.0
+@test v[2] === 3.0 .. 4.0
+@test_throws ArgumentError [1 .. 2, Dates.today() .. Dates.today()]
+
 # Test simple arithmetic, with promotion behaviors
 @test (1.0 .. 2.0) + 1 === (2.0 .. 3.0)
 @test (1 .. 2) + 1.0 === (2.0 .. 3.0)
@@ -29,6 +34,34 @@
 @test maximum(1..2) === 2
 @test minimum(1..2) === 1
 
+# Comparisons are "for-all" like, with <= and >= allowing overlap
+@test   0 <= 1 .. 2
+@test !(0 >= 1 .. 2)
+@test   1 <= 1 .. 2
+@test !(1 >= 1 .. 2)
+@test !(2 <= 1 .. 2)
+@test   2 >= 1 .. 2
+@test !(3 <= 1 .. 2)
+@test   3 >= 1 .. 2
+
+@test   0 < 1 .. 2
+@test !(0 > 1 .. 2)
+@test !(1 < 1 .. 2)
+@test !(1 > 1 .. 2)
+@test !(2 < 1 .. 2)
+@test !(2 > 1 .. 2)
+@test !(3 < 1 .. 2)
+@test   3 > 1 .. 2
+
+# Test dictionary lookup by numeric value
+d = Dict(1..2 => 1, 2.0..3.0 => 2)
+@test d[1..2] === 1
+@test d[1.0..2.0] === 1
+@test d[2..3] === 2
+@test d[2.0..3.0] === 2
+d[0x1 .. 0x2] = 3
+@test d[1..2] === 3
+@test length(d) == 2
 
 # Test repeated intervals:
 @test (1..2) + [1,2,3] == [(1..2)+i for i in [1,2,3]]

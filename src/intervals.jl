@@ -36,6 +36,7 @@ immutable Interval{T}
     lo::T
     hi::T
     function Interval(lo, hi)
+        isleaftype(T) || throw(ArgumentError("cannot construct Interval with an abstract type parameter"))
         lo <= hi ? new(lo, hi) : throw(ArgumentError("lo must be less than or equal to hi"))
     end
 end
@@ -76,7 +77,7 @@ Base.promote_rule{T<:Scalar}(::Type{Interval{T}}, ::Type{T}) = Interval{T}
 Base.promote_rule{T,S<:Scalar}(::Type{Interval{T}}, ::Type{S}) = Interval{promote_type(T,S)}
 Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}
 
-import Base: isless, <=, ==, +, -, *, /, ^
+import Base: isless, <=, >=, ==, +, -, *, /, ^
 # TODO: Is this a total ordering? (antisymmetric, transitive, total)?
 isless(a::Interval, b::Interval) = isless(a.hi, b.lo)
 # The default definition for <= assumes a strict total order (<=(x,y) = !(y < x))
@@ -108,7 +109,7 @@ Base.maximum(a::Interval) = a.hi
 # (<, <=, and ==) are a pain since they are non-promoting fallbacks that call
 # isless, !(y < x) (which is wrong), and ===. So implementing promotion with
 # Union{T, Interval} causes stack overflows for the base types. This is safer:
-for f in (:isless, :(<=), :(==), :(+), :(-), :(*), :(/))
+for f in (:isless, :(<=), :(>=), :(==), :(+), :(-), :(*), :(/))
     @eval $(f)(x::Interval, y::Scalar) = $(f)(promote(x,y)...)
     @eval $(f)(x::Scalar, y::Interval) = $(f)(promote(x,y)...)
 end
