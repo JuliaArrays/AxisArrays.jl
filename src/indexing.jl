@@ -178,67 +178,6 @@ function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedIntervalAtInde
     AxisArray(RepeatedRangeMatrix(idxs, idx.indexes), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[idx.indexes]))
 end
 
-# Search utilities
-"Return the index of the element in the sorted vector `vec` whose value is closest to `x`"
-function searchsortednearest{T}(vec::AbstractVector{T}, x)
-    idx = searchsortedfirst(vec, x) # Returns the first idx | vec[idx] >= x
-    if idx > 1 && (vec[idx] - x) > (x - vec[idx-1])
-        idx -= 1 # The previous element is closer
-    end
-    return idx
-end
-# TODO: This could plug into the sorting system better, but it's fine for now
-# STOLEN FROM BASE, with the bounds-correcting min/max removed
-# TODO: This needs to support Dates.
-function unsafe_searchsortedlast{T<:Number}(a::Range{T}, x::Number)
-    if step(a) == 0
-        isless(x, first(a)) ? 0 : length(a)
-    else
-        n = round(Integer,(x-first(a))/step(a))+1
-        isless(x, unsafe_getindex(a, n)) ? n-1 : n
-    end
-end
-function unsafe_searchsortedfirst{T<:Number}(a::Range{T}, x::Number)
-    if step(a) == 0
-        isless(first(a), x) ? length(a)+1 : 1
-    else
-        n = round(Integer,(x-first(a))/step(a))+1
-        isless(unsafe_getindex(a, n), x) ? n+1 : n
-    end
-end
-function unsafe_searchsortedlast{T<:Integer}(a::Range{T}, x::Number)
-    if step(a) == 0
-        isless(x, first(a)) ? 0 : length(a)
-    else
-        fld(floor(Integer,x)-first(a),step(a))+1
-    end
-end
-function unsafe_searchsortedfirst{T<:Integer}(a::Range{T}, x::Number)
-    if step(a) == 0
-        isless(first(a), x) ? length(a)+1 : 1
-    else
-        -fld(floor(Integer,-x)+first(a),step(a))+1,l
-    end
-end
-function unsafe_searchsortedfirst{T<:Integer}(a::Range{T}, x::Unsigned)
-    if step(a) == 0
-        isless(first(a), x) ? length(a)+1 : 1
-    else
-        -fld(first(a)-signed(x),step(a))+1,l
-    end
-end
-function unsafe_searchsortedlast{T<:Integer}(a::Range{T}, x::Unsigned)
-    if step(a) == 0
-        isless(x, first(a)) ? 0 : length(a)
-    else
-        fld(signed(x)-first(a),step(a))+1
-    end
-end
-"Return the indices within an interval, possibly extrapolating outside the range if needed"
-function unsafe_searchsorted(a::Range, I::Interval)
-    unsafe_searchsortedfirst(a, I.lo):unsafe_searchsortedlast(a, I.hi)
-end
-
 # Categorical axes may be indexed by their elements
 function axisindexes(::Type{Categorical}, ax::AbstractVector, idx)
     i = findfirst(ax, idx)

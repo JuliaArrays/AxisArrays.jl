@@ -6,6 +6,7 @@ export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., atin
 
 include("core.jl")
 include("intervals.jl")
+include("search.jl")
 include("indexing.jl")
 include("sortedvector.jl")
 include("utils.jl")
