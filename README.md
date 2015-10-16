@@ -98,10 +98,10 @@ Sometimes, though, what we're really interested in is a window of time about a
 specific index. The operation above (looking for values in the window from 40µs
 to 220µs) might be more clearly expressed as a symmetrical window about a
 specific index where we know something interesting happened. To represent this,
-we use the special `<|` operator:
+we use the `atindex` function:
 
 ```jl
-julia> A[(-90µs .. 90µs) <| 5, :c2]
+julia> A[atindex(-90µs .. 90µs, 5), :c2]
 7-element AxisArrays.AxisArray{Float64,1,SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2},Tuple{AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}}:
  -1.43958
  -0.8076
@@ -120,7 +120,7 @@ crossings.
 julia> idxs = find(diff(A[:,:c1] .< -15) .> 0)
 248-element Array{Int64,1}: ...
 
-julia> spks = A[(-200µs .. 800µs) <| idxs, :c1]
+julia> spks = A[atindex(-200µs .. 800µs, idxs), :c1]
 39x248 AxisArrays.AxisArray{Float64,2,Array{Float64,2},Tuple{AxisArrays.Axis{:time_sub,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}},AxisArrays.Axis{:time_rep,Array{SIUnits.SIQuantity{Float64,0,0,1,0,0,0,0,0,0},1}}}}:
    3.76269     3.20058      6.30581   …    9.6313      9.05193     0.214391
    1.63657     3.26572      5.48104        1.4864      1.44608     6.1742

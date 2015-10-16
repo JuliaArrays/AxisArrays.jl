@@ -134,16 +134,14 @@ immutable IntervalAtIndex{T}
     window::Interval{T}
     index::Int
 end
-# TODO: is there a better operator? Maybe a boxed plus ⊞? Or a unicode arrow?
-import Base: <|
-<|(window::Interval, index::Integer) = IntervalAtIndex(window, index)
+atindex(window::Interval, index::Integer) = IntervalAtIndex(window, index)
 
 # And similarly, an AoS -> SoA transform:
 immutable RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{IntervalAtIndex{T}}
     window::Interval{T}
     indexes::A # A <: AbstractVector{Int}
 end
-<|(window::Interval, indexes::AbstractVector) = RepeatedIntervalAtIndexes(window, indexes)
+atindex(window::Interval, indexes::AbstractVector) = RepeatedIntervalAtIndexes(window, indexes)
 Base.size(r::RepeatedIntervalAtIndexes) = size(r.indexes)
 Base.linearindexing{R<:RepeatedIntervalAtIndexes}(::Type{R}) = Base.LinearFast()
 Base.getindex(r::RepeatedIntervalAtIndexes, i::Int) = IntervalAtIndex(r.window, r.indexes[i])

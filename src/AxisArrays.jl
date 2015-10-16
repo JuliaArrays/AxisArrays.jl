@@ -2,7 +2,7 @@ module AxisArrays
 
 using Requires, Tuples, RangeArrays, RaggedArrays
 
-export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., <|
+export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., atindex
 
 include("core.jl")
 include("intervals.jl")

@@ -72,10 +72,10 @@ v = AxisArray(collect(.1:.1:10.0), .1:.1:10.0)
 
 # Test repeated intervals
 A = AxisArray([1:100 -1:-1:-100], .1:.1:10.0, [:c1, :c2])
-@test A[2.0..3.0, :] == A[-0.5..0.5 <| 25, :] == [20:30 -20:-1:-30]
-@test A[2.0..3.0, [:c1,:c2]] == A[-0.5..0.5 <| 25, [:c1, :c2]] == [20:30 -20:-1:-30]
-@test A[2.0..3.0, :c1] == A[-0.5..0.5 <| 25, :c1] == collect(20:30)
-@test A[-0.5..0.5 <| 25, :c1] == collect(20:30)
-@test A[-0.5..0.5 <| [25, 35], :c1] == [20:30 30:40]
-@test_throws BoundsError A[-0.5..0.5 <| 5, :c1]
-@test_throws BoundsError A[-0.5..0.5 <| [5, 15, 25], :]
+@test A[2.0..3.0, :] == A[atindex(-0.5..0.5, 25), :] == [20:30 -20:-1:-30]
+@test A[2.0..3.0, [:c1,:c2]] == A[atindex(-0.5..0.5, 25), [:c1, :c2]] == [20:30 -20:-1:-30]
+@test A[2.0..3.0, :c1] == A[atindex(-0.5..0.5, 25), :c1] == collect(20:30)
+@test A[atindex(-0.5..0.5, 25), :c1] == collect(20:30)
+@test A[atindex(-0.5..0.5, [25, 35]), :c1] == [20:30 30:40]
+@test_throws BoundsError A[atindex(-0.5..0.5, 5), :c1]
+@test_throws BoundsError A[atindex(-0.5..0.5, [5, 15, 25]), :]
