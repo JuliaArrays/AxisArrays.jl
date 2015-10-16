@@ -3,13 +3,14 @@ os:
   - linux
   - osx
 julia:
+  - 0.4
   - nightly
 notifications:
   email: false
 # uncomment the following lines to override the default test script
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia -e 'Pkg.clone("https://github.com/mbauman/Tuples.jl"); Pkg.clone("https://github.com/mbauman/RaggedArrays.jl"); Pkg.clone("https://github.com/mbauman/RangeArrays.jl"); '
+  - julia -e 'Pkg.clone("https://github.com/mbauman/Tuples.jl"); Pkg.clone("https://github.com/mbauman/RangeArrays.jl")'
   - julia --check-bounds=yes -e 'Pkg.clone(pwd()); Pkg.build("AxisArrays"); Pkg.test("AxisArrays"; coverage=true)'
 after_success:
     - julia -e 'cd(Pkg.dir("AxisArrays")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'

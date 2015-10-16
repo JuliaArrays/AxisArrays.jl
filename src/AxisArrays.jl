@@ -1,6 +1,6 @@
 module AxisArrays
 
-using Requires, Tuples, RangeArrays, RaggedArrays
+using Requires, Tuples, RangeArrays
 
 export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., atindex
 

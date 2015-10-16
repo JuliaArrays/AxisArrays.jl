@@ -15,7 +15,6 @@ Collaboration is welcome! This is still a work-in-progress. See [the roadmap](ht
 ```julia
 julia> Pkg.clone("https://github.com/mbauman/Tuples.jl")
        Pkg.clone("https://github.com/mbauman/RangeArrays.jl")
-       Pkg.clone("https://github.com/mbauman/RaggedArrays.jl")
        Pkg.clone("https://github.com/mbauman/AxisArrays.jl")
        using AxisArrays, SIUnits
        import SIUnits.ShortUnits: s, ms, µs
