@@ -151,27 +151,20 @@ interval, adjusted by the time of the theshold crossing. We can use sparklines
 to rudimentarily display the event time and waveform of the first ten
 repetitions:
 
+Now we can do a cursory clustering analysis on these spike snippets to separate
+the two "neurons" back out into their own groups with Clustering.jl, and plot
+using Gadfly.
+
 ```jl
-julia> using Sparklines
-       t = axes(spks, 2)
-       for i=1:10
-           print(t[i], ":\t")
-           sparkln(spks[:, i])
-       end
-d
-0.178725 s:	▄▄▅▄▄▃▃▂▁▁▂▃▅▆█▇▇▅▄▄▄▄▄▄▄▄▄▄▄▄▄▄▅▄▄▄▄▄▄
-0.806825 s:	▄▄▄▄▃▄▃▂▁▁▁▃▄▇█▇▆▅▄▃▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▃▄▄▃
-0.88305 s:	▆▆▅▆▆▅▄▄▃▂▁▁▁▁▂▂▃▄▄▅▇▆▇▇▇▇▇█▆▆▆▆▆▆▅▆▅▆▅
-1.47485 s:	▅▆▆▆▅▅▄▃▂▁▁▁▁▁▂▂▄▅▅▇▇▇▇▇▇█▆▇▆▆▆▆▆▆▆▆▆▆▅
-1.50465 s:	▄▄▄▄▃▃▂▁▁▁▁▃▄▆█▇▆▅▃▃▃▃▃▄▄▄▄▄▄▄▄▄▃▃▄▄▄▄▄
-1.53805 s:	▄▃▄▄▄▃▃▂▁▁▁▂▅▆▇█▆▅▃▄▄▄▄▃▄▄▄▄▃▄▄▄▄▄▄▄▄▄▄
-1.541025 s:	▆▆▆▆▆▄▄▄▃▂▂▁▁▁▂▂▃▄▅▅▆▆▇▇▇▇█▆▆▆▆▅▅▅▅▅▅▆▅
-2.16365 s:	▄▄▅▄▄▃▂▁▁▁▁▃▅▇█▇▆▅▅▄▄▄▄▄▃▄▄▄▄▄▄▄▄▄▄▄▄▄▃
-2.368425 s:	▆▆▆▆▅▅▄▃▂▁▁▁▁▂▂▃▄▅▆▆▇▇▇▇▇▇█▆▆▆▆▆▆▆▆▆▆▆▅
-2.739 s:	▆▆▅▆▅▄▅▄▃▃▂▁▁▁▁▂▃▄▅▅▆▇▇▇█▇▇▆▆▆▆▅▆▅▆▅▆▇▅
+julia> using Clustering
+       Ks = Clustering.kmeans(spks.data, 2);
+
+julia> using Gadfly
+       plot(spks, x=:time_sub, y=:data, group=:time_rep, color=DataFrames.RepeatedVector(Ks.assignments, size(spks, 1), 1), Geom.line)
 ```
 
-Fancier integration with plotting packages is a WIP.
+![clustered spike snippets](doc/spikes.png)
+
 
 ## Indexing
 
