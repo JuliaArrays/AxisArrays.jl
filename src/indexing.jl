@@ -203,6 +203,8 @@ end
     for i=1:length(I)
         if I[i] <: Idx
             push!(ex.args, :(I[$i]))
+        elseif I[i] <: AbstractArray{Bool}
+            push!(ex.args, :(find(I[$i])))
         elseif i <= Tuples.length(Ax)
             push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
         else
