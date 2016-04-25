@@ -76,3 +76,12 @@ d[0x1 .. 0x2] = 3
 # And intervals at indices
 @test atindex(1..2, [3,4,5]) == [atindex(1..2, i) for i in [3,4,5]]
 @test atindex(1..2, 3:5) == [atindex(1..2, i) for i in 3:5]
+
+# Ensure comparisons are exact (and not lossy)
+@assert 0.2 > 2//10 # 0.2 == 2.0000000000000001
+@test !(0.1 .. 0.2 <= 2//10)
+
+# Conversion and construction:
+@test 1 .. 2 === Interval(1, 2) === Interval{Int}(1.0, 2.0) === Interval{Int}(1.0 .. 2.0)
+@test 1.0 .. 2.0 === Interval(1.0, 2) === Interval{Float64}(1, 2) === Interval{Float64}(1 .. 2)
+@test 1 .. 1 === Interval(1, 1) === Interval(1) === Interval{Int}(1) === Interval{Int}(1.0, 1.0) === Interval{Int}(1.0)
