@@ -147,9 +147,11 @@ And data, a 39x242 Array{Float64,2}:
 By indexing with a repeated interval, we have *added* a dimension to the
 output! The returned AxisArray's columns specify each repetition of the
 interval, and each datapoint in the column represents a timepoint within that
-interval, adjusted by the time of the theshold crossing. We can use sparklines
-to rudimentarily display the event time and waveform of the first ten
-repetitions:
+interval, adjusted by the time of the theshold crossing. The best part here
+is that the returned matrix knows precisely where its data came from, and has
+labeled its dimensions appropriately. Not only is there the proper time
+base for each waveform, but we also have recorded the event times as the axis
+across the columns.
 
 Now we can do a cursory clustering analysis on these spike snippets to separate
 the two "neurons" back out into their own groups with Clustering.jl, and plot

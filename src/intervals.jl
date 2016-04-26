@@ -48,6 +48,7 @@ function Interval{T,S}(a::T, b::S)
 end
 const .. = Interval
 
+Base.convert{T}(::Type{Interval}, x::T) = Interval{T}(x,x)
 Base.convert{T}(::Type{Interval{T}}, x::T) = Interval{T}(x,x)
 Base.convert{T,S}(::Type{Interval{T}}, x::S) = (y=convert(T, x); Interval{T}(y,y))
 Base.convert{T}(::Type{Interval{T}}, w::Interval) = Interval{T}(convert(T, w.lo), convert(T, w.hi))
@@ -76,7 +77,7 @@ Base.promote_rule{T<:Scalar}(::Type{Interval{T}}, ::Type{T}) = Interval{T}
 Base.promote_rule{T,S<:Scalar}(::Type{Interval{T}}, ::Type{S}) = Interval{promote_type(T,S)}
 Base.promote_rule{T,S}(::Type{Interval{T}}, ::Type{Interval{S}}) = Interval{promote_type(T,S)}
 
-import Base: isless, <=, >=, ==, +, -, *, /, ^
+import Base: isless, <=, >=, ==, +, -, *, /, ^, //
 # TODO: Is this a total ordering? (antisymmetric, transitive, total)?
 isless(a::Interval, b::Interval) = isless(a.hi, b.lo)
 # The default definition for <= assumes a strict total order (<=(x,y) = !(y < x))
@@ -88,7 +89,7 @@ Base.hash(a::Interval, h::UInt) = hash(a.lo, hash(a.hi, hash(_interval_hash, h))
 +(a::Interval, b::Interval) = Interval(a.lo + b.lo, a.hi + b.hi)
 -(a::Interval) = Interval(-a.hi, -a.lo)
 -(a::Interval, b::Interval) = a + (-b)
-for f in (:(*), :(/))
+for f in (:(*), :(/), :(//))
     # For a general monotonic operator, we compute the operation over all
     # combinations of the endpoints and return the widest interval
     @eval function $(f)(a::Interval, b::Interval)
@@ -108,9 +109,11 @@ Base.maximum(a::Interval) = a.hi
 # (<, <=, and ==) are a pain since they are non-promoting fallbacks that call
 # isless, !(y < x) (which is wrong), and ===. So implementing promotion with
 # Union{T, Interval} causes stack overflows for the base types. This is safer:
-for f in (:isless, :(<=), :(>=), :(==), :(+), :(-), :(*), :(/))
-    @eval $(f)(x::Interval, y::Scalar) = $(f)(promote(x,y)...)
-    @eval $(f)(x::Scalar, y::Interval) = $(f)(promote(x,y)...)
+for f in (:isless, :(<=), :(>=), :(==), :(+), :(-), :(*), :(/), :(//))
+    # We don't use promote here, though, because promotions can be lossy... and
+    # that's particularly bad for comparisons. Just make an interval instead.
+    @eval $(f)(x::Interval, y::Scalar) = $(f)(x, y..y)
+    @eval $(f)(x::Scalar, y::Interval) = $(f)(x..x, y)
 end
 
 # And, finally, we have an Array-of-Structs to Struct-of-Arrays transform for

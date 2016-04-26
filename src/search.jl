@@ -31,6 +31,10 @@ bounds, possibly extrapolating outside the range if needed.
 function unsafe_searchsorted(a::Range, I::Interval)
     unsafe_searchsortedfirst(a, I.lo):unsafe_searchsortedlast(a, I.hi)
 end
+# Base only specializes searching ranges by Numbers; so optimize for Intervals
+function Base.searchsorted(a::Range, I::Interval)
+    searchsortedfirst(a, I.lo):searchsortedlast(a, I.hi)
+end
 
 function unsafe_searchsortedlast{T<:Number}(a::Range{T}, x::Number)
     step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
