@@ -110,5 +110,11 @@ A = AxisArray(reshape(1:24, 2,3,4),
 @test AxisArrays.axistype(Axis{1}(1:2)) == typeof(1:2)
 @test axisnames(Axis{1}, Axis{2}, Axis{3}) == (1,2,3)
 
+# Test Timetype axis construction
+dt, vals = DateTime(2010, 1, 2, 3, 40), randn(5,2)
+A = AxisArray(vals, Axis{:Timestamp}(dt-Dates.Hour(2):Dates.Hour(1):dt+Dates.Hour(2)), Axis{:Cols}([:A, :B]))
+@test A[:, :A].data == vals[:, 1]
+@test A[dt, :].data == vals[3, :]
+
 # Simply run the display method to ensure no stupid errors
 writemime(IOBuffer(),MIME("text/plain"),A)

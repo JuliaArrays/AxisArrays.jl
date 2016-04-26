@@ -44,7 +44,7 @@ end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
 Base.call{name,T}(::Type{Axis{name}}, I::T=()) = Axis{name,T}(I)
 Base.(:(==)){name,T}(A::Axis{name,T}, B::Axis{name,T}) = A.val == B.val
-Base.hash{name}(A::Axis{name}, hx::Uint) = hash(A.val, hash(name, hx))
+Base.hash{name}(A::Axis{name}, hx::UInt) = hash(A.val, hash(name, hx))
 axistype{name,T}(::Axis{name,T}) = T
 axistype{name,T}(::Type{Axis{name,T}}) = T
 # Pass indexing and related functions straight through to the wrapped value
@@ -310,13 +310,12 @@ immutable Categorical <: AxisTrait end
 immutable Unsupported <: AxisTrait end
 
 axistrait(::Any) = Unsupported
-axistrait{T<:Union(Number, Dates.AbstractTime)}(::AbstractVector{T}) = Dimensional
-axistrait{T<:Union(Symbol, AbstractString)}(::AbstractVector{T}) = Categorical
+axistrait{T<:Union{Number, Dates.AbstractTime}}(::AbstractVector{T}) = Dimensional
+axistrait{T<:Union{Symbol, AbstractString}}(::AbstractVector{T}) = Categorical
 
 checkaxis(ax) = checkaxis(axistrait(ax), ax)
 checkaxis(::Type{Unsupported}, ax) = nothing # TODO: warn or error?
 # Dimensional axes must be monotonically increasing
-checkaxis{T}(::Type{Dimensional}, ax::Range{T}) = step(ax) > zero(T) || throw(ArgumentError("Dimensional axes must be monotonically increasing"))
 checkaxis(::Type{Dimensional}, ax) = issorted(ax) || throw(ArgumentError("Dimensional axes must be monotonically increasing"))
 # Categorical axes must simply be unique
 function checkaxis(::Type{Categorical}, ax)
