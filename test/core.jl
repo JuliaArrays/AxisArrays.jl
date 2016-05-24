@@ -12,7 +12,6 @@ end
 # Conversion and similar
 @test Array(A) == A.data
 @test reshape(A, length(A)) == A.data[:]
-@test [A A] == [A.data A.data]
 B = similar(A, Float64)
 for i in eachindex(A)
     B[i] = A[i]
