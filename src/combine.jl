@@ -24,3 +24,33 @@ function Base.cat{T<:AxisArray}(n::Int, As::T...)
         return AxisArray(cat(n, map(A->A.data, As)...), As[1].axes)
     end #if
 end #Base.cat
+
+function Base.merge{T}(As::AxisArray{T}...)
+
+    resultaxes = Axis[]
+    resultaxeslengths = Int[]
+    axismappings = Any[] #TODO: More precise typing
+
+    for (name, values) in zip(axisnames(As[1]), zip(map(axisvalues, As)...))
+        mergedaxisvalues = vcat(values...) |> unique
+        isa(axistrait(mergedaxisvalues), Dimensional) && sort!(mergedaxisvalues)
+        push!(axismappings, map(vals->findin(mergedaxisvalues, vals), values))
+        push!(resultaxes, Axis{name}(mergedaxisvalues))
+        push!(resultaxeslengths, length(mergedaxisvalues))
+    end
+
+    axismappings = collect(zip(axismappings...))
+    result = AxisArray(zeros(T, resultaxeslengths...), resultaxes...)
+
+    for i in eachindex(collect(As))
+        A, mapping = As[i], axismappings[i]
+        for ci in product(map(n->1:n, size(A))...)
+            mappedci = [mapping[d][ci[d]] for d in eachindex(collect(ci))]
+            result[mappedci...] = A[ci...]
+        end #for
+    end #for
+
+    return result
+
+end #merge
+

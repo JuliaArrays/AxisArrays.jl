@@ -1,6 +1,6 @@
 module AxisArrays
 
-using Requires, Tuples, RangeArrays
+using Requires, Tuples, RangeArrays, Iterators
 
 export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., atindex
 
@@ -9,7 +9,7 @@ include("intervals.jl")
 include("search.jl")
 include("indexing.jl")
 include("sortedvector.jl")
-include("cat.jl")
+include("combine.jl")
 include("utils.jl")
 
 end
