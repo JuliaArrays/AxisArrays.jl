@@ -25,8 +25,9 @@ function Base.cat{T<:AxisArray}(n::Int, As::T...)
     end #if
 end #Base.cat
 
-function Base.merge{T}(As::AxisArray{T}...)
+function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue=zero(T))
 
+    # TODO: Use N for presizing arrays
     resultaxes = Axis[]
     resultaxeslengths = Int[]
     axismappings = Any[] #TODO: More precise typing
@@ -40,7 +41,7 @@ function Base.merge{T}(As::AxisArray{T}...)
     end
 
     axismappings = collect(zip(axismappings...))
-    result = AxisArray(zeros(T, resultaxeslengths...), resultaxes...)
+    result = AxisArray(fill(fillvalue, resultaxeslengths...), resultaxes...)
 
     for i in eachindex(collect(As))
         A, mapping = As[i], axismappings[i]
