@@ -25,9 +25,9 @@ function Base.cat{T<:AxisArray}(n::Int, As::T...)
     end #if
 end #Base.cat
 
-function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue=zero(T))
+function combineaxes{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...)
 
-    # TODO: Use N for presizing arrays
+    # TODO: Use N for presizing arrays?
     resultaxes = Axis[]
     resultaxeslengths = Int[]
     axismappings = Any[] #TODO: More precise typing
@@ -40,7 +40,13 @@ function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue=zero(T))
         push!(resultaxeslengths, length(mergedaxisvalues))
     end
 
-    axismappings = collect(zip(axismappings...))
+    return resultaxes, resultaxeslengths, collect(zip(axismappings...))
+
+end #combineaxes
+
+function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
+
+    resultaxes, resultaxeslengths, axismappings = combineaxes(As...)
     result = AxisArray(fill(fillvalue, resultaxeslengths...), resultaxes...)
 
     for i in eachindex(collect(As))
@@ -55,3 +61,23 @@ function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue=zero(T))
 
 end #merge
 
+function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
+
+    #TODO: Implement inner, left, right joins
+    #TODO: Allow for user-supplied join axis
+
+    resultaxes, resultaxeslengths, axismappings = combineaxes(As...)
+    push!(resultaxeslengths, length(As))
+    result = AxisArray(fill(fillvalue, resultaxeslengths...), resultaxes...)
+
+    for i in eachindex(collect(As))
+        A, mapping = As[i], axismappings[i]
+        for ci in product(map(n->1:n, size(A))...)
+            mappedci = [[mapping[d][ci[d]] for d in eachindex(collect(ci))]; i]
+            result[mappedci...] = A[ci...]
+        end #for
+    end #for
+
+    return result
+
+end #join
