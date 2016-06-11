@@ -25,35 +25,60 @@ function Base.cat{T<:AxisArray}(n::Int, As::T...)
     end #if
 end #Base.cat
 
-function combineaxes{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...)
+combineaxes{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...) = combineaxes(:outer, As...)
 
-    # TODO: Use N for presizing arrays?
-    resultaxes = Axis[]
-    resultaxeslengths = Int[]
-    axismappings = Any[] #TODO: More precise typing
+function combineaxes{T,N,D,Ax}(method::Symbol, As::AxisArray{T,N,D,Ax}...)
 
-    for (name, values) in zip(axisnames(As[1]), zip(map(axisvalues, As)...))
-        mergedaxisvalues = vcat(values...) |> unique
+    M = length(As)
+    axisnamesvalues = zip(axisnames(As[1]), zip(map(axisvalues, As)...)) |> collect
+
+    resultaxes = Array{Axis}(N)
+    resultaxeslengths = Array{Int}(N)
+    axismaps = Array{NTuple{2,NTuple{2,Vector{Int64}}}}(N)
+
+    # TODO: Is there a cleaner way of doing this?
+    if method == :inner
+        mergevalues{T}(values::NTuple{M,Vector{T}}) = intersect(values...)
+    elseif method == :left
+        mergevalues{T}(values::NTuple{M,Vector{T}}) = values[1]
+    elseif method == :right
+        mergevalues{T}(values::NTuple{M,Vector{T}}) = values[end]
+    elseif method == :outer
+        mergevalues{T}(values::NTuple{M,Vector{T}}) = vcat(values...) |> unique
+    else
+        error("Join method must be one of :inner, :left, :right, :outer")
+    end #if
+
+    for i in 1:N
+        name, valueslists = axisnamesvalues[i]
+        mergedaxisvalues = mergevalues(valueslists)
         isa(axistrait(mergedaxisvalues), Dimensional) && sort!(mergedaxisvalues)
-        push!(axismappings, map(vals->findin(mergedaxisvalues, vals), values))
-        push!(resultaxes, Axis{name}(mergedaxisvalues))
-        push!(resultaxeslengths, length(mergedaxisvalues))
+        resultaxes[i] = Axis{name}(mergedaxisvalues)
+        resultaxeslengths[i] = length(mergedaxisvalues)
+        axismaps[i] = map(valueslists) do vals
+            keepers = intersect(vals, mergedaxisvalues)
+            return findin(vals, keepers), findin(mergedaxisvalues, keepers)
+        end #do
     end
 
-    return resultaxes, resultaxeslengths, collect(zip(axismappings...))
+    axismaps = map(zip(axismaps...)) do mps
+        map(idxs->collect(product(idxs...)), zip(mps...))
+    end #do
+
+    return resultaxes, resultaxeslengths, axismaps
 
 end #combineaxes
 
 function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
 
-    resultaxes, resultaxeslengths, axismappings = combineaxes(As...)
+    resultaxes, resultaxeslengths, indexmaps = combineaxes(As...)
     result = AxisArray(fill(fillvalue, resultaxeslengths...), resultaxes...)
 
-    for i in eachindex(collect(As))
-        A, mapping = As[i], axismappings[i]
-        for ci in product(map(n->1:n, size(A))...)
-            mappedci = [mapping[d][ci[d]] for d in eachindex(collect(ci))]
-            result[mappedci...] = A[ci...]
+    for i in 1:length(As)
+        A = As[i]
+        Aidxs, resultidxs = indexmaps[i]
+        for j in eachindex(Aidxs)
+            result[resultidxs[j]...] = A[Aidxs[j]...]
         end #for
     end #for
 
@@ -61,20 +86,19 @@ function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
 
 end #merge
 
-function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
+function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T), newaxis::Axis=Axis{_defaultdimname(N+1)}(1:length(As)), method::Symbol=:outer)
 
-    #TODO: Implement inner, left, right joins
-    #TODO: Allow for user-supplied join axis
-
-    resultaxes, resultaxeslengths, axismappings = combineaxes(As...)
-    push!(resultaxeslengths, length(As))
+    M = length(As)
+    resultaxes, resultaxeslengths, indexmaps = combineaxes(method, As...)
+    push!(resultaxes, newaxis)
+    push!(resultaxeslengths, M)
     result = AxisArray(fill(fillvalue, resultaxeslengths...), resultaxes...)
 
-    for i in eachindex(collect(As))
-        A, mapping = As[i], axismappings[i]
-        for ci in product(map(n->1:n, size(A))...)
-            mappedci = [[mapping[d][ci[d]] for d in eachindex(collect(ci))]; i]
-            result[mappedci...] = A[ci...]
+    for i in 1:M
+        A = As[i]
+        Aidxs, resultidxs = indexmaps[i]
+        for j in eachindex(Aidxs)
+            result[[resultidxs[j]...; i]...] = A[Aidxs[j]...]
         end #for
     end #for
 
