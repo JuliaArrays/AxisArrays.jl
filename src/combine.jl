@@ -69,6 +69,11 @@ function combineaxes{T,N,D,Ax}(method::Symbol, As::AxisArray{T,N,D,Ax}...)
 
 end #combineaxes
 
+"""
+    merge(As::AxisArray...)
+
+Combines AxisArrays with matching axis names into a single AxisArray spanning all of the axis values of the inputs. If a coordinate is defined in more than ones of the inputs, it takes its value from last input in which it appears. If a coordinate in the output array is not defined in any of the input arrays, it takes the value of the optional `fillvalue` keyword argument (default zero).
+"""
 function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
 
     resultaxes, resultaxeslengths, indexmaps = combineaxes(As...)
@@ -86,6 +91,18 @@ function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
 
 end #merge
 
+"""
+    join(As::AxisArray...)
+
+Combines AxisArrays with matching axis names into a single AxisArray. Unlike `merge`, the inputs are joined along a newly created axis (optionally specified with the `newaxis` keyword argument).  The `method` keyword argument can be used to specify the join type:
+
+`:inner` - keep only those array values at axis values common to all AxisArrays to be joined
+`:left` - keep only those array values at axis values present in the first AxisArray passed
+`:right` - keep only those array values at axis values present in the last AxisArray passed
+`:outer` (default) - keep all array values: create an AxisArray spanning all of the input axis values
+
+If an array value in the output array is not defined in any of the input arrays (i.e. in the case of a left, right, or outer join), it takes the value of the optional `fillvalue` keyword argument (default zero).
+"""
 function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T), newaxis::Axis=Axis{_defaultdimname(N+1)}(1:length(As)), method::Symbol=:outer)
 
     M = length(As)
