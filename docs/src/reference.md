@@ -1,0 +1,3 @@
+```@autodocs
+Modules = [AxisArrays]
+```
