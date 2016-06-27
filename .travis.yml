@@ -7,7 +7,8 @@ julia:
   - nightly
 notifications:
   email: false
-# uncomment the following lines to override the default test script
+before_install:
+  - openssl aes-256-cbc -K $encrypted_8a392887b109_key -iv $encrypted_8a392887b109_iv -in .documenter.enc -out .documenter -d
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
   - julia -e 'Pkg.clone("https://github.com/mbauman/Tuples.jl"); Pkg.clone("https://github.com/mbauman/RangeArrays.jl")'
