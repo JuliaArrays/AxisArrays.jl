@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="author" content="mbauman">
+  
+  <title>Reference - AxisArrays.jl</title>
+  
+
+  <link rel="shortcut icon" href="../img/favicon.ico">
+
+  
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="../css/highlight.css">
+  <link href="../assets/Documenter.css" rel="stylesheet">
+
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Reference";
+    var mkdocs_page_input_path = "reference.md";
+    var mkdocs_page_url = "/reference/";
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js"></script>
+  <script src="../js/modernizr-2.8.3.min.js"></script>
+  <script type="text/javascript" src="../js/highlight.pack.js"></script>
+  <script src="../js/theme.js"></script> 
+  <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+  <script src="../assets/mathjaxhelper.js"></script>
+
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> AxisArrays.jl</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+        <ul class="current">
+          
+            <li>
+    <li class="toctree-l1 ">
+        <a class="" href="..">Home</a>
+        
+    </li>
+<li>
+          
+            <li>
+    <li class="toctree-l1 current">
+        <a class="current" href="./">Reference</a>
+        
+            <ul>
+            
+            </ul>
+        
+    </li>
+<li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">AxisArrays.jl</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Reference</li>
+    <li class="wy-breadcrumbs-aside">
+      
+        
+          <a href="https://github.com/mbauman/AxisArrays.jl" class="icon icon-github"> Edit on GitHub</a>
+        
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <p><a id='AxisArrays.Axis' href='#AxisArrays.Axis'>#</a>
+<strong><code>AxisArrays.Axis</code></strong> &mdash; <em>Type</em>.</p>
+<p>Type-stable axis-specific indexing and identification with a parametric type.</p>
+<p><strong>Type parameters</strong></p>
+<pre><code class="julia">immutable Axis{name,T}
+</code></pre>
+
+<ul>
+<li><code>name</code> : the name of the axis, a Symbol</li>
+<li><code>T</code> : the type of the axis</li>
+</ul>
+<p><strong>Constructors</strong></p>
+<pre><code class="julia">Axis{name}(I)
+</code></pre>
+
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>name</code> : the axis name symbol or integer dimension</li>
+<li><code>I</code> : the indexer, any indexing type that the axis supports</li>
+</ul>
+<p><strong>Examples</strong></p>
+<p>Here is an example with a Dimensional axis representing a time sequence along rows and a Categorical axis of symbols for column headers.</p>
+<pre><code class="julia">A = AxisArray(reshape(1:60, 12, 5), .1:.1:1.2, [:a, :b, :c, :d, :e])
+A[Axis{:col}(2)] # grabs the second column
+A[Axis{:col}(:b)] # Same as above, grabs column :b (the second column)
+A[Axis{:row}(2)] # grabs the second row
+A[Axis{2}(2:5)] # grabs the second through 5th columns
+</code></pre>
+
+<p><a id='AxisArrays.AxisArray' href='#AxisArrays.AxisArray'>#</a>
+<strong><code>AxisArrays.AxisArray</code></strong> &mdash; <em>Type</em>.</p>
+<p>An AxisArray is an AbstractArray that wraps another AbstractArray and adds axis names and values to each array dimension. AxisArrays can be indexed by using the named axes as an alternative to positional indexing by dimension. Other advanced indexing along axis values are also provided.</p>
+<p><strong>Type parameters</strong></p>
+<p>The AxisArray contains several type parameters:</p>
+<pre><code class="julia">immutable AxisArray{T,N,D,Ax} &lt;: AbstractArray{T,N}
+</code></pre>
+
+<ul>
+<li><code>T</code> : the elemental type of the AbstractArray</li>
+<li><code>N</code> : the number of dimensions</li>
+<li><code>D</code> : the type of the wrapped AbstractArray</li>
+<li><code>Ax</code> : the names and types of the axes, as a (specialized) NTuple{N, Axis}</li>
+</ul>
+<p><strong>Constructors</strong></p>
+<pre><code class="julia">AxisArray(A::AbstractArray, axes::Axis...)
+AxisArray(A::AbstractArray, names::Symbol...)
+AxisArray(A::AbstractArray, vectors::AbstractVector...)
+</code></pre>
+
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>A::AbstractArray</code> : the wrapped array data</li>
+<li><code>axes</code> or <code>names</code> or <code>vectors</code> : dimensional information for the wrapped array</li>
+</ul>
+<p>The dimensional information may be passed in one of three ways and is entirely optional. When the axis name or value is missing for a dimension, a default is substituted. The default axis names for dimensions <code>(1, 2, 3, 4, 5, ...)</code> are <code>(:row, :col, :page, :dim_4, :dim_5, ...)</code>. The default axis values are the integer unit ranges: <code>1:size(A, d)</code> for each missing dimension <code>d</code>.</p>
+<p><strong>Indexing</strong></p>
+<p>Indexing returns a view into the original data. The returned view is a new AxisArray that wraps a SubArray. Indexing should be type stable. Use <code>Axis{axisname}(idx)</code> to index based on a specific axis. <code>axisname</code> is a Symbol specifying the axis to index/slice, and <code>idx</code> is a normal indexing object (<code>Int</code>, <code>Array{Int,1}</code>, etc.) or a custom indexing type for that particular type of axis.</p>
+<p>Two main types of axes supported by default include:</p>
+<ul>
+<li>
+<p>Categorical axis – These are vectors of labels, normally symbols or   strings. Elements or slices can be indexed by elements or vectors   of elements.</p>
+</li>
+<li>
+<p>Dimensional axis – These are sorted vectors or iterators that can   be indexed by <code>Interval()</code>. These are commonly used for sequences of   times or date-times. For regular sample rates, ranges can be used.</p>
+</li>
+</ul>
+<p>User-defined axis types can be added along with custom indexing behaviors. To add add a custom type as a Categorical or Dimensional axis, add a trait using <code>AxisArrays.axistrait</code>. Here is the example of adding a custom Dimensional axis:</p>
+<pre><code class="julia">AxisArrays.axistrait(v::MyCustomAxis) = AxisArrays.Dimensional
+</code></pre>
+
+<p>For more advanced indexing, you can define custom methods for <code>AxisArrays.axisindexes</code>.</p>
+<p><strong>Examples</strong></p>
+<p>Here is an example with a Dimensional axis representing a time sequence along rows (it's a FloatRange) and a Categorical axis of symbols for column headers.</p>
+<pre><code class="julia">A = AxisArray(reshape(1:15, 5, 3), Axis{:time}(.1:.1:0.5), Axis{:col}([:a, :b, :c]))
+A[Axis{:time}(1:3)]   # equivalent to A[1:3,:]
+A[Axis{:time}(Interval(.2,.4))] # restrict the AxisArray along the time axis
+A[Interval(0.,.3), [:a, :c]]   # select an interval and two columns
+</code></pre>
+
+<p><a id='AxisArrays.Interval' href='#AxisArrays.Interval'>#</a>
+<strong><code>AxisArrays.Interval</code></strong> &mdash; <em>Type</em>.</p>
+<p>An Interval represents all values between and including its two endpoints. Intervals are parameterized by the type of its endpoints; this type must be a concrete leaf type that supports a partial ordering. Promoting arithmetic is defined for Intervals of <code>Number</code> and <code>Dates.AbstractTime</code>.</p>
+<p><strong>Type parameters</strong></p>
+<pre><code class="julia">immutable Interval{T}
+</code></pre>
+
+<ul>
+<li><code>T</code> : the type of the interval's endpoints. Must be a concrete leaf type.</li>
+</ul>
+<p><strong>Constructors</strong></p>
+<pre><code class="julia">Interval(a, b)
+a .. b
+</code></pre>
+
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>a</code> : lower bound of the interval</li>
+<li><code>b</code> : upper bound of the interval</li>
+</ul>
+<p><strong>Examples</strong></p>
+<pre><code class="julia">A = AxisArray(collect(1:20), Axis{:time}(.1:.1:2.0))
+A[Interval(0.2,0.5)]
+A[0.0 .. 0.5]
+</code></pre>
+
+<p><a id='AxisArrays.SortedVector' href='#AxisArrays.SortedVector'>#</a>
+<strong><code>AxisArrays.SortedVector</code></strong> &mdash; <em>Type</em>.</p>
+<p>A SortedVector is an AbstractVector where the underlying data is ordered (monotonically increasing).</p>
+<p>Indexing that would unsort the data is prohibited. A SortedVector is a Dimensional axis, and no checking is done to ensure that the data is sorted. Duplicate values are allowed.</p>
+<p>A SortedVector axis can be indexed with an Interval, with a value, or with a vector of values. Use of a SortedVector{Tuple} axis allows indexing similar to the hierarchical index of the Python Pandas package or the R data.table package.</p>
+<p><strong>Constructors</strong></p>
+<pre><code class="julia">SortedVector(x::AbstractVector)
+</code></pre>
+
+<p><strong>Keyword Arguments</strong></p>
+<ul>
+<li><code>x::AbstractVector</code> : the wrapped vector</li>
+</ul>
+<p><strong>Examples</strong></p>
+<pre><code class="julia">v = SortedVector(collect([1.; 10.; 10:15.]))
+A = AxisArray(reshape(1:16, 8, 2), v, [:a, :b])
+A[Interval(8.,12.), :]
+A[1., :]
+A[10., :]
+
+## Hierarchical index example with three key levels
+
+data = reshape(1.:40., 20, 2)
+v = collect(zip([:a, :b, :c][rand(1:3,20)], [:x,:y][rand(1:2,20)], [:x,:y][rand(1:2,20)]))
+idx = sortperm(v)
+A = AxisArray(data[idx,:], SortedVector(v[idx]), [:a, :b])
+A[:b, :]
+A[[:a,:c], :]
+A[(:a,:x), :]
+A[(:a,:x,:x), :]
+A[Interval(:a,:b), :]
+A[Interval((:a,:x),(:b,:x)), :]
+</code></pre>
+
+<p><a id='AxisArrays.axes' href='#AxisArrays.axes'>#</a>
+<strong><code>AxisArrays.axes</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>axes(A::AxisArray) -&gt; (Axis...)
+axes(A::AxisArray, ax::Axis) -&gt; Axis
+axes(A::AxisArray, dim::Int) -&gt; Axis
+</code></pre>
+
+<p>Returns the tuple of axis vectors for an AxisArray. If an specific <code>Axis</code> is specified, then only that axis vector is returned.  Note that when extracting a single axis vector, <code>axes(A, Axis{1})</code>) is type-stable and will perform better than <code>axes(A)[1]</code>.</p>
+<p><a id='AxisArrays.axisdim' href='#AxisArrays.axisdim'>#</a>
+<strong><code>AxisArrays.axisdim</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>axisdim(::AxisArray, ::Axis) -&gt; Int
+axisdim(::AxisArray, ::Type{Axis}) -&gt; Int
+</code></pre>
+
+<p>Given an AxisArray and an Axis, return the integer dimension of the Axis within the array.</p>
+<p><a id='AxisArrays.axisnames' href='#AxisArrays.axisnames'>#</a>
+<strong><code>AxisArrays.axisnames</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>axisnames(A::AxisArray)           -&gt; (Symbol...)
+axisnames(::Type{AxisArray{...}}) -&gt; (Symbol...)
+axisnames(ax::Axis...)            -&gt; (Symbol...)
+axisnames(::Type{Axis{...}}...)   -&gt; (Symbol...)
+</code></pre>
+
+<p>Returns the axis names of an AxisArray or list of Axises as a tuple of symbols.</p>
+<p><a id='AxisArrays.axisvalues' href='#AxisArrays.axisvalues'>#</a>
+<strong><code>AxisArrays.axisvalues</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>axisvalues(A::AxisArray)           -&gt; (AbstractVector...)
+axisvalues(ax::Axis...)            -&gt; (AbstractVector...)
+</code></pre>
+
+<p>Returns the axis values of an AxisArray or list of Axises as a tuple of vectors.</p>
+<p><a id='AxisArrays.searchsortednearest' href='#AxisArrays.searchsortednearest'>#</a>
+<strong><code>AxisArrays.searchsortednearest</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>searchsortednearest(vec::AbstractVector, x)
+</code></pre>
+
+<p>Like <code>searchsortedfirst</code> or <code>searchsortedlast</code>, this returns the the index of the element in the sorted vector <code>vec</code> whose value is closest to <code>x</code>, rounding up. If there are multiple elements that are equally close to <code>x</code>, this will return the first index if <code>x</code> is less than or equal to those in the vector or the last index if <code>x</code> is greater.</p>
+<p><a id='AxisArrays.unsafe_searchsorted' href='#AxisArrays.unsafe_searchsorted'>#</a>
+<strong><code>AxisArrays.unsafe_searchsorted</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>unsafe_searchsorted(a::Range, I::Interval)
+</code></pre>
+
+<p>Return the indices of the range that fall within an interval without checking bounds, possibly extrapolating outside the range if needed.</p>
+<p><a id='Base.join' href='#Base.join'>#</a>
+<strong><code>Base.join</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>join(As::AxisArray...)
+</code></pre>
+
+<p>Combines AxisArrays with matching axis names into a single AxisArray. Unlike <code>merge</code>, the inputs are joined along a newly created axis (optionally specified with the <code>newaxis</code> keyword argument).  The <code>method</code> keyword argument can be used to specify the join type:</p>
+<p><code>:inner</code> - keep only those array values at axis values common to all AxisArrays to be joined <code>:left</code> - keep only those array values at axis values present in the first AxisArray passed <code>:right</code> - keep only those array values at axis values present in the last AxisArray passed <code>:outer</code> (default) - keep all array values: create an AxisArray spanning all of the input axis values</p>
+<p>If an array value in the output array is not defined in any of the input arrays (i.e. in the case of a left, right, or outer join), it takes the value of the optional <code>fillvalue</code> keyword argument (default zero).</p>
+<p><a id='Base.merge' href='#Base.merge'>#</a>
+<strong><code>Base.merge</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>merge(As::AxisArray...)
+</code></pre>
+
+<p>Combines AxisArrays with matching axis names into a single AxisArray spanning all of the axis values of the inputs. If a coordinate is defined in more than ones of the inputs, it takes its value from last input in which it appears. If a coordinate in the output array is not defined in any of the input arrays, it takes the value of the optional <code>fillvalue</code> keyword argument (default zero).</p>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href=".." class="btn btn-neutral" title="Home"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+	  
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+<div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/mbauman/AxisArrays.jl" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+        <span><a href=".." style="color: #fcfcfc;">&laquo; Previous</a></span>
+      
+      
+    </span>
+</div>
+
+</body>
+</html>
