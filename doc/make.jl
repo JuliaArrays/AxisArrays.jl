@@ -8,5 +8,5 @@ makedocs(
 deploydocs(
     deps   = Deps.pip("mkdocs", "python-markdown-math"),
     repo   = "github.com/mbauman/AxisArrays.jl.git",
-    julia  = "release"
+    julia  = "0.4"
 )
