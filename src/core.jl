@@ -20,13 +20,13 @@ Axis{name}(I)
 
 ### Arguments
 
-* `name` : the axis name symbol or integer dimension
+* `name` : the axis name Symbol or integer dimension
 * `I` : the indexer, any indexing type that the axis supports
 
 ### Examples
 
 Here is an example with a Dimensional axis representing a time
-sequence along rows and a Categorical axis of symbols for column
+sequence along rows and a Categorical axis of Symbols for column
 headers.
 
 ```julia
@@ -42,8 +42,8 @@ immutable Axis{name,T}
     val::T
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
-Base.call{name,T}(::Type{Axis{name}}, I::T=()) = Axis{name,T}(I)
-Base.(:(==)){name,T}(A::Axis{name,T}, B::Axis{name,T}) = A.val == B.val
+@compat (::Type{Axis{name}}){name,T}(I::T=()) = Axis{name,T}(I)
+@compat Base.:(==){name,T}(A::Axis{name,T}, B::Axis{name,T}) = A.val == B.val
 Base.hash{name}(A::Axis{name}, hx::UInt) = hash(A.val, hash(name, hx))
 axistype{name,T}(::Axis{name,T}) = T
 axistype{name,T}(::Type{Axis{name,T}}) = T
@@ -103,7 +103,7 @@ custom indexing type for that particular type of axis.
 
 Two main types of axes supported by default include:
 
-* Categorical axis -- These are vectors of labels, normally symbols or
+* Categorical axis -- These are vectors of labels, normally Symbols or
   strings. Elements or slices can be indexed by elements or vectors
   of elements.
 
@@ -128,7 +128,7 @@ For more advanced indexing, you can define custom methods for
 
 Here is an example with a Dimensional axis representing a time
 sequence along rows (it's a FloatRange) and a Categorical axis of
-symbols for column headers.
+Symbols for column headers.
 
 ```julia
 A = AxisArray(reshape(1:15, 5, 3), Axis{:time}(.1:.1:0.5), Axis{:col}([:a, :b, :c]))
@@ -144,13 +144,13 @@ immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     AxisArray(data::AbstractArray, axs) = new{T,N,D,Ax}(data, axs)
 end
 #
-_defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : symbol(:dim_, i)
+_defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
 AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
 @generated function AxisArray{T,N,L}(A::AbstractArray{T,N}, axs::NTuple{L,Axis})
     ax = Expr(:tuple)
     Ax = Tuples.concatenate(axs, NTuple(i->Axis{_defaultdimname(i+L),UnitRange{Int64}},N-L))
     if !isa(axisnames(Tuples.collect(axs)...), Tuple{Vararg{Symbol}})
-        return :(throw(ArgumentError("the Axis names must be symbols")))
+        return :(throw(ArgumentError("the Axis names must be Symbols")))
     end
     for i=1:L
         push!(ax.args, :(axs[$i]))
@@ -256,7 +256,7 @@ end
         println(io)
     end
     print(io, "And data, a ")
-    writemime(io, m, A.data)
+    show(io, m, A.data)
 end
 
 # Custom methods specific to AxisArrays
@@ -266,7 +266,7 @@ end
     axisnames(ax::Axis...)            -> (Symbol...)
     axisnames(::Type{Axis{...}}...)   -> (Symbol...)
 
-Returns the axis names of an AxisArray or list of Axises as a tuple of symbols.
+Returns the axis names of an AxisArray or list of Axises as a tuple of Symbols.
 """ ->
 axisnames{T,N,D,Ax}(::AxisArray{T,N,D,Ax})       = axisnames(Tuples.collect(Ax)...)
 axisnames{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = axisnames(Tuples.collect(Ax)...)
