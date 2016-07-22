@@ -28,30 +28,15 @@ end #Base.cat
 combineaxes{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...) = combineaxes(:outer, As...)
 
 function combineaxes{T,N,D,Ax}(method::Symbol, As::AxisArray{T,N,D,Ax}...)
-
-    M = length(As)
     axisnamesvalues = zip(axisnames(As[1]), zip(map(axisvalues, As)...)) |> collect
 
     resultaxes = Array{Axis}(N)
     resultaxeslengths = Array{Int}(N)
     axismaps = Array{NTuple{2,NTuple{2,Vector{Int64}}}}(N)
 
-    # TODO: Is there a cleaner way of doing this?
-    if method == :inner
-        mergevalues{T}(values::NTuple{M,Vector{T}}) = intersect(values...)
-    elseif method == :left
-        mergevalues{T}(values::NTuple{M,Vector{T}}) = values[1]
-    elseif method == :right
-        mergevalues{T}(values::NTuple{M,Vector{T}}) = values[end]
-    elseif method == :outer
-        mergevalues{T}(values::NTuple{M,Vector{T}}) = vcat(values...) |> unique
-    else
-        error("Join method must be one of :inner, :left, :right, :outer")
-    end #if
-
     for i in 1:N
         name, valueslists = axisnamesvalues[i]
-        mergedaxisvalues = mergevalues(valueslists)
+        mergedaxisvalues = mergevalues(valueslists, method)
         isa(axistrait(mergedaxisvalues), Dimensional) && sort!(mergedaxisvalues)
         resultaxes[i] = Axis{name}(mergedaxisvalues)
         resultaxeslengths[i] = length(mergedaxisvalues)
@@ -66,8 +51,21 @@ function combineaxes{T,N,D,Ax}(method::Symbol, As::AxisArray{T,N,D,Ax}...)
     end #do
 
     return resultaxes, resultaxeslengths, axismaps
-
 end #combineaxes
+
+function mergevalues{T}(values::Tuple{Vararg{Vector{T}}}, method::Symbol)
+    if method == :inner
+        intersect(values...)
+    elseif method == :left
+        values[1]
+    elseif method == :right
+        values[end]
+    elseif method == :outer
+        vcat(values...) |> unique
+    else
+        error("Join method must be one of :inner, :left, :right, :outer")
+    end #if
+end
 
 """
     merge(As::AxisArray...)
