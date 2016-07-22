@@ -13,7 +13,7 @@ sizes{T<:AxisArray}(As::T...) = tuple(zip(map(size, As)...)...)
 matchingdims{N,T<:AxisArray}(As::NTuple{N,T}) = all(equalvalued, sizes(As...))
 matchingdimsexcept{N,T<:AxisArray}(As::NTuple{N,T}, n::Int) = all(equalvalued, sizes(As[[1:n-1; n+1:end]]...))
 
-function Base.cat{T<:AxisArray}(n::Int, As::T...)
+function Base.cat{T<:AxisArray}(n::Integer, As::T...)
     if n <= ndims(As[1])
         matchingdimsexcept(As, n) || error("All non-concatenated axes must be identically-valued")
         newaxis = Axis{axisnames(As[1])[n]}(vcat(map(A -> A.axes[n].val, As)...))
