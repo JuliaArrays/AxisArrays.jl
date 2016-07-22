@@ -60,8 +60,10 @@ end
 # When we index with non-vector arrays, we *add* dimensions. This isn't
 # supported by SubArray currently, so we instead return a copy.
 # TODO: we probably shouldn't hack Base like this, but it's so convenient...
-@inline Base.index_shape_dim(A, dim, i::AbstractArray{Bool}, I...) = (sum(i), Base.index_shape_dim(A, dim+1, I...)...)
-@inline Base.index_shape_dim(A, dim, i::AbstractArray, I...) = (size(i)..., Base.index_shape_dim(A, dim+1, I...)...)
+if VERSION < v"0.5.0-dev"
+    @inline Base.index_shape_dim(A, dim, i::AbstractArray{Bool}, I...) = (sum(i), Base.index_shape_dim(A, dim+1, I...)...)
+    @inline Base.index_shape_dim(A, dim, i::AbstractArray, I...) = (size(i)..., Base.index_shape_dim(A, dim+1, I...)...)
+end
 @generated function Base.getindex(A::AxisArray, I::Union{Idx, AbstractArray{Int}}...)
     N = length(I)
     Isplat = [:(I[$d]) for d=1:N]
