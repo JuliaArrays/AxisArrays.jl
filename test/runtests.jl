@@ -1,5 +1,5 @@
 using AxisArrays
-using Base.Test
+using Base.Test, Compat
 
 include("core.jl")
 include("intervals.jl")

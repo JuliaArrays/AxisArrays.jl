@@ -61,7 +61,7 @@ A = AxisArray(reshape(1:256, 4,4,4,4), Axis{:d1}(.1:.1:.4), Axis{:d2}(1//10:1//1
 @test A.data[:,:,:,1:2] == A[Axis{:d4}([:a,:b])]               == A[:,:,:,[:a,:b]]               == A[:,:,:,[:a,:b],1]
 
 A = AxisArray(reshape(1:32, 2, 2, 2, 2, 2), .1:.1:.2, .1:.1:.2, .1:.1:.2, [:a, :b], [:c, :d])
-@test A[Interval(.15, .25), Interval(.05, .15), Interval(.15, .25), :a] == A.data[2, 1, 2, 1, :]
+@test A[Interval(.15, .25), Interval(.05, .15), Interval(.15, .25), :a] == A.data[2:2, 1:1, 2:2, 1, :]
 @test A[Axis{:dim_5}(2)] == A.data[:, :, :, :, 2]
 
 # Test vectors

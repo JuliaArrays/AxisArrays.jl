@@ -116,4 +116,4 @@ A = AxisArray(vals, Axis{:Timestamp}(dt-Dates.Hour(2):Dates.Hour(1):dt+Dates.Hou
 @test A[dt, :].data == vals[3, :]
 
 # Simply run the display method to ensure no stupid errors
-writemime(IOBuffer(),MIME("text/plain"),A)
+@compat show(IOBuffer(),MIME("text/plain"),A)

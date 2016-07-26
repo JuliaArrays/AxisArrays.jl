@@ -37,22 +37,13 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
     reshape = false
     newshape = Expr[]
     for i = 1:newdims-droplastaxis
-        if idxs[i] <: AxisArray
-            idxnames = axisnames(idxs[i])
-            push!(axes.args, :($(Axis{symbol(names[i], "_", idxnames[1])})(idxs[$i].axes[1].val)))
-        elseif idxs[i] <: Real
-            idx = :(idxs[$i]:idxs[$i])
-            push!(axes.args, :($(Axis{names[i]})(A.axes[$i].val[$idx])))
-            push!(Isplat, :(idxs[$i]))
-        else
-            idx = :(idxs[$i])
-            push!(axes.args, :($(Axis{names[i]})(A.axes[$i].val[$idx])))
-            push!(Isplat, :(idxs[$i]))
-        end
+        prepaxis!(axes.args, Isplat, idxs[i], names, i)
     end
-    Isplat = Expr[:(idxs[$d]) for d=1:length(idxs)]
+    for i = newdims-droplastaxis+1:length(idxs)
+        push!(Isplat, :(idxs[$i]))
+    end
     quote
-        data = sub(A.data, $(Isplat...))
+        data = view(A.data, $(Isplat...))
         AxisArray(data, $axes) # TODO: avoid checking the axes here
     end
 end
@@ -60,8 +51,10 @@ end
 # When we index with non-vector arrays, we *add* dimensions. This isn't
 # supported by SubArray currently, so we instead return a copy.
 # TODO: we probably shouldn't hack Base like this, but it's so convenient...
-@inline Base.index_shape_dim(A, dim, i::AbstractArray{Bool}, I...) = (sum(i), Base.index_shape_dim(A, dim+1, I...)...)
-@inline Base.index_shape_dim(A, dim, i::AbstractArray, I...) = (size(i)..., Base.index_shape_dim(A, dim+1, I...)...)
+if VERSION < v"0.5.0-dev"
+    @inline Base.index_shape_dim(A, dim, i::AbstractArray{Bool}, I...) = (sum(i), Base.index_shape_dim(A, dim+1, I...)...)
+    @inline Base.index_shape_dim(A, dim, i::AbstractArray, I...) = (size(i)..., Base.index_shape_dim(A, dim+1, I...)...)
+end
 @generated function Base.getindex(A::AxisArray, I::Union{Idx, AbstractArray{Int}}...)
     N = length(I)
     Isplat = [:(I[$d]) for d=1:N]
@@ -79,13 +72,13 @@ end
         if I[d] <: AxisArray
             idxnames = axisnames(I[d])
             for i=1:ndims(I[d])
-                push!(newaxes, :($(Axis{symbol(names[d], "_", idxnames[i])})(I[$d].axes[$i].val)))
+                push!(newaxes, :($(Axis{Symbol(names[d], "_", idxnames[i])})(I[$d].axes[$i].val)))
             end
         elseif I[d] <: Idx
             push!(newaxes, :($(Axis{names[d]})(A.axes[$d].val[J[$d]])))
         elseif I[d] <: AbstractArray
             for i=1:ndims(I[d])
-                push!(newaxes, :($(Axis{symbol(names[d], "_", i)})(1:size(I[$d], $i))))
+                push!(newaxes, :($(Axis{Symbol(names[d], "_", i)})(1:size(I[$d], $i))))
             end
         end
     end
@@ -99,7 +92,7 @@ end
         dest = similar(A.data, sz)
         D = eachindex(dest)
         Ds = start(D)
-        Base.Cartesian.@nloops $N i d->(1:idx_lens[d]) d->(j_d = unsafe_getindex(J[d], i_d)) begin
+        Base.Cartesian.@nloops $N i d->(1:idx_lens[d]) d->(@inbounds j_d = J[d][i_d]) begin
             d, Ds = next(D, Ds)
             v = Base.Cartesian.@ncall $N unsafe_getindex src j
             unsafe_setindex!(dest, v, d)
@@ -216,4 +209,31 @@ end
     end
     meta = Expr(:meta, :inline)
     return :($meta; $ex)
+end
+
+function prepaxis!{I<:Union{AbstractVector,Colon}}(axesargs, Isplat, ::Type{I}, names, i)
+    idx = :(idxs[$i])
+    push!(axesargs, :($(Axis{names[i]})(A.axes[$i].val[$idx])))
+    push!(Isplat, :(idxs[$i]))
+    axesargs, Isplat
+end
+function prepaxis!{I<:AxisArray}(axesargs, Isplat, ::Type{I}, names, i)
+    idxnames = axisnames(I)
+    push!(axesargs, :($(Axis{Symbol(names[i], "_", idxnames[1])})(idxs[$i].axes[1].val)))
+    push!(Isplat, :(idxs[$i]))
+    axesargs, Isplat
+end
+# For anything scalar-like
+if VERSION < v"0.5.0-dev"
+    function prepaxis!{I}(axesargs, Isplat, ::Type{I}, names, i)
+        idx = :(idxs[$i]:idxs[$i])
+        push!(axesargs, :($(Axis{names[i]})(A.axes[$i].val[$idx])))
+        push!(Isplat, idx)
+        axesargs, Isplat
+    end
+else
+    function prepaxis!{I}(axesargs, Isplat, ::Type{I}, names, i)
+        push!(Isplat, :(idxs[$i]))
+        axesargs, Isplat
+    end
 end
