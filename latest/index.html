@@ -67,6 +67,8 @@
                 
                     <li><a class="toctree-l4" href="#example-of-currently-implemented-behavior">Example of currently-implemented behavior:</a></li>
                 
+                    <li><a class="toctree-l4" href="#indexing">Indexing</a></li>
+                
             
             </ul>
         
@@ -158,97 +160,124 @@ And data, a 2400001x2 Array{Float64,2}:
   5.39751    10.795
   0.976276    1.95255
   0.336558    0.673116
- ```
-
-AxisArrays behave like regular arrays, but they additionally use the axis
-information to enable all sorts of fancy behaviors. For example, we can specify
-indices in *any* order, just so long as we annotate them with the axis name:
-
 </code></pre>
 
-<p>jl julia&gt; A[Axis{:time}(4)] 2-dimensional AxisArray{Float64,2,...} with axes:     :time, 7.5e-5 s:2.5e-5 s:7.5e-5 s     :chan, [:c1,:c2] And data, a 1x2 SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},Colon},2}:  -1.4144  -2.82879</p>
-<p>julia&gt; A[Axis{:chan}(:c2), Axis{:time}(1:5)] 1-dimensional AxisArray{Float64,1,...} with axes:     :time, 0.0 s:2.5e-5 s:0.0001 s And data, a 5-element SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2}:  -6.12181   0.304668  15.7366  -2.82879  -4.05763</p>
-<pre><code>
-We can also index by the *values* of each axis using an `Interval` type that
-selects all values between two endpoints `a .. b` or the axis values directly.
-Notice that the returned AxisArray still has axis information itself... and it
-still has the correct time information for those datapoints!
+<p>AxisArrays behave like regular arrays, but they additionally use the axis information to enable all sorts of fancy behaviors. For example, we can specify indices in <em>any</em> order, just so long as we annotate them with the axis name:</p>
+<pre><code class="jl">julia&gt; A[Axis{:time}(4)]
+2-dimensional AxisArray{Float64,2,...} with axes:
+    :time, 7.5e-5 s:2.5e-5 s:7.5e-5 s
+    :chan, [:c1,:c2]
+And data, a 1x2 SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},Colon},2}:
+ -1.4144  -2.82879
 
+julia&gt; A[Axis{:chan}(:c2), Axis{:time}(1:5)]
+1-dimensional AxisArray{Float64,1,...} with axes:
+    :time, 0.0 s:2.5e-5 s:0.0001 s
+And data, a 5-element SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2}:
+ -6.12181
+  0.304668
+ 15.7366
+ -2.82879
+ -4.05763
 </code></pre>
 
-<p>jl julia&gt; A[40µs .. 220µs, :c1] 1-dimensional AxisArray{Float64,1,...} with axes:     :time, 5.0e-5 s:2.5e-5 s:0.0002 s And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2}:   7.86831  -1.4144  -2.02881   9.87901   0.463201   2.49211  -1.97716</p>
-<p>julia&gt; axes(ans, 1) AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}(5.0e-5 s:2.5e-5 s:0.0002 s)</p>
-<pre><code>
-Sometimes, though, what we're really interested in is a window of time about a
-specific index. The operation above (looking for values in the window from 40µs
-to 220µs) might be more clearly expressed as a symmetrical window about a
-specific index where we know something interesting happened. To represent this,
-we use the `atindex` function:
+<p>We can also index by the <em>values</em> of each axis using an <code>Interval</code> type that selects all values between two endpoints <code>a .. b</code> or the axis values directly. Notice that the returned AxisArray still has axis information itself... and it still has the correct time information for those datapoints!</p>
+<pre><code class="jl">julia&gt; A[40µs .. 220µs, :c1]
+1-dimensional AxisArray{Float64,1,...} with axes:
+    :time, 5.0e-5 s:2.5e-5 s:0.0002 s
+And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2}:
+  7.86831
+ -1.4144
+ -2.02881
+  9.87901
+  0.463201
+  2.49211
+ -1.97716
 
+julia&gt; axes(ans, 1)
+AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}(5.0e-5 s:2.5e-5 s:0.0002 s)
 </code></pre>
 
-<p>jl julia&gt; A[atindex(-90µs .. 90µs, 5), :c2] 1-dimensional AxisArray{Float64,1,...} with axes:     :time_sub, -7.5e-5 s:2.5e-5 s:7.5e-5 s And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{AxisArrays.AxisArray{Int64,1,UnitRange{Int64},Tuple{AxisArrays.Axis{:sub,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}},Int64},0}:  15.7366  -2.82879  -4.05763  19.758   0.926402   4.98423  -3.95433</p>
-<pre><code>
-Note that the returned AxisArray has its time axis shifted to represent the
-interval about the given index!  This simple concept can be extended to some
-very powerful behaviors. For example, let's threshold our data and find windows
-about those threshold crossings.
-
+<p>Sometimes, though, what we're really interested in is a window of time about a specific index. The operation above (looking for values in the window from 40µs to 220µs) might be more clearly expressed as a symmetrical window about a specific index where we know something interesting happened. To represent this, we use the <code>atindex</code> function:</p>
+<pre><code class="jl">julia&gt; A[atindex(-90µs .. 90µs, 5), :c2]
+1-dimensional AxisArray{Float64,1,...} with axes:
+    :time_sub, -7.5e-5 s:2.5e-5 s:7.5e-5 s
+And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{AxisArrays.AxisArray{Int64,1,UnitRange{Int64},Tuple{AxisArrays.Axis{:sub,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}},Int64},0}:
+ 15.7366
+ -2.82879
+ -4.05763
+ 19.758
+  0.926402
+  4.98423
+ -3.95433
 </code></pre>
 
-<p>jl julia&gt; idxs = find(diff(A[:,:c1] .&lt; -15) .&gt; 0) 242-element Array{Int64,1}: ...</p>
-<p>julia&gt; spks = A[atindex(-200µs .. 800µs, idxs), :c1] 2-dimensional AxisArray{Float64,2,...} with axes:     :time_sub, -0.000175 s:2.5e-5 s:0.000775 s     :time_rep, SIUnits.SIQuantity{Float64,0,0,1,0,0,0,0,0,0}[0.178725 s,0.806825 s,0.88305 s,1.47485 s,1.50465 s,1.53805 s,1.541025 s,2.16365 s,2.368425 s,2.739 s  …  57.797925 s,57.924075 s,58.06075 s,58.215125 s,58.6403 s,58.96215 s,58.990225 s,59.001325 s,59.48395 s,59.611525 s] And data, a 39x242 Array{Float64,2}:  -1.53038     4.72882     5.8706    …  -0.231564      0.624714   3.44076  -2.24961     2.12414     5.69936       7.00179       2.30993    5.20432   5.96311     3.9713     -4.38335       1.32617      -0.686648   0.443454   3.86592     5.7466      2.32469       1.30803       3.44585    1.17781   3.56837    -3.32178     1.16106      -3.91796       2.41779   -6.17495  -9.52063    -2.07014    -1.18463   …  -3.55719       2.23117    1.76089   ⋮                                 ⋱                 ⋮   3.51708    -1.63627     0.281915     -2.41759       3.39403    0.101004   0.0421772  -2.13557    -4.71965       0.066912      3.25141   -0.445574   3.53238    -3.72221     1.68314   …  -4.15147      -5.25241   -1.77557  -4.38307     1.38275    -1.33641       3.40342       0.272826  -3.22013   2.54846    -0.0194032   2.58679      -0.000676503  -2.71147   -0.288483   0.260694   -4.1724     -0.111377      3.283         1.77147   -0.367888</p>
-<pre><code>
-By indexing with a repeated interval, we have *added* a dimension to the
-output! The returned AxisArray's columns specify each repetition of the
-interval, and each datapoint in the column represents a timepoint within that
-interval, adjusted by the time of the theshold crossing. The best part here
-is that the returned matrix knows precisely where its data came from, and has
-labeled its dimensions appropriately. Not only is there the proper time
-base for each waveform, but we also have recorded the event times as the axis
-across the columns.
+<p>Note that the returned AxisArray has its time axis shifted to represent the interval about the given index!  This simple concept can be extended to some very powerful behaviors. For example, let's threshold our data and find windows about those threshold crossings.</p>
+<pre><code class="jl">julia&gt; idxs = find(diff(A[:,:c1] .&lt; -15) .&gt; 0)
+242-element Array{Int64,1}: ...
 
-Now we can do a cursory clustering analysis on these spike snippets to separate
-the two &quot;neurons&quot; back out into their own groups with Clustering.jl, and plot
-using Gadfly.
-
+julia&gt; spks = A[atindex(-200µs .. 800µs, idxs), :c1]
+2-dimensional AxisArray{Float64,2,...} with axes:
+    :time_sub, -0.000175 s:2.5e-5 s:0.000775 s
+    :time_rep, SIUnits.SIQuantity{Float64,0,0,1,0,0,0,0,0,0}[0.178725 s,0.806825 s,0.88305 s,1.47485 s,1.50465 s,1.53805 s,1.541025 s,2.16365 s,2.368425 s,2.739 s  …  57.797925 s,57.924075 s,58.06075 s,58.215125 s,58.6403 s,58.96215 s,58.990225 s,59.001325 s,59.48395 s,59.611525 s]
+And data, a 39x242 Array{Float64,2}:
+ -1.53038     4.72882     5.8706    …  -0.231564      0.624714   3.44076
+ -2.24961     2.12414     5.69936       7.00179       2.30993    5.20432
+  5.96311     3.9713     -4.38335       1.32617      -0.686648   0.443454
+  3.86592     5.7466      2.32469       1.30803       3.44585    1.17781
+  3.56837    -3.32178     1.16106      -3.91796       2.41779   -6.17495
+ -9.52063    -2.07014    -1.18463   …  -3.55719       2.23117    1.76089
+  ⋮                                 ⋱                 ⋮
+  3.51708    -1.63627     0.281915     -2.41759       3.39403    0.101004
+  0.0421772  -2.13557    -4.71965       0.066912      3.25141   -0.445574
+  3.53238    -3.72221     1.68314   …  -4.15147      -5.25241   -1.77557
+ -4.38307     1.38275    -1.33641       3.40342       0.272826  -3.22013
+  2.54846    -0.0194032   2.58679      -0.000676503  -2.71147   -0.288483
+  0.260694   -4.1724     -0.111377      3.283         1.77147   -0.367888
 </code></pre>
 
-<p>jl julia&gt; using Clustering        Ks = Clustering.kmeans(spks.data, 2);</p>
-<p>julia&gt; using Gadfly        plot(spks, x=:time_sub, y=:data, group=:time_rep, color=DataFrames.RepeatedVector(Ks.assignments, size(spks, 1), 1), Geom.line)</p>
-<pre><code>
-![clustered spike snippets](doc/spikes.png)
+<p>By indexing with a repeated interval, we have <em>added</em> a dimension to the output! The returned AxisArray's columns specify each repetition of the interval, and each datapoint in the column represents a timepoint within that interval, adjusted by the time of the theshold crossing. The best part here is that the returned matrix knows precisely where its data came from, and has labeled its dimensions appropriately. Not only is there the proper time base for each waveform, but we also have recorded the event times as the axis across the columns.</p>
+<p>Now we can do a cursory clustering analysis on these spike snippets to separate the two "neurons" back out into their own groups with Clustering.jl, and plot using Gadfly.</p>
+<pre><code class="jl">julia&gt; using Clustering
+       Ks = Clustering.kmeans(spks.data, 2);
 
-
-## Indexing
-
-### Indexing axes
-
-Two main types of Axes supported by default include:
-
-* Categorical axis -- These are vectors of labels, normally symbols or
-  strings. Elements or slices can be selected by elements or vectors
-  of elements.
-
-* Dimensional axis -- These are sorted vectors or iterators that can
-  be selected by `Intervals`. These are commonly used for sequences of
-  times or date-times. For regular sample rates, ranges can be used.
-
-Here is an example with a Dimensional axis representing a time
-sequence along rows and a Categorical axis of symbols for column
-headers.
-
+julia&gt; using Gadfly
+       plot(spks, x=:time_sub, y=:data, group=:time_rep, color=DataFrames.RepeatedVector(Ks.assignments, size(spks, 1), 1), Geom.line)
 </code></pre>
 
-<p>julia B = AxisArray(reshape(1:15, 5, 3), .1:.1:0.5, [:a, :b, :c]) B[Axis{:row}(Interval(.2,.4))] # restrict the AxisArray along the time axis B[Interval(0.,.3), [:a, :c]]   # select an interval and two of the columns</p>
-<pre><code>
-User-defined axis types can be added along with custom indexing
-behaviors.
-
-### Example: compute the intensity-weighted mean along the z axis
+<p><img alt="clustered spike snippets" src="./doc/spikes.png" /></p>
+<p><a id='Indexing-1'></a></p>
+<h2 id="indexing">Indexing</h2>
+<p><a id='Indexing-axes-1'></a></p>
+<h3 id="indexing-axes">Indexing axes</h3>
+<p>Two main types of Axes supported by default include:</p>
+<ul>
+<li>
+<p>Categorical axis – These are vectors of labels, normally symbols or   strings. Elements or slices can be selected by elements or vectors   of elements.</p>
+</li>
+<li>
+<p>Dimensional axis – These are sorted vectors or iterators that can   be selected by <code>Intervals</code>. These are commonly used for sequences of   times or date-times. For regular sample rates, ranges can be used.</p>
+</li>
+</ul>
+<p>Here is an example with a Dimensional axis representing a time sequence along rows and a Categorical axis of symbols for column headers.</p>
+<pre><code class="julia">B = AxisArray(reshape(1:15, 5, 3), .1:.1:0.5, [:a, :b, :c])
+B[Axis{:row}(Interval(.2,.4))] # restrict the AxisArray along the time axis
+B[Interval(0.,.3), [:a, :c]]   # select an interval and two of the columns
 </code></pre>
 
-<p>julia B = AxisArray(randn(100,100,100), :x, :y, :z) Itotal = sumz = 0.0 for iter in eachindex(B)  # traverses in storage order for cache efficiency     I = B[iter]  # intensity in a single voxel     Itotal += I     sumz += I * iter[axisdim(B, Axis{:z})]  # axisdim "looks up" the z dimension end meanz = sumz/Itotal ```</p>
+<p>User-defined axis types can be added along with custom indexing behaviors.</p>
+<p><a id='Example:-compute-the-intensity-weighted-mean-along-the-z-axis-1'></a></p>
+<h3 id="example-compute-the-intensity-weighted-mean-along-the-z-axis">Example: compute the intensity-weighted mean along the z axis</h3>
+<pre><code class="julia">B = AxisArray(randn(100,100,100), :x, :y, :z)
+Itotal = sumz = 0.0
+for iter in eachindex(B)  # traverses in storage order for cache efficiency
+    I = B[iter]  # intensity in a single voxel
+    Itotal += I
+    sumz += I * iter[axisdim(B, Axis{:z})]  # axisdim &quot;looks up&quot; the z dimension
+end
+meanz = sumz/Itotal
+</code></pre>
+
 <p>The intention is that all of these operations are just as efficient as they would be if you used traditional position-based indexing with all the inherent assumptions about the storage order of <code>B</code>.</p>
               
             </div>
@@ -297,5 +326,5 @@ behaviors.
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-07-27 15:45:58.741390
+Build Date UTC : 2016-07-27 21:13:54.822369
 -->
