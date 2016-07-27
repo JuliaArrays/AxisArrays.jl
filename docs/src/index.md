@@ -48,7 +48,7 @@ And data, a 2400001x2 Array{Float64,2}:
   5.39751    10.795
   0.976276    1.95255
   0.336558    0.673116
- ```
+```
 
 AxisArrays behave like regular arrays, but they additionally use the axis
 information to enable all sorts of fancy behaviors. For example, we can specify
