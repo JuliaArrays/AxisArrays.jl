@@ -1,6 +1,6 @@
 module AxisArrays
 
-using Tuples, RangeArrays, Iterators, Compat
+using RangeArrays, Iterators, Compat
 using Compat.view
 
 export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., atindex

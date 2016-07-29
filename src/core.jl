@@ -1,5 +1,13 @@
 # Core types and definitions
 
+if VERSION < v"0.5.0-dev"
+    macro pure(ex)
+        esc(ex)
+    end
+else
+    using Base: @pure
+end
+
 @doc """
 Type-stable axis-specific indexing and identification with a
 parametric type.
@@ -148,8 +156,9 @@ _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symb
 AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
 @generated function AxisArray{T,N,L}(A::AbstractArray{T,N}, axs::NTuple{L,Axis})
     ax = Expr(:tuple)
-    Ax = Tuples.concatenate(axs, NTuple(i->Axis{_defaultdimname(i+L),UnitRange{Int64}},N-L))
-    if !isa(axisnames(Tuples.collect(axs)...), Tuple{Vararg{Symbol}})
+    Ax = Tuple{axs.parameters...,
+               ntuple(i->Axis{_defaultdimname(i+L),UnitRange{Int64}},N-L)...}
+    if !all(x->isa(axisname(x),Symbol), axs.parameters)
         return :(throw(ArgumentError("the Axis names must be Symbols")))
     end
     for i=1:L
@@ -194,7 +203,7 @@ end
 axisdim{T,N,D,Ax,name,S}(A::Type{AxisArray{T,N,D,Ax}}, ::Type{Axis{name,S}}) = axisdim(A, Axis{name})
 function axisdim{T,N,D,Ax,name}(::Type{AxisArray{T,N,D,Ax}}, ::Type{Axis{name}})
     isa(name, Int) && return name <= N ? name : error("axis $name greater than array dimensionality $N")
-    names = axisnames(Tuples.collect(Ax)...)
+    names = axisnames(Ax)
     idx = findfirst(names, name)
     idx == 0 && error("axis $name not found in array axes $names")
     idx
@@ -230,8 +239,8 @@ Base.similar{T}(A::AxisArray{T}, S::Type, axs::Axis...) = similar(A, S, axs)
         push!(ax.args, :(axes(A, Axis{$d})))
     end
     to_delete = Int[]
-    for i=1:Tuples.length(axs)
-        a = Tuples.getindex(axs, i)
+    for i=1:length(axs.parameters)
+        a = axs.parameters[i]
         d = axisdim(A, a)
         axistype(a) <: Tuple{} && push!(to_delete, d)
         sz.args[d] = :(length(axs[$i].val))
@@ -281,12 +290,18 @@ end
 
 Returns the axis names of an AxisArray or list of Axises as a tuple of Symbols.
 """ ->
-axisnames{T,N,D,Ax}(::AxisArray{T,N,D,Ax})       = axisnames(Tuples.collect(Ax)...)
-axisnames{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = axisnames(Tuples.collect(Ax)...)
+axisnames{T,N,D,Ax}(::AxisArray{T,N,D,Ax})       = _axisnames(Ax)
+axisnames{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = _axisnames(Ax)
+axisnames{Ax<:Tuple{Vararg{Axis}}}(::Type{Ax})   = _axisnames(Ax)
+@pure _axisnames(Ax) = axisnames(Ax.parameters...)
 axisnames() = ()
 axisnames{name  }(::Axis{name},         B::Axis...) = tuple(name, axisnames(B...)...)
 axisnames{name  }(::Type{Axis{name}},   B::Type...) = tuple(name, axisnames(B...)...)
 axisnames{name,T}(::Type{Axis{name,T}}, B::Type...) = tuple(name, axisnames(B...)...)
+
+axisname{name,T}(::Type{Axis{name,T}}) = name
+axisname{name  }(::Type{Axis{name  }}) = name
+axisname(ax::Axis) = axisname(typeof(ax))
 
 @doc """
     axisvalues(A::AxisArray)           -> (AbstractVector...)

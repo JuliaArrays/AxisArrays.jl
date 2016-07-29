@@ -198,7 +198,7 @@ end
             push!(ex.args, :(I[$i]))
         elseif I[i] <: AbstractArray{Bool}
             push!(ex.args, :(find(I[$i])))
-        elseif i <= Tuples.length(Ax)
+        elseif i <= length(Ax.parameters)
             push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
         else
             push!(ex.args, :(error("dimension ", $i, " does not have an axis to index")))
