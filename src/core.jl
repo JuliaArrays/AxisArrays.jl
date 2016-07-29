@@ -248,15 +248,28 @@ end
 # A simple display method to include axis information. It might be nice to
 # eventually display the axis labels alongside the data array, but that is
 # much more difficult.
-@compat function Base.show{T,N}(io::IO, m::MIME"text/plain", A::AxisArray{T,N})
-    println(io, "$N-dimensional AxisArray{$T,$N,...} with axes:")
-    for (name, val) in zip(axisnames(A), axisvalues(A))
-        print(io, "    :$name, ")
-        show(IOContext(io, :limit=>true), val)
-        println(io)
+if VERSION < v"0.5.0-dev"
+    function Base.writemime{T,N}(io::IO, m::MIME"text/plain", A::AxisArray{T,N})
+        println(io, "$N-dimensional AxisArray{$T,$N,...} with axes:")
+        for (name, val) in zip(axisnames(A), axisvalues(A))
+            print(io, "    :$name, ")
+            Base.showlimited(io, val)
+            println(io)
+        end
+        print(io, "And data, a ")
+        writemime(io, m, A.data)
     end
-    print(io, "And data, a ")
-    show(io, m, A.data)
+else
+    function Base.show{T,N}(io::IO, m::MIME"text/plain", A::AxisArray{T,N})
+        println(io, "$N-dimensional AxisArray{$T,$N,...} with axes:")
+        for (name, val) in zip(axisnames(A), axisvalues(A))
+            print(io, "    :$name, ")
+            show(IOContext(io, :limit=>true), val)
+            println(io)
+        end
+        print(io, "And data, a ")
+        show(io, m, A.data)
+    end
 end
 
 # Custom methods specific to AxisArrays
