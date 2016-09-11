@@ -62,6 +62,7 @@ Base.unsafe_getindex(A::Axis, i...) = Base.unsafe_getindex(A, i...)
 Base.eltype{_,T}(::Type{Axis{_,T}}) = eltype(T)
 Base.size(A::Axis) = size(A.val)
 Base.length(A::Axis) = length(A.val)
+@compat (A::Axis{name}){name}(i) = Axis{name}(i)
 
 @doc """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
