@@ -1,6 +1,6 @@
 module AxisArrays
 
-using Requires, Tuples, RangeArrays, Iterators, Compat
+using RangeArrays, Iterators, Compat
 using Compat.view
 
 export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., atindex
@@ -11,6 +11,5 @@ include("search.jl")
 include("indexing.jl")
 include("sortedvector.jl")
 include("combine.jl")
-include("utils.jl")
 
 end
