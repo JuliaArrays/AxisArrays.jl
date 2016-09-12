@@ -23,17 +23,17 @@ end
 # TODO: This could plug into the sorting system better, but it's fine for now
 # TODO: This needs to support Dates.
 """
-    unsafe_searchsorted(a::Range, I::Interval)
+    unsafe_searchsorted(a::Range, I::ClosedInterval)
 
 Return the indices of the range that fall within an interval without checking
 bounds, possibly extrapolating outside the range if needed.
 """
-function unsafe_searchsorted(a::Range, I::Interval)
-    unsafe_searchsortedfirst(a, I.lo):unsafe_searchsortedlast(a, I.hi)
+function unsafe_searchsorted(a::Range, I::ClosedInterval)
+    unsafe_searchsortedfirst(a, I.left):unsafe_searchsortedlast(a, I.right)
 end
 # Base only specializes searching ranges by Numbers; so optimize for Intervals
-function Base.searchsorted(a::Range, I::Interval)
-    searchsortedfirst(a, I.lo):searchsortedlast(a, I.hi)
+function Base.searchsorted(a::Range, I::ClosedInterval)
+    searchsortedfirst(a, I.left):searchsortedlast(a, I.right)
 end
 
 if VERSION > v"0.5.0-dev+4557"

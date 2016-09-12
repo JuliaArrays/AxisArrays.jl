@@ -1,9 +1,13 @@
 module AxisArrays
 
-using RangeArrays, Iterators, Compat
+using RangeArrays, Iterators, IntervalSets, Compat
 using Compat.view
 
-export AxisArray, Axis, Interval, axisnames, axisvalues, axisdim, axes, .., atindex
+export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex
+
+# From IntervalSets:
+export ClosedInterval, ..
+Base.@deprecate_binding Interval ClosedInterval
 
 include("core.jl")
 include("intervals.jl")

@@ -117,7 +117,7 @@ Two main types of axes supported by default include:
   of elements.
 
 * Dimensional axis -- These are sorted vectors or iterators that can
-  be indexed by `Interval()`. These are commonly used for sequences of
+  be indexed by `ClosedInterval()`. These are commonly used for sequences of
   times or date-times. For regular sample rates, ranges can be used.
 
 User-defined axis types can be added along with custom indexing
@@ -142,8 +142,8 @@ Symbols for column headers.
 ```julia
 A = AxisArray(reshape(1:15, 5, 3), Axis{:time}(.1:.1:0.5), Axis{:col}([:a, :b, :c]))
 A[Axis{:time}(1:3)]   # equivalent to A[1:3,:]
-A[Axis{:time}(Interval(.2,.4))] # restrict the AxisArray along the time axis
-A[Interval(0.,.3), [:a, :c]]   # select an interval and two columns
+A[Axis{:time}(ClosedInterval(.2,.4))] # restrict the AxisArray along the time axis
+A[ClosedInterval(0.,.3), [:a, :c]]   # select an interval and two columns
 ```
 
 """ ->
