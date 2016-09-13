@@ -55,6 +55,8 @@ B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 @test B[Axis{:row}(Interval(0.15, 0.3))] == B[2:3,:]
 
 A = AxisArray(reshape(1:256, 4,4,4,4), Axis{:d1}(.1:.1:.4), Axis{:d2}(1//10:1//10:4//10), Axis{:d3}(["1","2","3","4"]), Axis{:d4}([:a, :b, :c, :d]))
+ax1 = axes(A)[1]
+@test A[Axis{:d1}(2)] == A[ax1(2)]
 @test A.data[1:2,:,:,:] == A[Axis{:d1}(Interval(.1,.2))]       == A[Interval(.1,.2),:,:,:]       == A[Interval(.1,.2),:,:,:,1]       == A[Interval(.1,.2)]
 @test A.data[:,1:2,:,:] == A[Axis{:d2}(Interval(1//10,2//10))] == A[:,Interval(1//10,2//10),:,:] == A[:,Interval(1//10,2//10),:,:,1] == A[:,Interval(1//10,2//10)]
 @test A.data[:,:,1:2,:] == A[Axis{:d3}(["1","2"])]             == A[:,:,["1","2"],:]             == A[:,:,["1","2"],:,1]             == A[:,:,["1","2"]]
