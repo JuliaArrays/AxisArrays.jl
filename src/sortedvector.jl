@@ -10,7 +10,7 @@ Indexing that would unsort the data is prohibited. A SortedVector is a
 Dimensional axis, and no checking is done to ensure that the data is
 sorted. Duplicate values are allowed.
 
-A SortedVector axis can be indexed with an Interval, with a value, or
+A SortedVector axis can be indexed with an ClosedInterval, with a value, or
 with a vector of values. Use of a SortedVector{Tuple} axis allows
 indexing similar to the hierarchical index of the Python Pandas
 package or the R data.table package.
@@ -30,7 +30,7 @@ SortedVector(x::AbstractVector)
 ```julia
 v = SortedVector(collect([1.; 10.; 10:15.]))
 A = AxisArray(reshape(1:16, 8, 2), v, [:a, :b])
-A[Interval(8.,12.), :]
+A[ClosedInterval(8.,12.), :]
 A[1., :]
 A[10., :]
 
@@ -44,8 +44,8 @@ A[:b, :]
 A[[:a,:c], :]
 A[(:a,:x), :]
 A[(:a,:x,:x), :]
-A[Interval(:a,:b), :]
-A[Interval((:a,:x),(:b,:x)), :]
+A[ClosedInterval(:a,:b), :]
+A[ClosedInterval((:a,:x),(:b,:x)), :]
 ```
 
 """ ->
@@ -102,8 +102,8 @@ _isless(t1, t2::Tuple) = _isless((t1,),t2)
 # only define comparisons against Numbers and Dates. We're able to do this on
 # our own local function... doing this directly on isless itself would be
 # fraught with trouble.
-_isless(a::Interval, b::Interval) = _isless(a.hi, b.lo)
-_isless(t1::Interval, t2::Tuple) = _isless(t1, Interval(t2,t2))
-_isless(t1::Tuple, t2::Interval) = _isless(Interval(t1,t1), t2)
-_isless(a::Interval, b) = _isless(a, Interval(b,b))
-_isless(a, b::Interval) = _isless(Interval(a,a), b)
+_isless(a::ClosedInterval, b::ClosedInterval) = _isless(a.right, b.left)
+_isless(t1::ClosedInterval, t2::Tuple) = _isless(t1, ClosedInterval(t2,t2))
+_isless(t1::Tuple, t2::ClosedInterval) = _isless(ClosedInterval(t1,t1), t2)
+_isless(a::ClosedInterval, b) = _isless(a, ClosedInterval(b,b))
+_isless(a, b::ClosedInterval) = _isless(ClosedInterval(a,a), b)

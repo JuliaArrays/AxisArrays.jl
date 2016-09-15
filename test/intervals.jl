@@ -82,6 +82,6 @@ d[0x1 .. 0x2] = 3
 @test !(0.1 .. 0.2 <= 2//10)
 
 # Conversion and construction:
-@test 1 .. 2 === Interval(1, 2) === Interval{Int}(1.0, 2.0) === Interval{Int}(1.0 .. 2.0)
-@test 1.0 .. 2.0 === Interval(1.0, 2) === Interval{Float64}(1, 2) === Interval{Float64}(1 .. 2)
-@test 1 .. 1 === Interval(1, 1) === Interval(1) === Interval{Int}(1) === Interval{Int}(1.0, 1.0) === Interval{Int}(1.0)
+@test 1 .. 2 === ClosedInterval(1, 2) === ClosedInterval{Int}(1.0, 2.0) === ClosedInterval{Int}(1.0 .. 2.0)
+@test 1.0 .. 2.0 === ClosedInterval(1.0, 2) === ClosedInterval{Float64}(1, 2) === ClosedInterval{Float64}(1 .. 2)
+@test 1 .. 1 === ClosedInterval(1, 1) === ClosedInterval{Int}(1.0, 1.0)
