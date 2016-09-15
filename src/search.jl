@@ -36,14 +36,12 @@ function Base.searchsorted(a::Range, I::ClosedInterval)
     searchsortedfirst(a, I.left):searchsortedlast(a, I.right)
 end
 
-if VERSION > v"0.5.0-dev+4557"
-    # When running with "--check-bounds=yes" (like on Travis), the bounds-check isn't elided
-    @inline function Base.unsafe_getindex{T}(r::FloatRange{T}, i::Integer)
-        convert(T, (r.start + (i-1)*r.step)/r.divisor)
-    end
-    @inline function Base.unsafe_getindex(r::FloatRange, s::OrdinalRange)
-        FloatRange(r.start + (first(s)-1)*r.step, step(s)*r.step, length(s), r.divisor)
-    end
+# When running with "--check-bounds=yes" (like on Travis), the bounds-check isn't elided
+@inline function Base.unsafe_getindex{T}(r::FloatRange{T}, i::Integer)
+    convert(T, (r.start + (i-1)*r.step)/r.divisor)
+end
+@inline function Base.unsafe_getindex(r::FloatRange, s::OrdinalRange)
+    FloatRange(r.start + (first(s)-1)*r.step, step(s)*r.step, length(s), r.divisor)
 end
 
 function unsafe_searchsortedlast{T<:Number}(a::Range{T}, x::Number)
