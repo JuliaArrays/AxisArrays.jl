@@ -165,7 +165,7 @@ julia> using Gadfly
        plot(spks, x=:time_sub, y=:data, group=:time_rep, color=DataFrames.RepeatedVector(Ks.assignments, size(spks, 1), 1), Geom.line)
 ```
 
-![clustered spike snippets](doc/spikes.png)
+![clustered spike snippets](docs/spikes.png)
 
 
 ## Indexing
