@@ -108,7 +108,7 @@
     <li class="wy-breadcrumbs-aside">
       
         
-          <a href="https://github.com/mbauman/AxisArrays.jl" class="icon icon-github"> Edit on GitHub</a>
+          <a href="https://github.com/JuliaArrays/AxisArrays.jl" class="icon icon-github"> Edit on GitHub</a>
         
       
     </li>
@@ -120,14 +120,12 @@
               
                 <p><a id='AxisArrays-1'></a></p>
 <h1 id="axisarrays">AxisArrays</h1>
-<p><a href="https://travis-ci.org/mbauman/AxisArrays.jl"><img alt="Build Status" src="https://travis-ci.org/mbauman/AxisArrays.jl.svg?branch=master" /></a> <a href="https://coveralls.io/r/mbauman/AxisArrays.jl?branch=master"><img alt="Coverage Status" src="https://coveralls.io/repos/mbauman/AxisArrays.jl/badge.svg?branch=master" /></a></p>
+<p><a href="https://travis-ci.org/JuliaArrays/AxisArrays.jl"><img alt="Build Status" src="https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master" /></a> <a href="https://coveralls.io/r/JuliaArrays/AxisArrays.jl?branch=master"><img alt="Coverage Status" src="https://coveralls.io/repos/JuliaArrays/AxisArrays.jl/badge.svg?branch=master" /></a></p>
 <p>This package for the Julia language provides an array type (the <code>AxisArray</code>) that knows about its dimension names and axis values. This allows for indexing with the axis name without incurring any runtime overhead. AxisArrays can also be indexed by the values of their axes, allowing column names or interval selections. This permits one to implement algorithms that are oblivious to the storage order of the underlying arrays. In contrast to similar approaches in <a href="https://github.com/timholy/Images.jl">Images.jl</a> and <a href="https://github.com/davidavdav/NamedArrays">NamedArrays.jl</a>, this allows for type-stable selection of dimensions and compile-time axis lookup.  It is also better suited for regularly sampled axes, like samples over time.</p>
-<p>Collaboration is welcome! This is still a work-in-progress. See <a href="https://github.com/mbauman/AxisArrays.jl/issues/7">the roadmap</a> for the project's current direction.</p>
+<p>Collaboration is welcome! This is still a work-in-progress. See <a href="https://github.com/JuliaArrays/AxisArrays.jl/issues/7">the roadmap</a> for the project's current direction.</p>
 <p><a id='Example-of-currently-implemented-behavior:-1'></a></p>
 <h2 id="example-of-currently-implemented-behavior">Example of currently-implemented behavior:</h2>
-<pre><code class="julia">julia&gt; Pkg.clone(&quot;https://github.com/mbauman/Tuples.jl&quot;)
-       Pkg.clone(&quot;https://github.com/mbauman/RangeArrays.jl&quot;)
-       Pkg.clone(&quot;https://github.com/mbauman/AxisArrays.jl&quot;)
+<pre><code class="julia">julia&gt; Pkg.clone(&quot;https://github.com/JuliaArrays/AxisArrays.jl&quot;)
        using AxisArrays, SIUnits
        import SIUnits.ShortUnits: s, ms, µs
 
@@ -245,19 +243,15 @@ julia&gt; using Gadfly
        plot(spks, x=:time_sub, y=:data, group=:time_rep, color=DataFrames.RepeatedVector(Ks.assignments, size(spks, 1), 1), Geom.line)
 </code></pre>
 
-<p><img alt="clustered spike snippets" src="./doc/spikes.png" /></p>
+<p><img alt="clustered spike snippets" src="./docs/spikes.png" /></p>
 <p><a id='Indexing-1'></a></p>
 <h2 id="indexing">Indexing</h2>
 <p><a id='Indexing-axes-1'></a></p>
 <h3 id="indexing-axes">Indexing axes</h3>
 <p>Two main types of Axes supported by default include:</p>
 <ul>
-<li>
-<p>Categorical axis – These are vectors of labels, normally symbols or   strings. Elements or slices can be selected by elements or vectors   of elements.</p>
-</li>
-<li>
-<p>Dimensional axis – These are sorted vectors or iterators that can   be selected by <code>Intervals</code>. These are commonly used for sequences of   times or date-times. For regular sample rates, ranges can be used.</p>
-</li>
+<li>Categorical axis – These are vectors of labels, normally symbols or strings. Elements or slices can be selected by elements or vectors of elements.</li>
+<li>Dimensional axis – These are sorted vectors or iterators that can be selected by <code>Intervals</code>. These are commonly used for sequences of times or date-times. For regular sample rates, ranges can be used.</li>
 </ul>
 <p>Here is an example with a Dimensional axis representing a time sequence along rows and a Categorical axis of symbols for column headers.</p>
 <pre><code class="julia">B = AxisArray(reshape(1:15, 5, 3), .1:.1:0.5, [:a, :b, :c])
@@ -312,7 +306,7 @@ meanz = sumz/Itotal
 <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
-          <a href="https://github.com/mbauman/AxisArrays.jl" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/JuliaArrays/AxisArrays.jl" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
       
@@ -326,5 +320,5 @@ meanz = sumz/Itotal
 
 <!--
 MkDocs version : 0.15.3
-Build Date UTC : 2016-09-15 05:10:34.837517
+Build Date UTC : 2016-09-15 08:58:45.469008
 -->
