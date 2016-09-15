@@ -131,25 +131,12 @@ end
 # indexing types to their integer or integer range equivalents using axisindexes
 # It is separate from the `Base.getindex` function to allow reuse between
 # set- and get- index.
-@generated function to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...)
-    ex = Expr(:tuple)
-    for i=1:length(I)
-        if I[i] <: Idx
-            push!(ex.args, :(I[$i]))
-        elseif I[i] <: AbstractArray{Bool}
-            push!(ex.args, :(find(I[$i])))
-        elseif i <= length(Ax.parameters)
-            push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
-        else
-            push!(ex.args, :(error("dimension ", $i, " does not have an axis to index")))
-        end
-    end
-    for _=length(I)+1:N
-        push!(ex.args, :(Colon()))
-    end
-    meta = Expr(:meta, :inline)
-    return :($meta; $ex)
-end
+@inline to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...) = _to_index(A, (), I...)
+@inline _to_index{T,N}(A::AxisArray{T,N}, tup::NTuple{N}) = tup
+@inline _to_index{T,N}(A::AxisArray{T,N}, tup) = Base.fill_to_length(tup, :, Val{N})
+@inline _to_index(A, tup, i::Idx, I...) = _to_index(A, (tup..., i), I...)
+@inline _to_index(A, tup, i::AbstractArray{Bool}, I...) = _to_index(A, (tup..., find(i)), I...)
+@inline _to_index(A, tup, i, I...) = _to_index(A, (tup..., axisindexes(A.axes[length(tup)+1], i)), I...)
 
 function prepaxis!{I<:Union{AbstractVector,Colon}}(axesargs, Isplat, ::Type{I}, names, i)
     idx = :(idxs[$i])
