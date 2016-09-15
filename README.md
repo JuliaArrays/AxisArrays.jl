@@ -1,6 +1,6 @@
 # AxisArrays
 
-[![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/JuliaArrays/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/r/JuliaArrays/AxisArrays.jl?branch=master)
+[![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaArrays/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaArrays/AxisArrays.jl?branch=master)
 
 This package for the Julia language provides an array type (the `AxisArray`) that knows about its dimension names and axis values.
 This allows for indexing with the axis name without incurring any runtime overhead.
