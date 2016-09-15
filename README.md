@@ -1,6 +1,6 @@
 # AxisArrays
 
-[![Build Status](https://travis-ci.org/mbauman/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/mbauman/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/mbauman/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/r/mbauman/AxisArrays.jl?branch=master)
+[![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/JuliaArrays/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/r/JuliaArrays/AxisArrays.jl?branch=master)
 
 This package for the Julia language provides an array type (the `AxisArray`) that knows about its dimension names and axis values.
 This allows for indexing with the axis name without incurring any runtime overhead.
@@ -8,14 +8,12 @@ AxisArrays can also be indexed by the values of their axes, allowing column name
 This permits one to implement algorithms that are oblivious to the storage order of the underlying arrays.
 In contrast to similar approaches in [Images.jl](https://github.com/timholy/Images.jl) and [NamedArrays.jl](https://github.com/davidavdav/NamedArrays), this allows for type-stable selection of dimensions and compile-time axis lookup.  It is also better suited for regularly sampled axes, like samples over time.
 
-Collaboration is welcome! This is still a work-in-progress. See [the roadmap](https://github.com/mbauman/AxisArrays.jl/issues/7) for the project's current direction.
+Collaboration is welcome! This is still a work-in-progress. See [the roadmap](https://github.com/JuliaArrays/AxisArrays.jl/issues/7) for the project's current direction.
 
 ## Example of currently-implemented behavior:
 
 ```julia
-julia> Pkg.clone("https://github.com/mbauman/Tuples.jl")
-       Pkg.clone("https://github.com/mbauman/RangeArrays.jl")
-       Pkg.clone("https://github.com/mbauman/AxisArrays.jl")
+julia> Pkg.clone("https://github.com/JuliaArrays/AxisArrays.jl")
        using AxisArrays, SIUnits
        import SIUnits.ShortUnits: s, ms, µs
 

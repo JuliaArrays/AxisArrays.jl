@@ -1,5 +1,5 @@
 site_name:        AxisArrays.jl
-repo_url:         https://github.com/mbauman/AxisArrays.jl
+repo_url:         https://github.com/JuliaArrays/AxisArrays.jl
 site_description: Performant arrays where each dimension can have a named axis with values
 site_author:      mbauman 
 
