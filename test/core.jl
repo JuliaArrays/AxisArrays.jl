@@ -26,6 +26,15 @@ C = similar(A, 0)
 D = similar(A)
 @test size(A) == size(D)
 @test eltype(A) == eltype(D)
+@test axisnames(permutedims(A, (2,1,3))) == (:col, :row, :page)
+@test axisnames(permutedims(A, (2,3,1))) == (:col, :page, :row)
+@test axisnames(permutedims(A, (3,2,1))) == (:page, :col, :row)
+@test axisnames(permutedims(A, (3,1,2))) == (:page, :row, :col)
+for perm in ((:col, :row, :page), (:col, :page, :row),
+             (:page, :col, :row), (:page, :row, :col),
+             (:row, :page, :col), (:row, :col, :page))
+    @test axisnames(permutedims(A, perm)) == perm
+end
 # Test modifying a particular axis
 E = similar(A, Float64, Axis{:col}(1:2))
 @test size(E) == (2,2,4)

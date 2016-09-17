@@ -8,6 +8,8 @@ else
     using Base: @pure
 end
 
+typealias Symbols Tuple{Symbol,Vararg{Symbol}}
+
 @doc """
 Type-stable axis-specific indexing and identification with a
 parametric type.
@@ -263,6 +265,48 @@ Base.similar{T}(A::AxisArray{T}, S::Type, axs::Axis...) = similar(A, S, axs)
         AxisArray(d, $ax)
     end
 end
+
+function Base.permutedims(A::AxisArray, perm)
+    p = permutation(perm, axisnames(A))
+    AxisArray(permutedims(A.data, p), axes(A)[[p...]])
+end
+permutation(to::Union{AbstractVector{Int},Tuple{Int,Vararg{Int}}}, from::Symbols) = to
+
+"""
+    permutation(to, from) -> p
+
+Calculate the permutation of labels in `from` to produce the order in
+`to`. Any entries in `to` that are missing in `from` will receive an
+index of 0. Any entries in `from` that are missing in `to` will have
+their indices appended to the end of the permutation. Consequently,
+the length of `p` is equal to the longer of `to` and `from`.
+"""
+function permutation(to::Symbols, from::Symbols)
+    n = length(to)
+    nf = length(from)
+    li = linearindices(from)
+    d = Dict(from[i]=>i for i in li)
+    covered = similar(dims->falses(length(li)), li)
+    ind = Array(Int, max(n, nf))
+    for (i,toi) in enumerate(to)
+        j = get(d, toi, 0)
+        ind[i] = j
+        if j != 0
+            covered[j] = true
+        end
+    end
+    k = n
+    for i in li
+        if !covered[i]
+            d[from[i]] != i && throw(ArgumentError("$(from[i]) is a duplicated argument"))
+            k += 1
+            k > nf && throw(ArgumentError("no incomplete containment allowed in $to and $from"))
+            ind[k] = i
+        end
+    end
+    ind
+end
+
 # A simple display method to include axis information. It might be nice to
 # eventually display the axis labels alongside the data array, but that is
 # much more difficult.
