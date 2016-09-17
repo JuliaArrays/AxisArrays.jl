@@ -198,6 +198,10 @@ end
             push!(ex.args, :(I[$i]))
         elseif I[i] <: AbstractArray{Bool}
             push!(ex.args, :(find(I[$i])))
+        elseif I[i] <: CartesianIndex
+            for j = 1:length(I[i])
+                push!(ex.args, :(I[$i][$j]))
+            end
         elseif i <= length(Ax.parameters)
             push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
         else

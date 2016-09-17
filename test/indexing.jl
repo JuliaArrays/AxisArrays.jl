@@ -81,3 +81,9 @@ A = AxisArray([1:100 -1:-1:-100], .1:.1:10.0, [:c1, :c2])
 @test A[atindex(-0.5..0.5, [25, 35]), :c1] == [20:30 30:40]
 @test_throws BoundsError A[atindex(-0.5..0.5, 5), :c1]
 @test_throws BoundsError A[atindex(-0.5..0.5, [5, 15, 25]), :]
+
+# Indexing with CartesianIndex{0}
+A = AxisArray(reshape(1:15, 3, 5), :x, :y)
+@test A[2,2,CartesianIndex(())] == 5
+@test A[2,CartesianIndex(()),2] == 5
+@test A[CartesianIndex(()),2,2] == 5
