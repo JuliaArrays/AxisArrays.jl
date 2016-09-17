@@ -115,7 +115,14 @@ A = AxisArray(reshape(1:24, 2,3,4),
 @test hash(Axis{:row}()) != hash(Axis{:col}())
 @test hash(Axis{:x}(1:3)) == hash(Axis{:x}(Base.OneTo(3)))
 @test AxisArrays.axistype(Axis{1}(1:2)) == typeof(1:2)
+@test AxisArrays.axistype(Axis{1,UInt32}) == UInt32
 @test axisnames(Axis{1}, Axis{2}, Axis{3}) == (1,2,3)
+@test Axis{:row}(2:7)[4] == 5
+@test eltype(Axis{:row}(1.0:1.0:3.0)) == Float64
+@test size(Axis{:row}(2:7)) === (6,)
+@test indices(Axis{:row}(2:7)) === (Base.OneTo(6),)
+@test indices(Axis{:row}(-1:1), 1) === Base.OneTo(3)
+@test length(Axis{:col}(-1:2)) === 4
 
 # Test Timetype axis construction
 dt, vals = DateTime(2010, 1, 2, 3, 40), randn(5,2)
@@ -125,3 +132,16 @@ A = AxisArray(vals, Axis{:Timestamp}(dt-Dates.Hour(2):Dates.Hour(1):dt+Dates.Hou
 
 # Simply run the display method to ensure no stupid errors
 @compat show(IOBuffer(),MIME("text/plain"),A)
+
+# With unconventional indices
+import OffsetArrays  # import rather than using because OffsetArrays has a deprecation for ..
+A = AxisArray(OffsetArrays.OffsetArray([5,3,4], -1:1), :x)
+@test axes(A) == (Axis{:x}(-1:1),)
+@test A[-1] == 5
+A[0] = 12
+@test A.data[0] == 12
+@test indices(A) == (-1:1,)
+@test linearindices(A) == -1:1
+A = AxisArray(OffsetArrays.OffsetArray(rand(4,5), -1:2, 5:9), :x, :y)
+@test indices(A) == (-1:2, 5:9)
+@test linearindices(A) == 1:20

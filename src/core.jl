@@ -61,8 +61,12 @@ Base.getindex(A::Axis, i...) = A.val[i...]
 Base.unsafe_getindex(A::Axis, i...) = Base.unsafe_getindex(A, i...)
 Base.eltype{_,T}(::Type{Axis{_,T}}) = eltype(T)
 Base.size(A::Axis) = size(A.val)
+Base.indices(A::Axis) = indices(A.val)
+Base.indices(A::Axis, d) = indices(A.val, d)
 Base.length(A::Axis) = length(A.val)
 @compat (A::Axis{name}){name}(i) = Axis{name}(i)
+Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name,T}) = ax
+Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name}) = Axis{name}(convert(T, ax.val))
 
 @doc """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
@@ -95,11 +99,12 @@ AxisArray(A::AbstractArray, vectors::AbstractVector...)
 * `A::AbstractArray` : the wrapped array data
 * `axes` or `names` or `vectors` : dimensional information for the wrapped array
 
-The dimensional information may be passed in one of three ways and is entirely
-optional. When the axis name or value is missing for a dimension, a default is
-substituted. The default axis names for dimensions `(1, 2, 3, 4, 5, ...)` are
-`(:row, :col, :page, :dim_4, :dim_5, ...)`. The default axis values are the
-integer unit ranges: `1:size(A, d)` for each missing dimension `d`.
+The dimensional information may be passed in one of three ways and is
+entirely optional. When the axis name or value is missing for a
+dimension, a default is substituted. The default axis names for
+dimensions `(1, 2, 3, 4, 5, ...)` are `(:row, :col, :page, :dim_4,
+:dim_5, ...)`. The default axis values are `indices(A, d)` for each
+missing dimension `d`.
 
 ### Indexing
 
@@ -166,12 +171,12 @@ AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
         push!(ax.args, :(axs[$i]))
     end
     for i=L+1:N
-        push!(ax.args, :(Axis{_defaultdimname($i)}(1:size(A, $i))))
+        push!(ax.args, :(Axis{_defaultdimname($i)}(indices(A, $i))))
     end
     quote
         for i = 1:length(axs)
             checkaxis(axs[i].val)
-            if length(axs[i].val) != size(A, i)
+            if _length(axs[i].val) != _size(A, i)
                 throw(ArgumentError("the length of each axis must match the corresponding size of data"))
             end
         end
@@ -183,7 +188,7 @@ AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
 end
 # Simple non-type-stable constructors to specify just the name or axis values
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
-AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, ntuple(i->Axis{names[i]}(1:size(A, i)), length(names)))
+AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, map((name,ind)->Axis{name}(ind), names, indices(A)))
 AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(i->Axis{_defaultdimname(i)}(vects[i]), length(vects)))
 
 # Axis definitions
@@ -214,6 +219,9 @@ end
 Base.size(A::AxisArray) = size(A.data)
 Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
 Base.size{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = size(A.data, axisdim(A, Ax))
+Base.indices(A::AxisArray) = indices(A.data)
+Base.indices(A::AxisArray, Ax::Axis) = indices(A.data, axisdim(A, Ax))
+Base.indices{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = indices(A.data, axisdim(A, Ax))
 Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
 Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A.data)
 # Similar is tricky. If we're just changing the element type, it can stay as an
@@ -233,10 +241,10 @@ Base.similar{T}(A::AxisArray{T}, S::Type, dims::Tuple{Vararg{Int}}) = similar(A.
 Base.similar{T}(A::AxisArray{T}, axs::Axis...) = similar(A, T, axs)
 Base.similar{T}(A::AxisArray{T}, S::Type, axs::Axis...) = similar(A, S, axs)
 @generated function Base.similar{T,N}(A::AxisArray{T,N}, S::Type, axs::Tuple{Vararg{Axis}})
-    sz = Expr(:tuple)
+    inds = Expr(:tuple)
     ax = Expr(:tuple)
     for d=1:N
-        push!(sz.args, :(size(A, Axis{$d})))
+        push!(inds.args, :(indices(A, Axis{$d})))
         push!(ax.args, :(axes(A, Axis{$d})))
     end
     to_delete = Int[]
@@ -244,14 +252,14 @@ Base.similar{T}(A::AxisArray{T}, S::Type, axs::Axis...) = similar(A, S, axs)
         a = axs.parameters[i]
         d = axisdim(A, a)
         axistype(a) <: Tuple{} && push!(to_delete, d)
-        sz.args[d] = :(length(axs[$i].val))
+        inds.args[d] = :(indices(axs[$i].val, 1))
         ax.args[d] = :(axs[$i])
     end
     sort!(to_delete)
-    deleteat!(sz.args, to_delete)
+    deleteat!(inds.args, to_delete)
     deleteat!(ax.args, to_delete)
     quote
-        d = similar(A.data, S, $sz)
+        d = similar(A.data, S, $inds)
         AxisArray(d, $ax)
     end
 end
@@ -356,3 +364,10 @@ function checkaxis(::Type{Categorical}, ax)
         push!(seen, elt)
     end
 end
+
+_length(A::AbstractArray) = length(linearindices(A))
+_length(A) = length(A)
+_size(A::AbstractArray) = map(length, indices(A))
+_size(A) = size(A)
+_size(A::AbstractArray, d) = length(indices(A, d))
+_size(A, d) = size(A, d)

@@ -78,7 +78,7 @@ end
             push!(newaxes, :($(Axis{names[d]})(A.axes[$d].val[J[$d]])))
         elseif I[d] <: AbstractArray
             for i=1:ndims(I[d])
-                push!(newaxes, :($(Axis{Symbol(names[d], "_", i)})(1:size(I[$d], $i))))
+                push!(newaxes, :($(Axis{Symbol(names[d], "_", i)})(indices(I[$d], $i))))
             end
         end
     end
