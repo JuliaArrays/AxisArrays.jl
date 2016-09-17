@@ -51,7 +51,7 @@ immutable Axis{name,T}
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
 @compat (::Type{Axis{name}}){name,T}(I::T=()) = Axis{name,T}(I)
-@compat Base.:(==){name,T}(A::Axis{name,T}, B::Axis{name,T}) = A.val == B.val
+@compat Base.:(==){name}(A::Axis{name}, B::Axis{name}) = A.val == B.val
 Base.hash{name}(A::Axis{name}, hx::UInt) = hash(A.val, hash(name, hx))
 axistype{name,T}(::Axis{name,T}) = T
 axistype{name,T}(::Type{Axis{name,T}}) = T

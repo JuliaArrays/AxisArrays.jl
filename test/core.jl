@@ -110,8 +110,10 @@ A = AxisArray(reshape(1:24, 2,3,4),
 
 @test Axis{:col}(1) == Axis{:col}(1)
 @test Axis{:col}(1) != Axis{:com}(1)
+@test Axis{:x}(1:3) == Axis{:x}(Base.OneTo(3))
 @test hash(Axis{:col}(1)) == hash(Axis{:col}(1.0))
 @test hash(Axis{:row}()) != hash(Axis{:col}())
+@test hash(Axis{:x}(1:3)) == hash(Axis{:x}(Base.OneTo(3)))
 @test AxisArrays.axistype(Axis{1}(1:2)) == typeof(1:2)
 @test axisnames(Axis{1}, Axis{2}, Axis{3}) == (1,2,3)
 
