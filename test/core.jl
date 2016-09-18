@@ -96,6 +96,14 @@ A = AxisArray(reshape(1:16, 2,2,2,2), .5:.5:1)
 @test axisnames(A) == (:row,:col,:page,:dim_4)
 VERSION >= v"0.5.0-dev" && @inferred(axisnames(A))
 @test axisvalues(A) == (.5:.5:1, 1:2, 1:2, 1:2)
+A = AxisArray([0]', :x, :y)
+@test axisnames(squeeze(A, 1)) == (:y,)
+@test axisnames(squeeze(A, 2)) == (:x,)
+@test axisnames(squeeze(A, (1,2))) == axisnames(squeeze(A, (2,1))) == ()
+@test axisnames(@inferred(squeeze(A, Axis{:x}))) == (:y,)
+@test axisnames(@inferred(squeeze(A, Axis{:x,UnitRange{Int}}))) == (:y,)
+@test axisnames(@inferred(squeeze(A, Axis{:y}))) == (:x,)
+@test axisnames(@inferred(squeeze(squeeze(A, Axis{:x}), Axis{:y}))) == ()
 
 # Test axisdim
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4),

@@ -1,5 +1,6 @@
 module AxisArrays
 
+using Base: tail
 using RangeArrays, Iterators, IntervalSets, Compat
 using Compat.view
 

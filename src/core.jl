@@ -307,6 +307,23 @@ function permutation(to::Symbols, from::Symbols)
     ind
 end
 
+function Base.squeeze(A::AxisArray, dims::Dims)
+    keepdims = setdiff(1:ndims(A), dims)
+    AxisArray(squeeze(A.data, dims), axes(A)[keepdims])
+end
+# This version is type-stable
+function Base.squeeze{Ax<:Axis}(A::AxisArray, ::Type{Ax})
+    dim = axisdim(A, Ax)
+    AxisArray(squeeze(A.data, dim), dropax(Ax, axes(A)...))
+end
+
+@inline dropax(ax, ax1, axs...) = (ax1, dropax(ax, axs...)...)
+@inline dropax{name}(ax::Axis{name}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
+@inline dropax{name}(ax::Type{Axis{name}}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
+@inline dropax{name,T}(ax::Type{Axis{name,T}}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
+dropax(ax) = ()
+
+
 # A simple display method to include axis information. It might be nice to
 # eventually display the axis labels alongside the data array, but that is
 # much more difficult.
