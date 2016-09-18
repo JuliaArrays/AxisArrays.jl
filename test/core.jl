@@ -26,6 +26,15 @@ C = similar(A, 0)
 D = similar(A)
 @test size(A) == size(D)
 @test eltype(A) == eltype(D)
+@test axisnames(permutedims(A, (2,1,3))) == (:col, :row, :page)
+@test axisnames(permutedims(A, (2,3,1))) == (:col, :page, :row)
+@test axisnames(permutedims(A, (3,2,1))) == (:page, :col, :row)
+@test axisnames(permutedims(A, (3,1,2))) == (:page, :row, :col)
+for perm in ((:col, :row, :page), (:col, :page, :row),
+             (:page, :col, :row), (:page, :row, :col),
+             (:row, :page, :col), (:row, :col, :page))
+    @test axisnames(permutedims(A, perm)) == perm
+end
 # Test modifying a particular axis
 E = similar(A, Float64, Axis{:col}(1:2))
 @test size(E) == (2,2,4)
@@ -87,6 +96,14 @@ A = AxisArray(reshape(1:16, 2,2,2,2), .5:.5:1)
 @test axisnames(A) == (:row,:col,:page,:dim_4)
 VERSION >= v"0.5.0-dev" && @inferred(axisnames(A))
 @test axisvalues(A) == (.5:.5:1, 1:2, 1:2, 1:2)
+A = AxisArray([0]', :x, :y)
+@test axisnames(squeeze(A, 1)) == (:y,)
+@test axisnames(squeeze(A, 2)) == (:x,)
+@test axisnames(squeeze(A, (1,2))) == axisnames(squeeze(A, (2,1))) == ()
+@test axisnames(@inferred(squeeze(A, Axis{:x}))) == (:y,)
+@test axisnames(@inferred(squeeze(A, Axis{:x,UnitRange{Int}}))) == (:y,)
+@test axisnames(@inferred(squeeze(A, Axis{:y}))) == (:x,)
+@test axisnames(@inferred(squeeze(squeeze(A, Axis{:x}), Axis{:y}))) == ()
 
 # Test axisdim
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4),
@@ -107,13 +124,25 @@ A = AxisArray(reshape(1:24, 2,3,4),
 @test @inferred(axes(A, Axis{:x})) == @inferred(axes(A, Axis{:x}())) == Axis{:x}(.1:.1:.2)
 @test @inferred(axes(A, Axis{:y})) == @inferred(axes(A, Axis{:y}())) == Axis{:y}(1//10:1//10:3//10)
 @test @inferred(axes(A, Axis{:z})) == @inferred(axes(A, Axis{:z}())) == Axis{:z}(["a", "b", "c", "d"])
+@test axes(A, 2) == Axis{:y}(1//10:1//10:3//10)
 
 @test Axis{:col}(1) == Axis{:col}(1)
 @test Axis{:col}(1) != Axis{:com}(1)
+@test Axis{:x}(1:3) == Axis{:x}(Base.OneTo(3))
 @test hash(Axis{:col}(1)) == hash(Axis{:col}(1.0))
 @test hash(Axis{:row}()) != hash(Axis{:col}())
+@test hash(Axis{:x}(1:3)) == hash(Axis{:x}(Base.OneTo(3)))
 @test AxisArrays.axistype(Axis{1}(1:2)) == typeof(1:2)
+@test AxisArrays.axistype(Axis{1,UInt32}) == UInt32
 @test axisnames(Axis{1}, Axis{2}, Axis{3}) == (1,2,3)
+@test Axis{:row}(2:7)[4] == 5
+@test eltype(Axis{:row}(1.0:1.0:3.0)) == Float64
+@test size(Axis{:row}(2:7)) === (6,)
+@test indices(Axis{:row}(2:7)) === (Base.OneTo(6),)
+@test indices(Axis{:row}(-1:1), 1) === Base.OneTo(3)
+@test length(Axis{:col}(-1:2)) === 4
+@test AxisArrays.axisname(Axis{:foo}(1:2)) == :foo
+@test AxisArrays.axisname(Axis{:foo})      == :foo
 
 # Test Timetype axis construction
 dt, vals = DateTime(2010, 1, 2, 3, 40), randn(5,2)
@@ -123,3 +152,16 @@ A = AxisArray(vals, Axis{:Timestamp}(dt-Dates.Hour(2):Dates.Hour(1):dt+Dates.Hou
 
 # Simply run the display method to ensure no stupid errors
 @compat show(IOBuffer(),MIME("text/plain"),A)
+
+# With unconventional indices
+import OffsetArrays  # import rather than using because OffsetArrays has a deprecation for ..
+A = AxisArray(OffsetArrays.OffsetArray([5,3,4], -1:1), :x)
+@test axes(A) == (Axis{:x}(-1:1),)
+@test A[-1] == 5
+A[0] = 12
+@test A.data[0] == 12
+@test indices(A) == (-1:1,)
+@test linearindices(A) == -1:1
+A = AxisArray(OffsetArrays.OffsetArray(rand(4,5), -1:2, 5:9), :x, :y)
+@test indices(A) == (-1:2, 5:9)
+@test linearindices(A) == 1:20

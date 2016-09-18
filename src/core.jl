@@ -8,6 +8,8 @@ else
     using Base: @pure
 end
 
+typealias Symbols Tuple{Symbol,Vararg{Symbol}}
+
 @doc """
 Type-stable axis-specific indexing and identification with a
 parametric type.
@@ -51,7 +53,7 @@ immutable Axis{name,T}
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
 @compat (::Type{Axis{name}}){name,T}(I::T=()) = Axis{name,T}(I)
-@compat Base.:(==){name,T}(A::Axis{name,T}, B::Axis{name,T}) = A.val == B.val
+@compat Base.:(==){name}(A::Axis{name}, B::Axis{name}) = A.val == B.val
 Base.hash{name}(A::Axis{name}, hx::UInt) = hash(A.val, hash(name, hx))
 axistype{name,T}(::Axis{name,T}) = T
 axistype{name,T}(::Type{Axis{name,T}}) = T
@@ -61,8 +63,12 @@ Base.getindex(A::Axis, i...) = A.val[i...]
 Base.unsafe_getindex(A::Axis, i...) = Base.unsafe_getindex(A, i...)
 Base.eltype{_,T}(::Type{Axis{_,T}}) = eltype(T)
 Base.size(A::Axis) = size(A.val)
+Base.indices(A::Axis) = indices(A.val)
+Base.indices(A::Axis, d) = indices(A.val, d)
 Base.length(A::Axis) = length(A.val)
 @compat (A::Axis{name}){name}(i) = Axis{name}(i)
+Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name,T}) = ax
+Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name}) = Axis{name}(convert(T, ax.val))
 
 @doc """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
@@ -95,11 +101,12 @@ AxisArray(A::AbstractArray, vectors::AbstractVector...)
 * `A::AbstractArray` : the wrapped array data
 * `axes` or `names` or `vectors` : dimensional information for the wrapped array
 
-The dimensional information may be passed in one of three ways and is entirely
-optional. When the axis name or value is missing for a dimension, a default is
-substituted. The default axis names for dimensions `(1, 2, 3, 4, 5, ...)` are
-`(:row, :col, :page, :dim_4, :dim_5, ...)`. The default axis values are the
-integer unit ranges: `1:size(A, d)` for each missing dimension `d`.
+The dimensional information may be passed in one of three ways and is
+entirely optional. When the axis name or value is missing for a
+dimension, a default is substituted. The default axis names for
+dimensions `(1, 2, 3, 4, 5, ...)` are `(:row, :col, :page, :dim_4,
+:dim_5, ...)`. The default axis values are `indices(A, d)` for each
+missing dimension `d`.
 
 ### Indexing
 
@@ -166,12 +173,12 @@ AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
         push!(ax.args, :(axs[$i]))
     end
     for i=L+1:N
-        push!(ax.args, :(Axis{_defaultdimname($i)}(1:size(A, $i))))
+        push!(ax.args, :(Axis{_defaultdimname($i)}(indices(A, $i))))
     end
     quote
         for i = 1:length(axs)
             checkaxis(axs[i].val)
-            if length(axs[i].val) != size(A, i)
+            if _length(axs[i].val) != _size(A, i)
                 throw(ArgumentError("the length of each axis must match the corresponding size of data"))
             end
         end
@@ -183,7 +190,7 @@ AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
 end
 # Simple non-type-stable constructors to specify just the name or axis values
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
-AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, ntuple(i->Axis{names[i]}(1:size(A, i)), length(names)))
+AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, map((name,ind)->Axis{name}(ind), names, indices(A)))
 AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(i->Axis{_defaultdimname(i)}(vects[i]), length(vects)))
 
 # Axis definitions
@@ -214,29 +221,26 @@ end
 Base.size(A::AxisArray) = size(A.data)
 Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
 Base.size{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = size(A.data, axisdim(A, Ax))
+Base.indices(A::AxisArray) = indices(A.data)
+Base.indices(A::AxisArray, Ax::Axis) = indices(A.data, axisdim(A, Ax))
+Base.indices{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = indices(A.data, axisdim(A, Ax))
 Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
 Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A.data)
 # Similar is tricky. If we're just changing the element type, it can stay as an
 # AxisArray. But if we're changing dimensions, there's no way it can know how
 # to keep track of the axes, so just punt and return a regular old Array.
 # TODO: would it feel more consistent to return an AxisArray without any axes?
-Base.similar{T}(A::AxisArray{T})                = (d = similar(A.data, T); AxisArray(d, A.axes))
-Base.similar{T}(A::AxisArray{T}, S::Type)       = (d = similar(A.data, S); AxisArray(d, A.axes))
-Base.similar{T}(A::AxisArray{T}, S::Type, ::Tuple{}) = (d = similar(A.data, S); AxisArray(d, A.axes))
-Base.similar{T}(A::AxisArray{T}, dims::Int)         = similar(A, T, (dims,))
-Base.similar{T}(A::AxisArray{T}, dims::Int...)      = similar(A, T, dims)
-Base.similar{T}(A::AxisArray{T}, dims::Tuple{Vararg{Int}}) = similar(A, T, dims)
-Base.similar{T}(A::AxisArray{T}, S::Type, dims::Int...)    = similar(A.data, S, dims)
-Base.similar{T}(A::AxisArray{T}, S::Type, dims::Tuple{Vararg{Int}}) = similar(A.data, S, dims)
+Base.similar{S}(A::AxisArray, ::Type{S})       = (d = similar(A.data, S); AxisArray(d, A.axes))
+Base.similar{S,N}(A::AxisArray, ::Type{S}, dims::Dims{N}) = similar(A.data, S, dims)
 # If, however, we pass Axis objects containing the new axis for that dimension,
 # we can return a similar AxisArray with an appropriately modified size
-Base.similar{T}(A::AxisArray{T}, axs::Axis...) = similar(A, T, axs)
-Base.similar{T}(A::AxisArray{T}, S::Type, axs::Axis...) = similar(A, S, axs)
-@generated function Base.similar{T,N}(A::AxisArray{T,N}, S::Type, axs::Tuple{Vararg{Axis}})
-    sz = Expr(:tuple)
+Base.similar{T}(A::AxisArray{T}, ax1::Axis, axs::Axis...) = similar(A, T, (ax1, axs...))
+Base.similar{S}(A::AxisArray, ::Type{S}, ax1::Axis, axs::Axis...) = similar(A, S, (ax1, axs...))
+@generated function Base.similar{T,S,N}(A::AxisArray{T,N}, ::Type{S}, axs::Tuple{Axis,Vararg{Axis}})
+    inds = Expr(:tuple)
     ax = Expr(:tuple)
     for d=1:N
-        push!(sz.args, :(size(A, Axis{$d})))
+        push!(inds.args, :(indices(A, Axis{$d})))
         push!(ax.args, :(axes(A, Axis{$d})))
     end
     to_delete = Int[]
@@ -244,17 +248,76 @@ Base.similar{T}(A::AxisArray{T}, S::Type, axs::Axis...) = similar(A, S, axs)
         a = axs.parameters[i]
         d = axisdim(A, a)
         axistype(a) <: Tuple{} && push!(to_delete, d)
-        sz.args[d] = :(length(axs[$i].val))
+        inds.args[d] = :(indices(axs[$i].val, 1))
         ax.args[d] = :(axs[$i])
     end
     sort!(to_delete)
-    deleteat!(sz.args, to_delete)
+    deleteat!(inds.args, to_delete)
     deleteat!(ax.args, to_delete)
     quote
-        d = similar(A.data, S, $sz)
+        d = similar(A.data, S, $inds)
         AxisArray(d, $ax)
     end
 end
+
+function Base.permutedims(A::AxisArray, perm)
+    p = permutation(perm, axisnames(A))
+    AxisArray(permutedims(A.data, p), axes(A)[[p...]])
+end
+permutation(to::Union{AbstractVector{Int},Tuple{Int,Vararg{Int}}}, from::Symbols) = to
+
+"""
+    permutation(to, from) -> p
+
+Calculate the permutation of labels in `from` to produce the order in
+`to`. Any entries in `to` that are missing in `from` will receive an
+index of 0. Any entries in `from` that are missing in `to` will have
+their indices appended to the end of the permutation. Consequently,
+the length of `p` is equal to the longer of `to` and `from`.
+"""
+function permutation(to::Symbols, from::Symbols)
+    n = length(to)
+    nf = length(from)
+    li = linearindices(from)
+    d = Dict(from[i]=>i for i in li)
+    covered = similar(dims->falses(length(li)), li)
+    ind = Array(Int, max(n, nf))
+    for (i,toi) in enumerate(to)
+        j = get(d, toi, 0)
+        ind[i] = j
+        if j != 0
+            covered[j] = true
+        end
+    end
+    k = n
+    for i in li
+        if !covered[i]
+            d[from[i]] != i && throw(ArgumentError("$(from[i]) is a duplicated argument"))
+            k += 1
+            k > nf && throw(ArgumentError("no incomplete containment allowed in $to and $from"))
+            ind[k] = i
+        end
+    end
+    ind
+end
+
+function Base.squeeze(A::AxisArray, dims::Dims)
+    keepdims = setdiff(1:ndims(A), dims)
+    AxisArray(squeeze(A.data, dims), axes(A)[keepdims])
+end
+# This version is type-stable
+function Base.squeeze{Ax<:Axis}(A::AxisArray, ::Type{Ax})
+    dim = axisdim(A, Ax)
+    AxisArray(squeeze(A.data, dim), dropax(Ax, axes(A)...))
+end
+
+@inline dropax(ax, ax1, axs...) = (ax1, dropax(ax, axs...)...)
+@inline dropax{name}(ax::Axis{name}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
+@inline dropax{name}(ax::Type{Axis{name}}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
+@inline dropax{name,T}(ax::Type{Axis{name,T}}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
+dropax(ax) = ()
+
+
 # A simple display method to include axis information. It might be nice to
 # eventually display the axis labels alongside the data array, but that is
 # much more difficult.
@@ -356,3 +419,10 @@ function checkaxis(::Type{Categorical}, ax)
         push!(seen, elt)
     end
 end
+
+_length(A::AbstractArray) = length(linearindices(A))
+_length(A) = length(A)
+_size(A::AbstractArray) = map(length, indices(A))
+_size(A) = size(A)
+_size(A::AbstractArray, d) = length(indices(A, d))
+_size(A, d) = size(A, d)

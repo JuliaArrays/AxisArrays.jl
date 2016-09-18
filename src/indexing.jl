@@ -78,7 +78,7 @@ end
             push!(newaxes, :($(Axis{names[d]})(A.axes[$d].val[J[$d]])))
         elseif I[d] <: AbstractArray
             for i=1:ndims(I[d])
-                push!(newaxes, :($(Axis{Symbol(names[d], "_", i)})(1:size(I[$d], $i))))
+                push!(newaxes, :($(Axis{Symbol(names[d], "_", i)})(indices(I[$d], $i))))
             end
         end
     end
@@ -198,6 +198,10 @@ end
             push!(ex.args, :(I[$i]))
         elseif I[i] <: AbstractArray{Bool}
             push!(ex.args, :(find(I[$i])))
+        elseif I[i] <: CartesianIndex
+            for j = 1:length(I[i])
+                push!(ex.args, :(I[$i][$j]))
+            end
         elseif i <= length(Ax.parameters)
             push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
         else
