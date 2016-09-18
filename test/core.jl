@@ -124,6 +124,7 @@ A = AxisArray(reshape(1:24, 2,3,4),
 @test @inferred(axes(A, Axis{:x})) == @inferred(axes(A, Axis{:x}())) == Axis{:x}(.1:.1:.2)
 @test @inferred(axes(A, Axis{:y})) == @inferred(axes(A, Axis{:y}())) == Axis{:y}(1//10:1//10:3//10)
 @test @inferred(axes(A, Axis{:z})) == @inferred(axes(A, Axis{:z}())) == Axis{:z}(["a", "b", "c", "d"])
+@test axes(A, 2) == Axis{:y}(1//10:1//10:3//10)
 
 @test Axis{:col}(1) == Axis{:col}(1)
 @test Axis{:col}(1) != Axis{:com}(1)
@@ -140,6 +141,8 @@ A = AxisArray(reshape(1:24, 2,3,4),
 @test indices(Axis{:row}(2:7)) === (Base.OneTo(6),)
 @test indices(Axis{:row}(-1:1), 1) === Base.OneTo(3)
 @test length(Axis{:col}(-1:2)) === 4
+@test AxisArrays.axisname(Axis{:foo}(1:2)) == :foo
+@test AxisArrays.axisname(Axis{:foo})      == :foo
 
 # Test Timetype axis construction
 dt, vals = DateTime(2010, 1, 2, 3, 40), randn(5,2)
