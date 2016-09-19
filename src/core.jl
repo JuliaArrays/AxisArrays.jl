@@ -264,6 +264,12 @@ function Base.permutedims(A::AxisArray, perm)
     p = permutation(perm, axisnames(A))
     AxisArray(permutedims(A.data, p), axes(A)[[p...]])
 end
+
+Base.transpose{T}(A::AxisArray{T,2})  = AxisArray(transpose(A.data), A.axes[2], A.axes[1])
+Base.ctranspose{T}(A::AxisArray{T,2}) = AxisArray(ctranspose(A.data), A.axes[2], A.axes[1])
+Base.transpose{T}(A::AxisArray{T,1})  = AxisArray(transpose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
+Base.ctranspose{T}(A::AxisArray{T,1}) = AxisArray(ctranspose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
+
 permutation(to::Union{AbstractVector{Int},Tuple{Int,Vararg{Int}}}, from::Symbols) = to
 
 """
