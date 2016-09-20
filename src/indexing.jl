@@ -202,3 +202,9 @@ end
     meta = Expr(:meta, :inline)
     return :($meta; $ex)
 end
+
+## Extracting the full axis (name + values) from the Axis{:name} type
+@inline Base.getindex{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = getaxis(Ax, axes(A)...)
+@inline getaxis{Ax<:Axis}(::Type{Ax}, ax::Ax, axs...) = ax
+@inline getaxis{Ax<:Axis}(::Type{Ax}, ax::Axis, axs...) = getaxis(Ax, axs...)
+@noinline getaxis{Ax<:Axis}(::Type{Ax}) = throw(ArgumentError("no axis of type $Ax was found"))
