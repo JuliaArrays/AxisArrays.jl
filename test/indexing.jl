@@ -95,3 +95,12 @@ A = AxisArray(reshape(1:15, 3, 5), :x, :y)
 @test A[2,2,CartesianIndex(())] == 5
 @test A[2,CartesianIndex(()),2] == 5
 @test A[CartesianIndex(()),2,2] == 5
+
+# Extracting the full axis
+axx = @inferred(A[Axis{:x}])
+@test isa(axx, Axis{:x})
+@test axx.val == 1:3
+axy = @inferred(A[Axis{:y}])
+@test isa(axy, Axis{:y})
+@test axy.val == 1:5
+@test_throws ArgumentError A[Axis{:z}]
