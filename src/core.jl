@@ -161,33 +161,43 @@ immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
 end
 #
 _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
-AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
-@generated function AxisArray{T,N,L}(A::AbstractArray{T,N}, axs::NTuple{L,Axis})
-    ax = Expr(:tuple)
-    Ax = Tuple{axs.parameters...,
-               ntuple(i->Axis{_defaultdimname(i+L),UnitRange{Int64}},N-L)...}
-    if !all(x->isa(axisname(x),Symbol), axs.parameters)
-        return :(throw(ArgumentError("the Axis names must be Symbols")))
-    end
-    for i=1:L
-        push!(ax.args, :(axs[$i]))
-    end
-    for i=L+1:N
-        push!(ax.args, :(Axis{_defaultdimname($i)}(indices(A, $i))))
-    end
-    quote
-        for i = 1:length(axs)
-            checkaxis(axs[i].val)
-            if _length(axs[i].val) != _size(A, i)
-                throw(ArgumentError("the length of each axis must match the corresponding size of data"))
-            end
-        end
-        if length(unique(axisnames($(ax.args...)))) != N
-            throw(ArgumentError("axis names $(axisnames($(ax.args...))) must be unique"))
-        end
-        $(AxisArray{T,N,A,Ax})(A, $ax)
-    end
+
+default_axes(A::AbstractArray) = _default_axes(A, indices(A), ())
+_default_axes{T,N}(A::AbstractArray{T,N}, inds, axs::NTuple{N}) = axs
+@inline _default_axes{T,N,M}(A::AbstractArray{T,N}, inds, axs::NTuple{M}) =
+    _default_axes(A, inds, (axs..., _nextaxistype(A, axs)(inds[M+1])))
+# Why doesn't @pure work here?
+@generated function _nextaxistype{T,M}(A::AbstractArray{T}, axs::NTuple{M})
+    name = _defaultdimname(M+1)
+    :(Axis{$(Expr(:quote, name))})
 end
+
+AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
+function AxisArray{T,N}(A::AbstractArray{T,N}, axs::NTuple{N,Axis})
+    checksizes(axs, _size(A)) || throw(ArgumentError("the length of each axis must match the corresponding size of data"))
+    checknames(axisnames(axs...)...)
+    AxisArray{T,N,typeof(A),typeof(axs)}(A, axs)
+end
+function AxisArray{L}(A::AbstractArray, axs::NTuple{L,Axis})
+    newaxs = _default_axes(A, indices(A), axs)
+    AxisArray(A, newaxs)
+end
+
+@inline checksizes(axs, sz) =
+    (length(axs[1]) == sz[1]) & checksizes(tail(axs), tail(sz))
+checksizes(::Tuple{}, sz) = true
+
+@inline function checknames(name::Symbol, names...)
+    matches = false
+    for n in names
+        matches |= name == n
+    end
+    matches && throw(ArgumentError("axis name :$name is used more than once"))
+    checknames(names...)
+end
+checknames(name, names...) = throw(ArgumentError("the Axis names must be Symbols"))
+checknames() = ()
+
 # Simple non-type-stable constructors to specify just the name or axis values
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
 AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, map((name,ind)->Axis{name}(ind), names, indices(A)))
@@ -365,9 +375,9 @@ axisnames{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = _axisnames(Ax)
 axisnames{Ax<:Tuple{Vararg{Axis}}}(::Type{Ax})   = _axisnames(Ax)
 @pure _axisnames(Ax) = axisnames(Ax.parameters...)
 axisnames() = ()
-axisnames{name  }(::Axis{name},         B::Axis...) = tuple(name, axisnames(B...)...)
-axisnames{name  }(::Type{Axis{name}},   B::Type...) = tuple(name, axisnames(B...)...)
-axisnames{name,T}(::Type{Axis{name,T}}, B::Type...) = tuple(name, axisnames(B...)...)
+@inline axisnames{name  }(::Axis{name},         B::Axis...) = tuple(name, axisnames(B...)...)
+@inline axisnames{name  }(::Type{Axis{name}},   B::Type...) = tuple(name, axisnames(B...)...)
+@inline axisnames{name,T}(::Type{Axis{name,T}}, B::Type...) = tuple(name, axisnames(B...)...)
 
 axisname{name,T}(::Type{Axis{name,T}}) = name
 axisname{name  }(::Type{Axis{name  }}) = name
@@ -392,6 +402,9 @@ Returns the tuple of axis vectors for an AxisArray. If an specific `Axis` is
 specified, then only that axis vector is returned.  Note that when extracting a
 single axis vector, `axes(A, Axis{1})`) is type-stable and will perform better
 than `axes(A)[1]`.
+
+For an AbstractArray without `Axis` information, `axes` returns the
+default axes, i.e., those that would be produced by `AxisArray(A)`.
 """ ->
 axes(A::AxisArray) = A.axes
 axes(A::AxisArray, dim::Int) = A.axes[dim]
@@ -400,6 +413,8 @@ axes(A::AxisArray, ax::Axis) = axes(A, typeof(ax))
     dim = axisdim(A, T)
     :(A.axes[$dim])
 end
+axes(A::AbstractArray) = default_axes(A)
+axes(A::AbstractArray, dim::Int) = default_axes(A)[dim]
 
 ### Axis traits ###
 abstract AxisTrait
