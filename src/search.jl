@@ -38,8 +38,15 @@ end
 
 if VERSION > v"0.5.0-dev+4557"
     # When running with "--check-bounds=yes" (like on Travis), the bounds-check isn't elided
+    @inline function Base.unsafe_getindex{T}(v::Range{T}, i::Integer)
+        convert(T, first(v) + (i-1)*step(v))
+    end
     @inline function Base.unsafe_getindex{T}(r::FloatRange{T}, i::Integer)
         convert(T, (r.start + (i-1)*r.step)/r.divisor)
+    end
+    @inline function Base.unsafe_getindex{T<:Integer}(r::StepRange, s::Range{T})
+        st = oftype(r.start, r.start + (first(s)-1)*step(r))
+        range(st, step(r)*step(s), length(s))
     end
     @inline function Base.unsafe_getindex(r::FloatRange, s::OrdinalRange)
         FloatRange(r.start + (first(s)-1)*r.step, step(s)*r.step, length(s), r.divisor)

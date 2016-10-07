@@ -10,4 +10,6 @@ include("sortedvector.jl")
 include("search.jl")
 include("combine.jl")
 
+include("readme.jl")
+
 nothing
