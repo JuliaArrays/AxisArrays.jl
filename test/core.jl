@@ -138,6 +138,10 @@ A = AxisArray(reshape(1:24, 2,3,4),
 @test @inferred(axes(A, Axis{:y})) == @inferred(axes(A, Axis{:y}())) == Axis{:y}(1//10:1//10:3//10)
 @test @inferred(axes(A, Axis{:z})) == @inferred(axes(A, Axis{:z}())) == Axis{:z}(["a", "b", "c", "d"])
 @test axes(A, 2) == Axis{:y}(1//10:1//10:3//10)
+Aplain = rand(2,3)
+@test @inferred(axes(Aplain)) === axes(AxisArray(Aplain))
+@test axes(Aplain, 1) === axes(AxisArray(Aplain))[1]
+@test axes(Aplain, 2) === axes(AxisArray(Aplain))[2]
 
 @test Axis{:col}(1) == Axis{:col}(1)
 @test Axis{:col}(1) != Axis{:com}(1)
