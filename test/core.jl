@@ -118,6 +118,9 @@ A = AxisArray([0]', :x, :y)
 @test axisnames(@inferred(squeeze(A, Axis{:y}))) == (:x,)
 @test axisnames(@inferred(squeeze(squeeze(A, Axis{:x}), Axis{:y}))) == ()
 
+@test AxisArrays.HasAxes(A)   == AxisArrays.HasAxes{true}()
+@test AxisArrays.HasAxes([1]) == AxisArrays.HasAxes{false}()
+
 # Test axisdim
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4),
                                      Axis{1}(.1:.1:.2),

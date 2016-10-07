@@ -203,6 +203,12 @@ AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
 AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, map((name,ind)->Axis{name}(ind), names, indices(A)))
 AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(i->Axis{_defaultdimname(i)}(vects[i]), length(vects)))
 
+# Traits
+immutable HasAxes{B} end
+HasAxes{A<:AxisArray}(::Type{A}) = HasAxes{true}()
+HasAxes{A<:AbstractArray}(::Type{A}) = HasAxes{false}()
+HasAxes(A::AbstractArray) = HasAxes(typeof(A))
+
 # Axis definitions
 @doc """
     axisdim(::AxisArray, ::Axis) -> Int
