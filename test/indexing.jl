@@ -80,15 +80,47 @@ v = AxisArray(collect(.1:.1:10.0), .1:.1:10.0)
 @test v[:] == v.data[:] == v[Axis{:row}(:)]
 @test v[3:8] == v.data[3:8] == v[ClosedInterval(.25,.85)] == v[Axis{:row}(3:8)] == v[Axis{:row}(ClosedInterval(.22,.88))]
 
-# Test repeated intervals
-A = AxisArray([1:100 -1:-1:-100], .1:.1:10.0, [:c1, :c2])
-@test A[2.0..3.0, :] == A[atindex(-0.5..0.5, 25), :] == [20:30 -20:-1:-30]
-@test A[2.0..3.0, [:c1,:c2]] == A[atindex(-0.5..0.5, 25), [:c1, :c2]] == [20:30 -20:-1:-30]
-@test A[2.0..3.0, :c1] == A[atindex(-0.5..0.5, 25), :c1] == collect(20:30)
-@test A[atindex(-0.5..0.5, 25), :c1] == collect(20:30)
-@test A[atindex(-0.5..0.5, [25, 35]), :c1] == [20:30 30:40]
-@test_throws BoundsError A[atindex(-0.5..0.5, 5), :c1]
-@test_throws BoundsError A[atindex(-0.5..0.5, [5, 15, 25]), :]
+# Test repeated intervals, for different range types
+
+# First, since integers mean "location" rather than value, we have to
+# create a number type from which we build a StepRange but which is
+# not an Int.
+module IL  # put in a module so this file can be re-run
+immutable IntLike <: Number
+    val::Int
+end
+Base.one(x::IntLike) = IntLike(0)
+Base.zero(x::IntLike) = IntLike(0)
+Base.isless(x::IntLike, y::IntLike) = isless(x.val, y.val)
+Base.:+(x::IntLike, y::IntLike) = IntLike(x.val+y.val)
+Base.:-(x::IntLike, y::IntLike) = IntLike(x.val-y.val)
+Base.:/(x::IntLike, y::IntLike) = x.val / y.val
+Base.rem(x::IntLike, y::IntLike) = IntLike(rem(x.val, y.val))
+Base.div(x::IntLike, y::IntLike) = div(x.val, y.val)
+Base.:*(x::IntLike, y::Int) = IntLike(x.val * y)
+Base.:*(x::Int, y::IntLike) = y*x
+Base.:/(x::IntLike, y::Int) = IntLike(x.val / y)
+Base.promote_rule(::Type{IntLike}, ::Type{Int}) = Int
+Base.convert(::Type{Int}, x::IntLike) = x.val
+using AxisArrays
+AxisArrays.axistrait(::AbstractVector{IntLike}) = AxisArrays.Dimensional
+end
+
+for (r, Irel) in ((0.1:0.1:10.0, -0.5..0.5),  # FloatRange
+                  (IL.IntLike(1):IL.IntLike(1):IL.IntLike(100),
+                   IL.IntLike(-5)..IL.IntLike(5))) # StepRange
+    Iabs = r[20]..r[30]
+    A = AxisArray([1:100 -1:-1:-100], r, [:c1, :c2])
+    @test A[Iabs, :] == A[atindex(Irel, 25), :] == [20:30 -20:-1:-30]
+    @test A[Iabs, :] == A[r[25]+Irel, :] == [20:30 -20:-1:-30]
+    @test A[Iabs, [:c1,:c2]] == A[atindex(Irel, 25), [:c1, :c2]] == [20:30 -20:-1:-30]
+    @test A[Iabs, :c1] == A[atindex(Irel, 25), :c1] == collect(20:30)
+    @test A[atindex(Irel, 25), :c1] == collect(20:30)
+    @test A[atindex(Irel, [25, 35]), :c1] == [20:30 30:40]
+    @test A[r[[25, 35]] + Irel,  :c1] == [20:30 30:40]
+    @test_throws BoundsError A[atindex(Irel, 5), :c1]
+    @test_throws BoundsError A[atindex(Irel, [5, 15, 25]), :]
+end
 
 # Indexing with CartesianIndex{0}
 A = AxisArray(reshape(1:15, 3, 5), :x, :y)
