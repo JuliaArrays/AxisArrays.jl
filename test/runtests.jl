@@ -1,5 +1,5 @@
 using AxisArrays
-using Base.Test, Compat
+using Base.Test
 
 @test isempty(detect_ambiguities(AxisArrays, Base, Core))
 
