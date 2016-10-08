@@ -52,8 +52,8 @@ immutable Axis{name,T}
     val::T
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
-@compat (::Type{Axis{name}}){name,T}(I::T=()) = Axis{name,T}(I)
-@compat Base.:(==){name}(A::Axis{name}, B::Axis{name}) = A.val == B.val
+(::Type{Axis{name}}){name,T}(I::T=()) = Axis{name,T}(I)
+Base.:(==){name}(A::Axis{name}, B::Axis{name}) = A.val == B.val
 Base.hash{name}(A::Axis{name}, hx::UInt) = hash(A.val, hash(name, hx))
 axistype{name,T}(::Axis{name,T}) = T
 axistype{name,T}(::Type{Axis{name,T}}) = T
@@ -66,7 +66,7 @@ Base.size(A::Axis) = size(A.val)
 Base.indices(A::Axis) = indices(A.val)
 Base.indices(A::Axis, d) = indices(A.val, d)
 Base.length(A::Axis) = length(A.val)
-@compat (A::Axis{name}){name}(i) = Axis{name}(i)
+(A::Axis{name}){name}(i) = Axis{name}(i)
 Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name,T}) = ax
 Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name}) = Axis{name}(convert(T, ax.val))
 

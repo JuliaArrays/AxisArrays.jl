@@ -171,7 +171,7 @@ A = AxisArray(vals, Axis{:Timestamp}(dt-Dates.Hour(2):Dates.Hour(1):dt+Dates.Hou
 @test A[dt, :].data == vals[3, :]
 
 # Simply run the display method to ensure no stupid errors
-@compat show(IOBuffer(),MIME("text/plain"),A)
+show(IOBuffer(),MIME("text/plain"),A)
 
 # With unconventional indices
 import OffsetArrays  # import rather than using because OffsetArrays has a deprecation for ..
