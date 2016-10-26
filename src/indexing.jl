@@ -107,7 +107,9 @@ end
     idxs = Expr[:(Colon()) for d = 1:N]
     names = axisnames(A)
     for i=1:length(dims)
-        idxs[dims[i]] == :(Colon()) || return :(error("multiple indices provided on axis ", $(names[dims[i]])))
+        idxs[dims[i]] == :(Colon()) ||
+            return :(throw(ArgumentError(string("multiple indices provided ",
+                "on axis ", $(string(names[dims[i]]))))))
         idxs[dims[i]] = :(I[$i].val)
     end
 
