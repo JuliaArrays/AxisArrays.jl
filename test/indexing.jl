@@ -136,3 +136,8 @@ axy = @inferred(A[Axis{:y}])
 @test isa(axy, Axis{:y})
 @test axy.val == 1:5
 @test_throws ArgumentError A[Axis{:z}]
+
+# Test for the expected exception type given repeated axes
+A = AxisArray(rand(2,2), :x, :y)
+@test_throws ArgumentError A[Axis{:x}(1), Axis{:x}(1)]
+@test_throws ArgumentError A[Axis{:y}(1), Axis{:y}(1)]
