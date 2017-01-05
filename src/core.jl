@@ -94,6 +94,7 @@ immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
 AxisArray(A::AbstractArray, axes::Axis...)
 AxisArray(A::AbstractArray, names::Symbol...)
 AxisArray(A::AbstractArray, vectors::AbstractVector...)
+AxisArray(A::AbstractArray, (names...,), (steps...,), [(offsets...,)])
 ```
 
 ### Arguments
@@ -202,6 +203,10 @@ checknames() = ()
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
 AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, map((name,ind)->Axis{name}(ind), names, indices(A)))
 AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(i->Axis{_defaultdimname(i)}(vects[i]), length(vects)))
+function AxisArray{T,N}(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple{N,Number}, offsets::NTuple{N,Number}=map(zero, steps))
+    axs = ntuple(i->Axis{names[i]}(range(offsets[i], steps[i], size(A,i))), N)
+    AxisArray(A, axs...)
+end
 
 # Traits
 immutable HasAxes{B} end

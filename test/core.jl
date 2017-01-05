@@ -117,6 +117,13 @@ A = AxisArray([0]', :x, :y)
 @test axisnames(@inferred(squeeze(A, Axis{:x,UnitRange{Int}}))) == (:y,)
 @test axisnames(@inferred(squeeze(A, Axis{:y}))) == (:x,)
 @test axisnames(@inferred(squeeze(squeeze(A, Axis{:x}), Axis{:y}))) == ()
+# Names, steps, and offsets
+B = AxisArray([1 4; 2 5; 3 6], (:x, :y), (0.2, 100))
+@test axisnames(B) == (:x, :y)
+@test axisvalues(B) == (0:0.2:0.4, 0:100:100)
+B = AxisArray([1 4; 2 5; 3 6], (:x, :y), (0.2, 100), (-3,14))
+@test axisnames(B) == (:x, :y)
+@test axisvalues(B) == (-3:0.2:-2.6, 14:100:114)
 
 @test AxisArrays.HasAxes(A)   == AxisArrays.HasAxes{true}()
 @test AxisArrays.HasAxes([1]) == AxisArrays.HasAxes{false}()
