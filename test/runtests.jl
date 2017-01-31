@@ -11,5 +11,6 @@ include("search.jl")
 include("combine.jl")
 
 include("readme.jl")
+include("broadcast.jl")
 
 nothing

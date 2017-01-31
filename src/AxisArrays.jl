@@ -17,5 +17,6 @@ include("search.jl")
 include("indexing.jl")
 include("sortedvector.jl")
 include("combine.jl")
+include("broadcast.jl")
 
 end
