@@ -284,8 +284,13 @@ end
 # Note that we only extend the following two methods, and then have it
 # dispatch to package-local `reduced_indices` and `reduced_indices0`
 # methods. This avoids a whole slew of ambiguities.
-Base.reduced_indices(A::AxisArray, region)  = reduced_indices(axes(A), region)
-Base.reduced_indices0(A::AxisArray, region) = reduced_indices0(axes(A), region)
+if VERSION == v"0.5.0"
+    Base.reduced_dims(A::AxisArray, region)  = reduced_indices(axes(A), region)
+    Base.reduced_dims0(A::AxisArray, region) = reduced_indices0(axes(A), region)
+else
+    Base.reduced_indices(A::AxisArray, region)  = reduced_indices(axes(A), region)
+    Base.reduced_indices0(A::AxisArray, region) = reduced_indices0(axes(A), region)
+end
 
 reduced_indices{N}(axs::Tuple{Vararg{Axis,N}}, ::Tuple{})  = axs
 reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, ::Tuple{}) = axs
