@@ -306,10 +306,10 @@ reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, region::Dims) =
 
 @inline reduced_indices{Ax<:Axis}(axs::Tuple{Vararg{Axis}}, region::Type{Ax}) =
     _reduced_indices(reduced_axis, (), region, axs...)
-@inline reduced_indices(axs::Tuple{Vararg{Axis}}, region::Axis) =
-    _reduced_indices(reduced_axis, (), region, axs...)
 @inline reduced_indices0{Ax<:Axis}(axs::Tuple{Vararg{Axis}}, region::Type{Ax}) =
     _reduced_indices(reduced_axis0, (), region, axs...)
+@inline reduced_indices(axs::Tuple{Vararg{Axis}}, region::Axis) =
+    _reduced_indices(reduced_axis, (), region, axs...)
 @inline reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Axis) =
     _reduced_indices(reduced_axis0, (), region, axs...)
 
@@ -322,13 +322,22 @@ reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Tuple) =
 reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Tuple{Vararg{Axis}}) =
     reduced_indices0(reduced_indices0(axs, region[1]), tail(region))
 
-@inline _reduced_indices{name}(f, out, chosen::Type{Axis{name}}, ax::Axis{name}, axs...) =
-    _reduced_indices(f, (out..., f(ax)), chosen, axs...)
-@inline _reduced_indices{name}(f, out, chosen::Axis{name}, ax::Axis{name}, axs...) =
-    _reduced_indices(f, (out..., f(ax)), chosen, axs...)
-@inline _reduced_indices(f, out, chosen, ax::Axis, axs...) =
-    _reduced_indices(f, (out..., ax), chosen, axs...)
+@pure samesym{n1,n2}(::Type{Axis{n1}}, ::Type{Axis{n2}}) = Val{n1==n2}()
+samesym{n1,n2,T1,T2}(::Type{Axis{n1,T1}}, ::Type{Axis{n2,T2}}) = samesym(Axis{n1},Axis{n2})
+samesym{n1,n2}(::Type{Axis{n1}}, ::Axis{n2}) = samesym(Axis{n1}, Axis{n2})
+samesym{n1,n2}(::Axis{n1}, ::Type{Axis{n2}}) = samesym(Axis{n1}, Axis{n2})
+samesym{n1,n2}(::Axis{n1}, ::Axis{n2}) = samesym(Axis{n1}, Axis{n2})
+
+@inline _reduced_indices{Ax<:Axis}(f, out, chosen::Type{Ax}, ax::Axis, axs...) =
+    __reduced_indices(f, out, samesym(chosen, ax), chosen, ax, axs)
+@inline _reduced_indices(f, out, chosen::Axis, ax::Axis, axs...) =
+    __reduced_indices(f, out, samesym(chosen, ax), chosen, ax, axs)
 _reduced_indices(f, out, chosen) = out
+
+@inline __reduced_indices(f, out, ::Val{true}, chosen, ax, axs) =
+    _reduced_indices(f, (out..., f(ax)), chosen, axs...)
+@inline __reduced_indices(f, out, ::Val{false}, chosen, ax, axs) =
+    _reduced_indices(f, (out..., ax), chosen, axs...)
 
 reduced_axis(ax) = ax(oftype(ax.val, Base.OneTo(1)))
 reduced_axis0(ax) = ax(oftype(ax.val, length(ax.val) == 0 ? Base.OneTo(0) : Base.OneTo(1)))
