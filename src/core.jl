@@ -7,6 +7,7 @@ if VERSION < v"0.5.0-dev"
 else
     using Base: @pure
 end
+import Base: indices1
 
 typealias Symbols Tuple{Symbol,Vararg{Symbol}}
 
@@ -48,25 +49,53 @@ A[Axis{2}(2:5)] # grabs the second through 5th columns
 ```
 
 """ ->
-immutable Axis{name,T}
+immutable Axis{name,T} <: AbstractUnitRange{Int}
     val::T
+    Axis(val::AbstractVector) = new(val)
+    Axis(val::AbstractArray) = throw(ArgumentError("cannot construct a multidimensional axis"))
+    Axis(val) = new(val)
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
 (::Type{Axis{name}}){name,T}(I::T=()) = Axis{name,T}(I)
+(A::Axis{name}){name}(i) = Axis{name}(i)
+
 Base.:(==){name}(A::Axis{name}, B::Axis{name}) = A.val == B.val
+Base.:(==)(A::Axis, B::Axis) = false
 Base.hash{name}(A::Axis{name}, hx::UInt) = hash(A.val, hash(name, hx))
 axistype{name,T}(::Axis{name,T}) = T
 axistype{name,T}(::Type{Axis{name,T}}) = T
 # Pass indexing and related functions straight through to the wrapped value
-# TODO: should Axis be an AbstractArray? AbstractArray{T,0} for scalar T?
-Base.getindex(A::Axis, i...) = A.val[i...]
-Base.unsafe_getindex(A::Axis, i...) = Base.unsafe_getindex(A, i...)
-Base.eltype{_,T}(::Type{Axis{_,T}}) = eltype(T)
-Base.size(A::Axis) = size(A.val)
-Base.indices(A::Axis) = indices(A.val)
-Base.indices(A::Axis, d) = indices(A.val, d)
-Base.length(A::Axis) = length(A.val)
-(A::Axis{name}){name}(i) = Axis{name}(i)
+Base.linearindexing{A<:Axis}(::Type{A}) = Base.LinearFast()
+
+# Axis types may either be a vector or a scalar
+typealias AxisVector{name,T<:AbstractVector} Axis{name, T}
+Base.size(A::AxisVector) = (length(A.val),)
+Base.length(A::AxisVector) = length(A.val)
+# Base.unsafe_length(A::AxisVector) = Base.unsafe_length(A.val)
+Base.indices(A::AxisVector) = (Base.OneTo(length(A)),)
+Base.@propagate_inbounds Base.getindex{name}(A::Axis{name}, I::Integer...) = indices1(A.val)[I...]
+Base.@propagate_inbounds Base.getindex{name}(A::Axis{name}, i, I...) = Axis{name}(A.val[i, I...])
+Base.first(A::AxisVector) = first(indices1(A.val))
+Base.last(A::AxisVector) = last(indices1(A.val))
+@inline function Base.start(A::AxisVector)
+    itr = indices1(A.val)
+    (itr, start(itr))
+end
+@inline function Base.next(A::AxisVector, state)
+    itr, s = state
+    val, s = next(itr, s)
+    (val, (itr, s))
+end
+@inline Base.done(A::AxisVector, s) = done(s[1], s[2])
+
+Base.size(A::Axis) = (1,)
+Base.length(A::Axis) = 1
+Base.first(A::Axis) = 1
+Base.last(A::Axis) = 1
+Base.start(A::Axis) = false
+Base.next(A::Axis, s) = (1, true)
+Base.done(A::Axis, s) = s
+
 Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name,T}) = ax
 Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name}) = Axis{name}(convert(T, ax.val))
 
@@ -164,11 +193,11 @@ end
 _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
 
 default_axes(A::AbstractArray) = _default_axes(A, indices(A), ())
-_default_axes{T,N}(A::AbstractArray{T,N}, inds, axs::NTuple{N}) = axs
-@inline _default_axes{T,N,M}(A::AbstractArray{T,N}, inds, axs::NTuple{M}) =
+_default_axes{T,N}(A::AbstractArray{T,N}, inds, axs::NTuple{N,Any}) = axs
+@inline _default_axes{T,N,M}(A::AbstractArray{T,N}, inds, axs::NTuple{M,Any}) =
     _default_axes(A, inds, (axs..., _nextaxistype(A, axs)(inds[M+1])))
 # Why doesn't @pure work here?
-@generated function _nextaxistype{T,M}(A::AbstractArray{T}, axs::NTuple{M})
+@generated function _nextaxistype{T,M}(A::AbstractArray{T}, axs::NTuple{M,Any})
     name = _defaultdimname(M+1)
     :(Axis{$(Expr(:quote, name))})
 end
@@ -201,7 +230,7 @@ checknames() = ()
 
 # Simple non-type-stable constructors to specify just the name or axis values
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
-AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, map((name,ind)->Axis{name}(ind), names, indices(A)))
+AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, map((name,ind)->Axis{name}(Base.Slice(ind)), names, indices(A)))
 AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(i->Axis{_defaultdimname(i)}(vects[i]), length(vects)))
 function AxisArray{T,N}(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple{N,Number}, offsets::NTuple{N,Number}=map(zero, steps))
     axs = ntuple(i->Axis{names[i]}(range(offsets[i], steps[i], size(A,i))), N)
@@ -242,9 +271,11 @@ end
 Base.size(A::AxisArray) = size(A.data)
 Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
 Base.size{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = size(A.data, axisdim(A, Ax))
-Base.indices(A::AxisArray) = indices(A.data)
+Base.indices(A::AxisArray) = A.axes
 Base.indices(A::AxisArray, Ax::Axis) = indices(A.data, axisdim(A, Ax))
 Base.indices{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = indices(A.data, axisdim(A, Ax))
+Base.linearindices(A::AxisArray{T,1} where T) = A.axes[1]
+
 Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
 Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A.data)
 # Similar is tricky. If we're just changing the element type, it can stay as an
@@ -280,6 +311,11 @@ Base.similar{S}(A::AxisArray, ::Type{S}, ax1::Axis, axs::Axis...) = similar(A, S
         AxisArray(d, $ax)
     end
 end
+# We also hook into similar(f, shape)
+Base.similar(f, shape::Tuple{Vararg{Axis}}) = AxisArray(f(length.(shape)), shape)
+# Ambiguity
+Base.similar{T}(a::AbstractArray{T}, dims::Tuple{Vararg{Axis}}) = similar(a, T, dims)
+Base.similar{T}(a::AbstractArray, ::Type{T}, dims::Tuple{Vararg{Axis}}) = AxisArray(similar(a, T, length.(dims)), dims)
 
 function Base.permutedims(A::AxisArray, perm)
     p = permutation(perm, axisnames(A))
