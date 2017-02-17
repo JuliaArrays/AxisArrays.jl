@@ -5,14 +5,8 @@ using Base: ViewIndex, linearindexing, unsafe_getindex, unsafe_setindex!
 # Defer linearindexing to the wrapped array
 Base.linearindexing{T,N,D}(::AxisArray{T,N,D}) = linearindexing(D)
 
-# Simple scalar indexing where we just set or return scalars
-@inline Base.getindex(A::AxisArray, idxs::Int...) = A.data[idxs...]
-@inline Base.setindex!(A::AxisArray, v, idxs::Int...) = (A.data[idxs...] = v)
-
 # Cartesian iteration
 Base.eachindex(A::AxisArray) = eachindex(A.data)
-Base.getindex(A::AxisArray, idx::Base.IteratorsMD.CartesianIndex) = A.data[idx]
-Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[idx] = v)
 
 @generated function reaxis(A::AxisArray, I::Idx...)
     N = length(I)
@@ -48,53 +42,34 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
     end
 end
 
-@inline function Base.getindex(A::AxisArray, idxs::Idx...)
-    AxisArray(A.data[idxs...], reaxis(A, idxs...))
+@inline function Base.getindex(A::AxisArray, I...)
+    J = to_indices(A, I)
+    @boundscheck checkbounds(A, J...)
+    _getindex(A, J...)
+end
+# Simple scalar indexing where we just return scalar elements
+@inline function _getindex(A, idxs::Number...)
+    @inbounds r = A.data[idxs...]
+    r
+end
+# Nonscalar indexing returns a re-axis'ed AxisArray
+@inline function _getindex(A, J::Union{Number,AbstractArray}...)
+    @inbounds r = AxisArray(A.data[J...], reaxis(A, J...))
+    r
+end
+# Views maintain Axes by wrapping views
+@inline function Base.view(A::AxisArray, I...)
+    J = to_indices(A, I)
+    @boundscheck checkbounds(A, J...)
+    @inbounds r = AxisArray(view(A.data, J...), reaxis(A, J...))
+    r
 end
 
-# To resolve ambiguities, we need several definitions
-if VERSION >= v"0.6.0-dev.672"
-    using Base.AbstractCartesianIndex
-    Base.view(A::AxisArray, idxs::Idx...) = AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
-else
-    @inline function Base.view{T,N}(A::AxisArray{T,N}, idxs::Vararg{Idx,N})
-        AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
-    end
-    function Base.view(A::AxisArray, idx::Idx)
-        AxisArray(view(A.data, idx), reaxis(A, idx))
-    end
-    @inline function Base.view{N}(A::AxisArray, idxs::Vararg{Idx,N})
-        # this should eventually be deleted, see julia #14770
-        AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
-    end
-end
-
-# Setindex is so much simpler. Just assign it to the data:
-@inline Base.setindex!(A::AxisArray, v, idxs::Idx...) = (A.data[idxs...] = v)
-
-### Fancier indexing capabilities provided only by AxisArrays ###
-@inline Base.getindex(A::AxisArray, idxs...) = A[to_index(A,idxs...)...]
-@inline Base.setindex!(A::AxisArray, v, idxs...) = (A[to_index(A,idxs...)...] = v)
-# Deal with lots of ambiguities here
-if VERSION >= v"0.6.0-dev.672"
-    Base.view(A::AxisArray, idxs::ViewIndex...) = view(A, to_index(A,idxs...)...)
-    Base.view(A::AxisArray, idxs::Union{ViewIndex,AbstractCartesianIndex}...) = view(A, to_index(A,Base.IteratorsMD.flatten(idxs)...)...)
-    Base.view(A::AxisArray, idxs...) = view(A, to_index(A,idxs...)...)
-else
-    for T in (:ViewIndex, :Any)
-        @eval begin
-            @inline function Base.view{T,N}(A::AxisArray{T,N}, idxs::Vararg{$T,N})
-                view(A, to_index(A,idxs...)...)
-            end
-            function Base.view(A::AxisArray, idx::$T)
-                view(A, to_index(A,idx)...)
-            end
-            @inline function Base.view{N}(A::AxisArray, idsx::Vararg{$T,N})
-                # this should eventually be deleted, see julia #14770
-                view(A, to_index(A,idxs...)...)
-            end
-        end
-    end
+@inline function Base.setindex!(A::AxisArray, v, I...)
+    J = to_indices(A, I)
+    @boundscheck checkbounds(A, I...)
+    @inbounds A.data[J...] = v
+    A
 end
 
 # First is indexing by named axis. We simply sort the axes and re-dispatch.
@@ -102,7 +77,7 @@ end
 # TODO: should we handle multidimensional Axis indexes? It could be interpreted
 #       as adding dimensions in the middle of an AxisArray.
 # TODO: should we allow repeated axes? As a union of indices of the duplicates?
-@generated function to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I::Axis...)
+@generated function Base.to_indices{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I::Tuple{Vararg{Axis}})
     dims = Int[axisdim(A, ax) for ax in I]
     idxs = Expr[:(Colon()) for d = 1:N]
     names = axisnames(A)
@@ -114,7 +89,7 @@ end
     end
 
     meta = Expr(:meta, :inline)
-    return :($meta; to_index(A, $(idxs...)))
+    return :($meta; to_indices(A, ($(idxs...),)))
 end
 
 ### Indexing along values of the axes ###
@@ -181,29 +156,15 @@ end
 # indexing types to their integer or integer range equivalents using axisindexes
 # It is separate from the `Base.getindex` function to allow reuse between
 # set- and get- index.
-@generated function to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...)
-    ex = Expr(:tuple)
-    for i=1:length(I)
-        if I[i] <: Idx
-            push!(ex.args, :(I[$i]))
-        elseif I[i] <: AbstractArray{Bool}
-            push!(ex.args, :(find(I[$i])))
-        elseif I[i] <: CartesianIndex
-            for j = 1:length(I[i])
-                push!(ex.args, :(I[$i][$j]))
-            end
-        elseif i <= length(Ax.parameters)
-            push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
-        else
-            push!(ex.args, :(error("dimension ", $i, " does not have an axis to index")))
-        end
-    end
-    for _=length(I)+1:N
-        push!(ex.args, :(Colon()))
-    end
-    meta = Expr(:meta, :inline)
-    return :($meta; $ex)
-end
+@inline Base.to_indices(A, inds, I::Tuple{Any, Vararg{Any}}) = (_hack(A, inds, I[1]), to_indices(A, Base._maybetail(inds), tail(I))...)
+@inline _hack(A::AxisArray, ax, i) = axisindexes(ax[1], i)
+@inline _hack(A::AxisArray, ax::Tuple{}, i) = Base.to_index(A,i)
+@inline _hack(A, ax, i) = Base.to_index(A,i)
+
+# Ambiguities...
+Base.to_indices(A::AxisArray, I::Tuple{}) = ()
+@inline Base.to_indices(A::AxisArray, I::Tuple{Vararg{Union{Integer, CartesianIndex}}}) = to_indices(A, (), I)
+
 
 ## Extracting the full axis (name + values) from the Axis{:name} type
 @inline Base.getindex{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = getaxis(Ax, axes(A)...)
