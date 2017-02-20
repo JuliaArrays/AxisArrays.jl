@@ -17,7 +17,7 @@
 # downside is that Intervals are not as useful as they could be; they really
 # could be considered as <: Number themselves. We do this in general for any
 # supported Scalar:
-typealias Scalar Union{Number, Dates.AbstractTime}
+const Scalar = Union{Number, Dates.AbstractTime}
 Base.promote_rule{T<:Scalar}(::Type{ClosedInterval{T}}, ::Type{T}) = ClosedInterval{T}
 Base.promote_rule{T,S<:Scalar}(::Type{ClosedInterval{T}}, ::Type{S}) = ClosedInterval{promote_type(T,S)}
 Base.promote_rule{T,S}(::Type{ClosedInterval{T}}, ::Type{ClosedInterval{S}}) = ClosedInterval{promote_type(T,S)}
@@ -62,7 +62,7 @@ immutable RepeatedInterval{T,S,A} <: AbstractVector{T}
 end
 RepeatedInterval{S,A<:AbstractVector}(window::ClosedInterval{S}, offsets::A) = RepeatedInterval{promote_type(ClosedInterval{S}, eltype(A)), S, A}(window, offsets)
 Base.size(r::RepeatedInterval) = size(r.offsets)
-Base.linearindexing{R<:RepeatedInterval}(::Type{R}) = Base.LinearFast()
+@compat Base.IndexStyle(::Type{<:RepeatedInterval}) = IndexLinear()
 Base.getindex(r::RepeatedInterval, i::Int) = r.window + r.offsets[i]
 +(window::ClosedInterval, offsets::AbstractVector) = RepeatedInterval(window, offsets)
 +(offsets::AbstractVector, window::ClosedInterval) = RepeatedInterval(window, offsets)
@@ -84,5 +84,5 @@ immutable RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{
 end
 atindex(window::ClosedInterval, indexes::AbstractVector) = RepeatedIntervalAtIndexes(window, indexes)
 Base.size(r::RepeatedIntervalAtIndexes) = size(r.indexes)
-Base.linearindexing{R<:RepeatedIntervalAtIndexes}(::Type{R}) = Base.LinearFast()
+@compat Base.IndexStyle(::Type{<:RepeatedIntervalAtIndexes}) = IndexLinear()
 Base.getindex(r::RepeatedIntervalAtIndexes, i::Int) = IntervalAtIndex(r.window, r.indexes[i])

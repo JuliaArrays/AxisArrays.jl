@@ -1,7 +1,9 @@
 using AxisArrays
 using Base.Test
 
-@test isempty(detect_ambiguities(AxisArrays, Base, Core))
+if VERSION < v"0.6.0-dev"
+    @test isempty(detect_ambiguities(AxisArrays, Base, Core))
+end
 
 include("core.jl")
 include("intervals.jl")

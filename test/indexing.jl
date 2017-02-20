@@ -37,8 +37,13 @@ D[1,1,1,1,1] = 10
 
 # Linear indexing across multiple dimensions drops tracking of those dims
 @test A[:].axes[1].val == 1:length(A)
-@test A[1:2,:].axes[1].val == A.axes[1].val[1:2]
-@test A[1:2,:].axes[2].val == 1:Base.trailingsize(A,2)
+B = A[1:2,:]
+@test B.axes[1].val == A.axes[1].val[1:2]
+@test B.axes[2].val == 1:Base.trailingsize(A,2)
+B2 = reshape(A, Val{2})
+B = B2[1:2,:]
+@test B.axes[1].val == A.axes[1].val[1:2]
+@test B.axes[2].val == 1:Base.trailingsize(A,2)
 
 B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 

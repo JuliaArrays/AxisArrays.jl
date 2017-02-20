@@ -4,6 +4,7 @@ module AxisArrays
 
 using Base: tail
 using RangeArrays, Iterators, IntervalSets
+using Compat
 
 export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex
 
