@@ -1,9 +1,9 @@
-typealias Idx Union{Real,Colon,AbstractArray{Int}}
+const Idx = Union{Real,Colon,AbstractArray{Int}}
 
-using Base: ViewIndex, linearindexing, unsafe_getindex, unsafe_setindex!
+using Base: ViewIndex, unsafe_getindex, unsafe_setindex!
 
-# Defer linearindexing to the wrapped array
-Base.linearindexing{T,N,D}(::AxisArray{T,N,D}) = linearindexing(D)
+# Defer IndexStyle to the wrapped array
+@compat Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)
 
 # Simple scalar indexing where we just set or return scalars
 @inline Base.getindex(A::AxisArray, idxs::Int...) = A.data[idxs...]
@@ -26,7 +26,8 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
     end
     names = axisnames(A)
     newaxes = Expr[]
-    for d=1:lastnonscalar-droplastaxis
+    drange = 1:lastnonscalar-droplastaxis
+    for d=drange
         if I[d] <: AxisArray
             # Indexing with an AxisArray joins the axis names
             idxnames = axisnames(I[d])
@@ -34,8 +35,15 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
                 push!(newaxes, :($(Axis{Symbol(names[d], "_", idxnames[i])})(I[$d].axes[$i].val)))
             end
         elseif I[d] <: Real
-        elseif I[d] <: Union{AbstractVector,Colon}
+        elseif I[d] <: AbstractVector
             push!(newaxes, :($(Axis{names[d]})(A.axes[$d].val[Base.to_index(I[$d])])))
+        elseif I[d] <: Colon
+            if d < length(I) || d <= ndims(A)
+                push!(newaxes, :($(Axis{names[d]})(A.axes[$d].val)))
+            else
+                dimname = _defaultdimname(d)
+                push!(newaxes, :($(Axis{dimname})(Base.OneTo(Base.trailingsize(A, $d)))))
+            end
         elseif I[d] <: AbstractArray
             for i=1:ndims(I[d])
                 # When we index with non-vector arrays, we *add* dimensions.
@@ -115,6 +123,12 @@ end
 
     meta = Expr(:meta, :inline)
     return :($meta; to_index(A, $(idxs...)))
+end
+
+function Base.reshape{N}(A::AxisArray, ::Type{Val{N}})
+    # axN, _ = Base.IteratorsMD.split(axes(A), Val{N})
+    # AxisArray(reshape(A.data, Val{N}), reaxis(A, Base.fill_to_length(axN, :, Val{N})...))
+    AxisArray(reshape(A.data, Val{N}), reaxis(A, ntuple(d->Colon(), Val{N})...))
 end
 
 ### Indexing along values of the axes ###

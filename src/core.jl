@@ -8,7 +8,7 @@ else
     using Base: @pure
 end
 
-typealias Symbols Tuple{Symbol,Vararg{Symbol}}
+const Symbols = Tuple{Symbol,Vararg{Symbol}}
 
 @doc """
 Type-stable axis-specific indexing and identification with a
@@ -158,17 +158,17 @@ A[ClosedInterval(0.,.3), [:a, :c]]   # select an interval and two columns
 immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     data::D  # D <:AbstractArray, enforced in constructor to avoid dispatch bugs (https://github.com/JuliaLang/julia/issues/6383)
     axes::Ax # Ax<:NTuple{N, Axis}, but with specialized Axis{...} types
-    AxisArray(data::AbstractArray, axs) = new{T,N,D,Ax}(data, axs)
+    (::Type{AxisArray{T,N,D,Ax}}){T,N,D,Ax}(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) = new{T,N,D,Ax}(data, axs)
 end
 #
 _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
 
 default_axes(A::AbstractArray) = _default_axes(A, indices(A), ())
-_default_axes{T,N}(A::AbstractArray{T,N}, inds, axs::NTuple{N}) = axs
-@inline _default_axes{T,N,M}(A::AbstractArray{T,N}, inds, axs::NTuple{M}) =
+_default_axes{T,N}(A::AbstractArray{T,N}, inds, axs::NTuple{N,Axis}) = axs
+@inline _default_axes{T,N,M}(A::AbstractArray{T,N}, inds, axs::NTuple{M,Axis}) =
     _default_axes(A, inds, (axs..., _nextaxistype(A, axs)(inds[M+1])))
 # Why doesn't @pure work here?
-@generated function _nextaxistype{T,M}(A::AbstractArray{T}, axs::NTuple{M})
+@generated function _nextaxistype{T,M}(A::AbstractArray{T}, axs::NTuple{M,Axis})
     name = _defaultdimname(M+1)
     :(Axis{$(Expr(:quote, name))})
 end
@@ -245,7 +245,6 @@ Base.size{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = size(A.data, axisdim(A, Ax))
 Base.indices(A::AxisArray) = indices(A.data)
 Base.indices(A::AxisArray, Ax::Axis) = indices(A.data, axisdim(A, Ax))
 Base.indices{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = indices(A.data, axisdim(A, Ax))
-Base.linearindexing(A::AxisArray) = Base.linearindexing(A.data)
 Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A.data)
 # Similar is tricky. If we're just changing the element type, it can stay as an
 # AxisArray. But if we're changing dimensions, there's no way it can know how
@@ -308,7 +307,7 @@ function permutation(to::Symbols, from::Symbols)
     li = linearindices(from)
     d = Dict(from[i]=>i for i in li)
     covered = similar(dims->falses(length(li)), li)
-    ind = Array(Int, max(n, nf))
+    ind = Array{Int}(max(n, nf))
     for (i,toi) in enumerate(to)
         j = get(d, toi, 0)
         ind[i] = j
@@ -421,7 +420,7 @@ axes(A::AbstractArray) = default_axes(A)
 axes(A::AbstractArray, dim::Int) = default_axes(A)[dim]
 
 ### Axis traits ###
-abstract AxisTrait
+@compat abstract type AxisTrait end
 immutable Dimensional <: AxisTrait end
 immutable Categorical <: AxisTrait end
 immutable Unsupported <: AxisTrait end

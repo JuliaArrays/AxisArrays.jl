@@ -1,12 +1,12 @@
 # Intended to ensure the README stays working (this is a copy)
 
-using AxisArrays, SIUnits
-import SIUnits.ShortUnits: s, ms, µs
+using AxisArrays, Unitful
+import Unitful: s, ms, µs
 
 fs = 40000
 y = randn(60*fs+1)*3
-for spk = (sin(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05]   .* 50,
-           sin(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
+for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05]   .* 50,
+           sin.(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
     i = rand(round(Int,.001fs):1fs)
     while i+length(spk)-1 < length(y)
         y[i:i+length(spk)-1] += spk
