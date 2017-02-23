@@ -37,6 +37,8 @@ D[1,1,1,1,1] = 10
 
 # Linear indexing across multiple dimensions drops tracking of those dims
 @test A[:].axes[1].val == 1:length(A)
+# TODO: remove the next 4 lines when we no longer feel we need to test for this
+VERSION >= v"0.6.0-dev" && info("partial linear indexing deprecation warning is expected")
 B = A[1:2,:]
 @test B.axes[1].val == A.axes[1].val[1:2]
 @test B.axes[2].val == 1:Base.trailingsize(A,2)
