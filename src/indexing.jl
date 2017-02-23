@@ -1,6 +1,6 @@
 const Idx = Union{Real,Colon,AbstractArray{Int}}
 
-using Base: ViewIndex, unsafe_getindex, unsafe_setindex!
+using Base: ViewIndex
 
 # Defer IndexStyle to the wrapped array
 @compat Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)
@@ -162,20 +162,20 @@ function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedInterval)
     n = length(idx.offsets)
     idxs = unsafe_searchsorted(ax, idx.window)
     offsets = [searchsortednearest(ax, idx.offsets[i]) for i=1:n]
-    AxisArray(RepeatedRangeMatrix(idxs, offsets), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[offsets]))
+    AxisArray(RepeatedRangeMatrix(idxs, offsets), Axis{:sub}(inbounds_getindex(ax, idxs)), Axis{:rep}(ax[offsets]))
 end
 
 # We also have special datatypes to represent intervals about indices
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::IntervalAtIndex) = searchsorted(ax, idx.window + ax[idx.index])
 function axisindexes(::Type{Dimensional}, ax::Range, idx::IntervalAtIndex)
     idxs = unsafe_searchsorted(ax, idx.window)
-    AxisArray(idxs + idx.index, Axis{:sub}(unsafe_getindex(ax, idxs)))
+    AxisArray(idxs + idx.index, Axis{:sub}(inbounds_getindex(ax, idxs)))
 end
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedIntervalAtIndexes) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedIntervalAtIndexes)
     n = length(idx.indexes)
     idxs = unsafe_searchsorted(ax, idx.window)
-    AxisArray(RepeatedRangeMatrix(idxs, idx.indexes), Axis{:sub}(unsafe_getindex(ax, idxs)), Axis{:rep}(ax[idx.indexes]))
+    AxisArray(RepeatedRangeMatrix(idxs, idx.indexes), Axis{:sub}(inbounds_getindex(ax, idxs)), Axis{:rep}(ax[idx.indexes]))
 end
 
 # Categorical axes may be indexed by their elements

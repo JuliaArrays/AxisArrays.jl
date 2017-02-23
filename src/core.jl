@@ -60,7 +60,6 @@ axistype{name,T}(::Type{Axis{name,T}}) = T
 # Pass indexing and related functions straight through to the wrapped value
 # TODO: should Axis be an AbstractArray? AbstractArray{T,0} for scalar T?
 Base.getindex(A::Axis, i...) = A.val[i...]
-Base.unsafe_getindex(A::Axis, i...) = Base.unsafe_getindex(A, i...)
 Base.eltype{_,T}(::Type{Axis{_,T}}) = eltype(T)
 Base.size(A::Axis) = size(A.val)
 Base.indices(A::Axis) = indices(A.val)
