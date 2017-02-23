@@ -37,26 +37,28 @@ function Base.searchsorted(a::Range, I::ClosedInterval)
 end
 
 # When running with "--check-bounds=yes" (like on Travis), the bounds-check isn't elided
-@inline function Base.unsafe_getindex{T}(v::Range{T}, i::Integer)
+@inline function inbounds_getindex{T}(v::Range{T}, i::Integer)
     convert(T, first(v) + (i-1)*step(v))
 end
-@inline function Base.unsafe_getindex{T<:Integer}(r::StepRange, s::Range{T})
-    st = oftype(r.start, r.start + (first(s)-1)*step(r))
+@inline function inbounds_getindex{T<:Integer}(r::Range, s::Range{T})
+    f = first(r)
+    st = oftype(f, f + (first(s)-1)*step(r))
     range(st, step(r)*step(s), length(s))
 end
 if VERSION < v"0.6.0-dev.2390"
     include_string("""
-    @inline function Base.unsafe_getindex{T}(r::FloatRange{T}, i::Integer)
+    @inline function inbounds_getindex{T}(r::FloatRange{T}, i::Integer)
         convert(T, (r.start + (i-1)*r.step)/r.divisor)
     end
-    @inline function Base.unsafe_getindex(r::FloatRange, s::OrdinalRange)
+    @inline function inbounds_getindex(r::FloatRange, s::OrdinalRange)
         FloatRange(r.start + (first(s)-1)*r.step, step(s)*r.step, length(s), r.divisor)
     end
     """)
 else
     include_string("""
-    @inline function Base.unsafe_getindex(r::StepRangeLen, s::OrdinalRange)
-        vfirst = unsafe_getindex(r, first(s))
+    @inline inbounds_getindex(r::StepRangeLen, i::Integer) = Base.unsafe_getindex(r, i)
+    @inline function inbounds_getindex(r::StepRangeLen, s::OrdinalRange)
+        vfirst = Base.unsafe_getindex(r, first(s))
         StepRangeLen(vfirst, r.step*step(s), length(s))
     end
     """)
@@ -65,12 +67,12 @@ end
 function unsafe_searchsortedlast{T<:Number}(a::Range{T}, x::Number)
     step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
     n = round(Integer,(x-first(a))/step(a))+1
-    isless(x, unsafe_getindex(a, n)) ? n-1 : n
+    isless(x, inbounds_getindex(a, n)) ? n-1 : n
 end
 function unsafe_searchsortedfirst{T<:Number}(a::Range{T}, x::Number)
     step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
     n = round(Integer,(x-first(a))/step(a))+1
-    isless(unsafe_getindex(a, n), x) ? n+1 : n
+    isless(inbounds_getindex(a, n), x) ? n+1 : n
 end
 function unsafe_searchsortedlast{T<:Integer}(a::Range{T}, x::Number)
     step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
