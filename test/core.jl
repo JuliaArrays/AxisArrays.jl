@@ -165,6 +165,8 @@ Aplain = rand(2,3)
 @test Axis{:row}(2:7)[4] == 5
 @test eltype(Axis{:row}(1.0:1.0:3.0)) == Float64
 @test size(Axis{:row}(2:7)) === (6,)
+T = A[AxisArrays.Axis{:x}]
+@test T[end] == 0.2
 @test indices(Axis{:row}(2:7)) === (Base.OneTo(6),)
 @test indices(Axis{:row}(-1:1), 1) === Base.OneTo(3)
 @test length(Axis{:col}(-1:2)) === 4

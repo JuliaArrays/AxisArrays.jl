@@ -62,6 +62,7 @@ axistype{name,T}(::Type{Axis{name,T}}) = T
 Base.getindex(A::Axis, i...) = A.val[i...]
 Base.eltype{_,T}(::Type{Axis{_,T}}) = eltype(T)
 Base.size(A::Axis) = size(A.val)
+Base.endof(A::Axis) = length(A)
 Base.indices(A::Axis) = indices(A.val)
 Base.indices(A::Axis, d) = indices(A.val, d)
 Base.length(A::Axis) = length(A.val)
