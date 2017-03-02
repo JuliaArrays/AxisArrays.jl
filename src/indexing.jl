@@ -8,7 +8,6 @@ using Base: ViewIndex
 # Simple scalar indexing where we just set or return scalars
 @inline Base.getindex(A::AxisArray, idxs::Int...) = A.data[idxs...]
 @inline Base.setindex!(A::AxisArray, v, idxs::Int...) = (A.data[idxs...] = v)
-@inline Base.endof(A::Axis) = length(A)
 
 # Cartesian iteration
 Base.eachindex(A::AxisArray) = eachindex(A.data)
