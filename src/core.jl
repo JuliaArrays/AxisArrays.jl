@@ -239,12 +239,12 @@ function axisdim{T,N,D,Ax,name}(::Type{AxisArray{T,N,D,Ax}}, ::Type{Axis{name}})
 end
 
 # Base definitions that aren't provided by AbstractArray
-Base.size(A::AxisArray) = size(A.data)
-Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
-Base.size{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = size(A.data, axisdim(A, Ax))
-Base.indices(A::AxisArray) = indices(A.data)
-Base.indices(A::AxisArray, Ax::Axis) = indices(A.data, axisdim(A, Ax))
-Base.indices{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = indices(A.data, axisdim(A, Ax))
+@inline Base.size(A::AxisArray) = size(A.data)
+@inline Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
+@inline Base.size{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = size(A.data, axisdim(A, Ax))
+@inline Base.indices(A::AxisArray) = indices(A.data)
+@inline Base.indices(A::AxisArray, Ax::Axis) = indices(A.data, axisdim(A, Ax))
+@inline Base.indices{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = indices(A.data, axisdim(A, Ax))
 Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A.data)
 # Similar is tricky. If we're just changing the element type, it can stay as an
 # AxisArray. But if we're changing dimensions, there's no way it can know how
