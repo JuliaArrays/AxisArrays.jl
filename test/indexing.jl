@@ -129,11 +129,15 @@ for (r, Irel) in ((0.1:0.1:10.0, -0.5..0.5),  # FloatRange
     @test_throws BoundsError A[atindex(Irel, [5, 15, 25]), :]
 end
 
-# Indexing with CartesianIndex{0}
+# Indexing with CartesianIndex
 A = AxisArray(reshape(1:15, 3, 5), :x, :y)
 @test A[2,2,CartesianIndex(())] == 5
 @test A[2,CartesianIndex(()),2] == 5
 @test A[CartesianIndex(()),2,2] == 5
+A3 = AxisArray(reshape(1:24, 4, 3, 2), :x, :y, :z)
+@test A3[2,CartesianIndex(2,2)] == 18
+@test A3[CartesianIndex(2,2),2] == 18
+@test A3[CartesianIndex(2,2,2)] == 18
 
 # Extracting the full axis
 axx = @inferred(A[Axis{:x}])
@@ -148,3 +152,11 @@ axy = @inferred(A[Axis{:y}])
 A = AxisArray(rand(2,2), :x, :y)
 @test_throws ArgumentError A[Axis{:x}(1), Axis{:x}(1)]
 @test_throws ArgumentError A[Axis{:y}(1), Axis{:y}(1)]
+
+# Reductions (issues #66, #62)
+@test maximum(A3, 1) == reshape([4 16; 8 20; 12 24], 1, 3, 2)
+@test maximum(A3, 2) == reshape([9 21; 10 22; 11 23; 12 24], 4, 1, 2)
+@test maximum(A3, 3) == reshape(A3[:,:,2], 4, 3, 1)
+acc = zeros(Int, 4, 1, 2)
+Base.mapreducedim!(x->x>5, +, acc, A3)
+@test acc == reshape([1 3; 2 3; 2 3; 2 3], 4, 1, 2)

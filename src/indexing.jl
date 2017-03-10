@@ -197,22 +197,27 @@ end
 # set- and get- index.
 @generated function to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...)
     ex = Expr(:tuple)
+    n = 0
     for i=1:length(I)
         if I[i] <: Idx
             push!(ex.args, :(I[$i]))
+            n += 1
         elseif I[i] <: AbstractArray{Bool}
             push!(ex.args, :(find(I[$i])))
+            n += 1
         elseif I[i] <: CartesianIndex
             for j = 1:length(I[i])
                 push!(ex.args, :(I[$i][$j]))
             end
+            n += length(I[i])
         elseif i <= length(Ax.parameters)
             push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
+            n += 1
         else
             push!(ex.args, :(error("dimension ", $i, " does not have an axis to index")))
         end
     end
-    for _=length(I)+1:N
+    for _=n+1:N
         push!(ex.args, :(Colon()))
     end
     meta = Expr(:meta, :inline)
