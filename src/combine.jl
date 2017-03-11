@@ -11,7 +11,7 @@ end #equalvalued
 
 sizes{T<:AxisArray}(As::T...) = tuple(zip(map(a -> map(length, indices(a)), As)...)...)
 matchingdims{N,T<:AxisArray}(As::NTuple{N,T}) = all(equalvalued, sizes(As...))
-matchingdimsexcept{N,T<:AxisArray}(As::NTuple{N,T}, n::Int) = all(equalvalued, sizes(As[[1:n-1; n+1:end]]...))
+matchingdimsexcept{N,T<:AxisArray}(As::NTuple{N,T}, n::Int) = all(equalvalued, sizes(As...)[[1:n-1; n+1:end]])
 
 function Base.cat{T}(n::Integer, As::AxisArray{T}...)
     if n <= ndims(As[1])
@@ -53,7 +53,7 @@ function combineaxes{T,N,D,Ax}(method::Symbol, As::AxisArray{T,N,D,Ax}...)
     return resultaxes, resultaxeslengths, axismaps
 end #combineaxes
 
-function mergevalues{T}(values::Tuple{Vararg{Vector{T}}}, method::Symbol)
+function mergevalues{T}(values::Tuple{Vararg{AbstractVector{T}}}, method::Symbol)
     if method == :inner
         intersect(values...)
     elseif method == :left
