@@ -179,6 +179,14 @@ A = AxisArray(vals, Axis{:Timestamp}(dt-Dates.Hour(2):Dates.Hour(1):dt+Dates.Hou
 @test A[:, :A].data == vals[:, 1]
 @test A[dt, :].data == vals[3, :]
 
+@test AxisArrays.axistrait(A.axes[1]) == AxisArrays.Dimensional
+@test AxisArrays.axistrait(A.axes[1].val) == AxisArrays.Dimensional
+@test AxisArrays.axistrait(A.axes[2]) == AxisArrays.Categorical
+@test AxisArrays.axistrait(A.axes[2].val) == AxisArrays.Categorical
+
+@test_throws ArgumentError AxisArrays.checkaxis(Axis{:x}(10:-1:1))
+@test_throws ArgumentError AxisArrays.checkaxis(10:-1:1)
+
 # Simply run the display method to ensure no stupid errors
 show(IOBuffer(),MIME("text/plain"),A)
 

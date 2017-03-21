@@ -426,9 +426,11 @@ immutable Categorical <: AxisTrait end
 immutable Unsupported <: AxisTrait end
 
 axistrait(::Any) = Unsupported
+axistrait(ax::Axis) = axistrait(ax.val)
 axistrait{T<:Union{Number, Dates.AbstractTime}}(::AbstractVector{T}) = Dimensional
 axistrait{T<:Union{Symbol, AbstractString}}(::AbstractVector{T}) = Categorical
 
+checkaxis(ax::Axis) = checkaxis(ax.val)
 checkaxis(ax) = checkaxis(axistrait(ax), ax)
 checkaxis(::Type{Unsupported}, ax) = nothing # TODO: warn or error?
 # Dimensional axes must be monotonically increasing
