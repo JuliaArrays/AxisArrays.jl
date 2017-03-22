@@ -202,3 +202,26 @@ A[0] = 12
 A = AxisArray(OffsetArrays.OffsetArray(rand(4,5), -1:2, 5:9), :x, :y)
 @test indices(A) == (-1:2, 5:9)
 @test linearindices(A) == 1:20
+
+@test AxisArrays.matchingdims((A, A))
+
+f1(x) = x < 0
+A2 = map(f1, A)
+@test isa(A2, AxisArray)
+@test A2.axes == A.axes
+@test A2.data == map(f1, A.data)
+
+map!(~, A2)
+@test isa(A2, AxisArray)
+@test A2.axes == A.axes
+@test A2.data == ~map(f1, A).data
+
+A2 = map(+, A, A)
+@test isa(A2, AxisArray)
+@test A2.axes == A.axes
+@test A2.data == A.data .+ A.data
+
+map!(*, A2, A, A)
+@test isa(A2, AxisArray)
+@test A2.axes == A.axes
+@test A2.data == A.data .* A.data

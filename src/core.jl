@@ -290,6 +290,23 @@ Base.ctranspose{T}(A::AxisArray{T,2}) = AxisArray(ctranspose(A.data), A.axes[2],
 Base.transpose{T}(A::AxisArray{T,1})  = AxisArray(transpose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
 Base.ctranspose{T}(A::AxisArray{T,1}) = AxisArray(ctranspose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
 
+Base.map!{F}(f::F, A::AxisArray) = (map!(f, A.data); A)
+Base.map(f, A::AxisArray) = AxisArray(map(f, A.data), A.axes...)
+
+function Base.map!{F,T,N,D,Ax<:Tuple{Vararg{Axis}}}(f::F, dest::AxisArray{T,N,D,Ax},
+                                                  As::AxisArray{T,N,D,Ax}...)
+    matchingdims((dest, As...)) || error("All axes must be identically-valued")
+    data = map(a -> a.data, As)
+    map!(f, dest.data, data...)
+    return dest
+end
+
+function Base.map{T,N,D,Ax<:Tuple{Vararg{Axis}}}(f, As::AxisArray{T,N,D,Ax}...)
+    matchingdims(As) || error("All axes must be identically-valued")
+    data = map(a -> a.data, As)
+    return AxisArray(map(f, data...), As[1].axes...)
+end
+
 permutation(to::Union{AbstractVector{Int},Tuple{Int,Vararg{Int}}}, from::Symbols) = to
 
 """
