@@ -9,7 +9,7 @@ function equalvalued(X::NTuple)
     return allequal
 end #equalvalued
 
-sizes{T<:AxisArray}(As::T...) = tuple(zip(map(size, As)...)...)
+sizes{T<:AxisArray}(As::T...) = tuple(zip(map(a -> map(length, indices(a)), As)...)...)
 matchingdims{N,T<:AxisArray}(As::NTuple{N,T}) = all(equalvalued, sizes(As...))
 matchingdimsexcept{N,T<:AxisArray}(As::NTuple{N,T}, n::Int) = all(equalvalued, sizes(As[[1:n-1; n+1:end]]...))
 
