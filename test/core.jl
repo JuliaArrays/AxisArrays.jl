@@ -225,3 +225,45 @@ map!(*, A2, A, A)
 @test isa(A2, AxisArray)
 @test A2.axes == A.axes
 @test A2.data == A.data .* A.data
+
+# Reductions (issue #55)
+A = AxisArray(collect(reshape(1:15,3,5)), :y, :x)
+B = AxisArray(collect(reshape(1:15,3,5)), Axis{:y}(0.1:0.1:0.3), Axis{:x}(10:10:50))
+for C in (A, B)
+    for op in (sum, minimum)  # together, cover both reduced_indices and reduced_indices0
+        axv = axisvalues(C)
+        C1 = @inferred(op(C, 1))
+        @test typeof(C1) == typeof(C)
+        @test axisnames(C1) == (:y,:x)
+        @test axisvalues(C1) === (oftype(axv[1], Base.OneTo(1)), axv[2])
+        C2 = op(C, 2)
+        @test typeof(C2) == typeof(C)
+        @test axisnames(C2) == (:y,:x)
+        @test axisvalues(C2) === (axv[1], oftype(axv[2], Base.OneTo(1)))
+        C12 = @inferred(op(C, (1,2)))
+        @test typeof(C12) == typeof(C)
+        @test axisnames(C12) == (:y,:x)
+        @test axisvalues(C12) === (oftype(axv[1], Base.OneTo(1)), oftype(axv[2], Base.OneTo(1)))
+        if op == sum
+            @test C1 == [6 15 24 33 42]
+            @test C2 == reshape([35,40,45], 3, 1)
+            @test C12 == reshape([120], 1, 1)
+        else
+            @test C1 == [1 4 7 10 13]
+            @test C2 == reshape([1,2,3], 3, 1)
+            @test C12 == reshape([1], 1, 1)
+        end
+        C1t = @inferred(op(C, Axis{:y}))
+        @test C1t == C1
+        C2t = @inferred(op(C, Axis{:x}))
+        @test C2t == C2
+        C12t = @inferred(op(C, (Axis{:y},Axis{:x})))
+        @test C12t == C12
+        C1t = @inferred(op(C, Axis{:y}()))
+        @test C1t == C1
+        C2t = @inferred(op(C, Axis{:x}()))
+        @test C2t == C2
+        C12t = @inferred(op(C, (Axis{:y}(),Axis{:x}())))
+        @test C12t == C12
+    end
+end
