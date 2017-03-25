@@ -1,3 +1,4 @@
+# cat
 A1data, A2data = [1 3; 2 4], [5 7; 6 8]
 
 A1 = AxisArray(A1data, Axis{:Row}([:First, :Second]), Axis{:Col}([:A, :B]))
@@ -17,7 +18,13 @@ A2 = AxisArray(A2data, Axis{:Row}([:First, :Second]), Axis{:Col}([:A, :B]))
                                        Axis{:Row}([:First, :Second]), Axis{:Col}([:A, :B]),
                                        Axis{:page}(1:2))
 
-Adata, Bdata = randn(4,4,2), randn(4,4,2)
+A1 = AxisArray(A1data, :Row, :Col)
+A2 = AxisArray(A2data, :Row, :Col)
+@test_throws ArgumentError cat(2, A1, A2)
+@test cat(3, A1, A2) == AxisArray(cat(3, A1data, A2data), :Row, :Col)
+
+# merge
+Adata, Bdata, Cdata = randn(4,4,2), randn(4,4,2), randn(4,4,2)
 A = AxisArray(Adata, Axis{:X}([1,2,3,4]), Axis{:Y}([10.,20,30,40]), Axis{:Z}([:First, :Second]))
 B = AxisArray(Bdata, Axis{:X}([3,4,5,6]), Axis{:Y}([30.,40,50,60]), Axis{:Z}([:First, :Second]))
 
@@ -26,6 +33,11 @@ ABdata[1:4,1:4,:] = Adata
 ABdata[3:6,3:6,:] = Bdata
 @test merge(A,B) == AxisArray(ABdata, Axis{:X}([1,2,3,4,5,6]), Axis{:Y}([10.,20,30,40,50,60]), Axis{:Z}([:First, :Second]))
 
+AC = AxisArray(cat(3, Adata, Cdata), :X, :Y, :Z)
+B2 = AxisArray(Bdata, :X, :Y, :Z)
+@test merge(AC,B2) == AxisArray(cat(3, Bdata, Cdata), :X, :Y, :Z)
+
+# join
 ABdata = zeros(6,6,2,2)
 ABdata[1:4,1:4,:,1] = Adata
 ABdata[3:6,3:6,:,2] = Bdata
