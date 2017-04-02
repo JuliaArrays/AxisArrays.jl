@@ -201,7 +201,7 @@ checknames() = ()
 
 # Simple non-type-stable constructors to specify just the name or axis values
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
-AxisArray(A::AbstractArray, names::Symbol...)         = AxisArray(A, map((name,ind)->Axis{name}(ind), names, indices(A)))
+AxisArray(A::AbstractArray, names::Symbol...)         = (inds = indices(A); AxisArray(A, ntuple(i->Axis{names[i]}(inds[i]), length(names))))
 AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(i->Axis{_defaultdimname(i)}(vects[i]), length(vects)))
 function AxisArray{T,N}(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple{N,Number}, offsets::NTuple{N,Number}=map(zero, steps))
     axs = ntuple(i->Axis{names[i]}(range(offsets[i], steps[i], size(A,i))), N)
