@@ -67,13 +67,33 @@ function indexmapping(old::AbstractVector, new::AbstractVector)
     before = Int[]
     after = Int[]
 
-    # TODO: Presort for O(n)
-    for i in eachindex(old)
-        j = findfirst(new, old[i])
-        if j > 0
-            push!(before, i)
-            push!(after, j)
+    oldperm = sortperm(old)
+    newperm = sortperm(new)
+
+    oldsorted = old[oldperm]
+    newsorted = new[newperm]
+
+    oldlength = length(old)
+    newlength = length(new)
+
+    oi = ni = 1
+
+    while oi <= oldlength && ni <= newlength
+
+        oldval = oldsorted[oi]
+        newval = newsorted[ni]
+
+        if oldval == newval
+            push!(before, oldperm[oi])
+            push!(after, newperm[ni])
+            oi += 1
+            ni += 1
+        elseif oldval < newval
+            oi += 1
+        else
+            ni += 1
         end
+
     end
 
     return before, after
