@@ -41,25 +41,14 @@ function axismerge{name,T}(method::Symbol, axes::Axis{name,T}...)
 
     isa(axistrait(axisvals), Dimensional) && sort!(axisvals)
 
-    return Axis{name}(axisvals)
+    return Axis{name}(collect(axisvals))
 
-end
-
-function scalarinds{N}(dims::NTuple{N,Int}, inds::NTuple{N,Vector{Int}})
-    offsets = [1; cumprod(collect(dims)[1:end-1])]
-    scalarind(inds::Int...) = dot(offsets, collect(inds) .- 1) + 1
-    indices = [reshape(vals, [ones(Int, d-1); length(vals)]...) for (d, vals) in enumerate(inds)]
-    return vec(scalarind.(indices...))
 end
 
 function indexmappings{N}(oldaxes::NTuple{N,Axis}, newaxes::NTuple{N,Axis})
-
     oldvals = axisvalues(oldaxes...)
     newvals = axisvalues(newaxes...)
-    before_idxs, after_idxs = zip(indexmapping.(oldvals, newvals)...) |> collect
-
-    return scalarinds(length.(oldaxes), before_idxs), scalarinds(length.(newaxes), after_idxs)
-
+    return collect(zip(indexmapping.(oldvals, newvals)...))
 end
 
 function indexmapping(old::AbstractVector, new::AbstractVector)
@@ -107,13 +96,13 @@ Combines AxisArrays with matching axis names into a single AxisArray spanning al
 """
 function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
 
-    resultaxes = map(as -> axismerge(:outer, as...), zip(axes.(As)...))
+    resultaxes = map(as -> axismerge(:outer, as...), map(tuple, axes.(As)...))
     resultdata = fill(fillvalue, length.(resultaxes)...)
     result = AxisArray(resultdata, resultaxes...)
 
     for A in As
         before_idxs, after_idxs = indexmappings(A.axes, result.axes)
-        result.data[after_idxs] = A.data[before_idxs]
+        result.data[after_idxs...] = A.data[before_idxs...]
     end
 
     return result
@@ -134,17 +123,15 @@ If an array value in the output array is not defined in any of the input arrays 
 """
 function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T), newaxis::Axis=Axis{_defaultdimname(N+1)}(1:length(As)), method::Symbol=:outer)
 
-    prejoin_resultaxes = map(as -> axismerge(method, as...), zip(axes.(As)...))
-    prejoin_length = prod(length.(prejoin_resultaxes))
+    prejoin_resultaxes = map(as -> axismerge(method, as...), map(tuple, axes.(As)...))
 
-    resultaxes = [prejoin_resultaxes; newaxis]
+    resultaxes = (prejoin_resultaxes..., newaxis)
     resultdata = fill(fillvalue, length.(resultaxes)...)
     result = AxisArray(resultdata, resultaxes...)
 
     for (i, A) in enumerate(As)
-        before_idxs, after_idxs = indexmappings(A.axes, tuple(prejoin_resultaxes...))
-        after_idxs += prejoin_length*(i-1)
-        result.data[after_idxs] = A.data[before_idxs]
+        before_idxs, after_idxs = indexmappings(A.axes, prejoin_resultaxes)
+        result.data[(after_idxs..., i)...] = A.data[before_idxs...]
     end #for
 
     return result
