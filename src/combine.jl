@@ -121,7 +121,9 @@ Combines AxisArrays with matching axis names into a single AxisArray. Unlike `me
 
 If an array value in the output array is not defined in any of the input arrays (i.e. in the case of a left, right, or outer join), it takes the value of the optional `fillvalue` keyword argument (default zero).
 """
-function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T), newaxis::Axis=Axis{_defaultdimname(N+1)}(1:length(As)), method::Symbol=:outer)
+function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
+                             newaxis::Axis=_nextaxistype(As[1].data, As[1].axes)(1:length(As)),
+                             method::Symbol=:outer)
 
     prejoin_resultaxes = map(as -> axismerge(method, as...), map(tuple, axes.(As)...))
 
