@@ -25,46 +25,68 @@ function Base.cat{T}(n::Integer, As::AxisArray{T}...)
     end #if
 end #Base.cat
 
-combineaxes{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...) = combineaxes(:outer, As...)
+function axismerge{name,T}(method::Symbol, axes::Axis{name,T}...)
 
-function combineaxes{T,N,D,Ax}(method::Symbol, As::AxisArray{T,N,D,Ax}...)
-    axisnamesvalues = zip(axisnames(As[1]), zip(map(axisvalues, As)...)) |> collect
-
-    resultaxes = Array{Axis}(N)
-    resultaxeslengths = Array{Int}(N)
-    axismaps = Array{NTuple{2,NTuple{2,Vector{Int64}}}}(N)
-
-    for i in 1:N
-        name, valueslists = axisnamesvalues[i]
-        mergedaxisvalues = mergevalues(valueslists, method)
-        isa(axistrait(mergedaxisvalues), Dimensional) && sort!(mergedaxisvalues)
-        resultaxes[i] = Axis{name}(mergedaxisvalues)
-        resultaxeslengths[i] = length(mergedaxisvalues)
-        axismaps[i] = map(valueslists) do vals
-            keepers = intersect(vals, mergedaxisvalues)
-            return findin(vals, keepers), findin(mergedaxisvalues, keepers)
-        end #do
-    end
-
-    axismaps = map(zip(axismaps...)) do mps
-        map(idxs->collect(product(idxs...)), zip(mps...))
-    end #do
-
-    return resultaxes, resultaxeslengths, axismaps
-end #combineaxes
-
-function mergevalues{T}(values::Tuple{Vararg{AbstractVector{T}}}, method::Symbol)
-    if method == :inner
-        intersect(values...)
+    axisvals = if method == :inner
+        intersect(axisvalues(axes...)...)
     elseif method == :left
-        values[1]
+        axisvalues(axes[1])[1]
     elseif method == :right
-        values[end]
+        axisvalues(axes[end])[1]
     elseif method == :outer
-        vcat(values...) |> unique
+        union(axisvalues(axes...)...)
     else
         error("Join method must be one of :inner, :left, :right, :outer")
     end #if
+
+    isa(axistrait(axisvals), Dimensional) && sort!(axisvals)
+
+    return Axis{name}(collect(axisvals))
+
+end
+
+function indexmappings{N}(oldaxes::NTuple{N,Axis}, newaxes::NTuple{N,Axis})
+    oldvals = axisvalues(oldaxes...)
+    newvals = axisvalues(newaxes...)
+    return collect(zip(indexmapping.(oldvals, newvals)...))
+end
+
+function indexmapping(old::AbstractVector, new::AbstractVector)
+
+    before = Int[]
+    after = Int[]
+
+    oldperm = sortperm(old)
+    newperm = sortperm(new)
+
+    oldsorted = old[oldperm]
+    newsorted = new[newperm]
+
+    oldlength = length(old)
+    newlength = length(new)
+
+    oi = ni = 1
+
+    while oi <= oldlength && ni <= newlength
+
+        oldval = oldsorted[oi]
+        newval = newsorted[ni]
+
+        if oldval == newval
+            push!(before, oldperm[oi])
+            push!(after, newperm[ni])
+            oi += 1
+            ni += 1
+        elseif oldval < newval
+            oi += 1
+        else
+            ni += 1
+        end
+
+    end
+
+    return before, after
+
 end
 
 """
@@ -74,16 +96,14 @@ Combines AxisArrays with matching axis names into a single AxisArray spanning al
 """
 function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
 
-    resultaxes, resultaxeslengths, indexmaps = combineaxes(As...)
-    result = AxisArray(fill(fillvalue, resultaxeslengths...), resultaxes...)
+    resultaxes = map(as -> axismerge(:outer, as...), map(tuple, axes.(As)...))
+    resultdata = fill(fillvalue, length.(resultaxes)...)
+    result = AxisArray(resultdata, resultaxes...)
 
-    for i in 1:length(As)
-        A = As[i]
-        Aidxs, resultidxs = indexmaps[i]
-        for j in eachindex(Aidxs)
-            result[resultidxs[j]...] = A[Aidxs[j]...]
-        end #for
-    end #for
+    for A in As
+        before_idxs, after_idxs = indexmappings(A.axes, result.axes)
+        result.data[after_idxs...] = A.data[before_idxs...]
+    end
 
     return result
 
@@ -101,20 +121,19 @@ Combines AxisArrays with matching axis names into a single AxisArray. Unlike `me
 
 If an array value in the output array is not defined in any of the input arrays (i.e. in the case of a left, right, or outer join), it takes the value of the optional `fillvalue` keyword argument (default zero).
 """
-function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T), newaxis::Axis=Axis{_defaultdimname(N+1)}(1:length(As)), method::Symbol=:outer)
+function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
+                             newaxis::Axis=_nextaxistype(As[1].data, As[1].axes)(1:length(As)),
+                             method::Symbol=:outer)
 
-    M = length(As)
-    resultaxes, resultaxeslengths, indexmaps = combineaxes(method, As...)
-    push!(resultaxes, newaxis)
-    push!(resultaxeslengths, M)
-    result = AxisArray(fill(fillvalue, resultaxeslengths...), resultaxes...)
+    prejoin_resultaxes = map(as -> axismerge(method, as...), map(tuple, axes.(As)...))
 
-    for i in 1:M
-        A = As[i]
-        Aidxs, resultidxs = indexmaps[i]
-        for j in eachindex(Aidxs)
-            result[[resultidxs[j]...; i]...] = A[Aidxs[j]...]
-        end #for
+    resultaxes = (prejoin_resultaxes..., newaxis)
+    resultdata = fill(fillvalue, length.(resultaxes)...)
+    result = AxisArray(resultdata, resultaxes...)
+
+    for (i, A) in enumerate(As)
+        before_idxs, after_idxs = indexmappings(A.axes, prejoin_resultaxes)
+        result.data[(after_idxs..., i)...] = A.data[before_idxs...]
     end #for
 
     return result
