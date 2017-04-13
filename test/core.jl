@@ -1,6 +1,7 @@
 A = AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4)
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3, .1:.1:.4)
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3)
+@test parent(A) === reshape(1:24, 2,3,4)
 # Test iteration
 for (a,b) in zip(A, A.data)
     @test a == b
