@@ -1,18 +1,16 @@
 const Idx = Union{Real,Colon,AbstractArray{Int}}
 
-using Base: ViewIndex
+using Base: ViewIndex, @propagate_inbounds
 
 # Defer IndexStyle to the wrapped array
 @compat Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)
 
 # Simple scalar indexing where we just set or return scalars
-@inline Base.getindex(A::AxisArray, idxs::Int...) = A.data[idxs...]
-@inline Base.setindex!(A::AxisArray, v, idxs::Int...) = (A.data[idxs...] = v)
+@propagate_inbounds Base.getindex(A::AxisArray, idxs::Int...) = A.data[idxs...]
+@propagate_inbounds Base.setindex!(A::AxisArray, v, idxs::Int...) = (A.data[idxs...] = v)
 
 # Cartesian iteration
 Base.eachindex(A::AxisArray) = eachindex(A.data)
-Base.getindex(A::AxisArray, idx::Base.IteratorsMD.CartesianIndex) = A.data[idx]
-Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[idx] = v)
 
 @generated function reaxis(A::AxisArray, I::Idx...)
     N = length(I)
@@ -56,48 +54,48 @@ Base.setindex!(A::AxisArray, v, idx::Base.IteratorsMD.CartesianIndex) = (A.data[
     end
 end
 
-@inline function Base.getindex(A::AxisArray, idxs::Idx...)
+@propagate_inbounds function Base.getindex(A::AxisArray, idxs::Idx...)
     AxisArray(A.data[idxs...], reaxis(A, idxs...))
 end
 
 # To resolve ambiguities, we need several definitions
 if VERSION >= v"0.6.0-dev.672"
     using Base.AbstractCartesianIndex
-    Base.view(A::AxisArray, idxs::Idx...) = AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
+    @propagate_inbounds Base.view(A::AxisArray, idxs::Idx...) = AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
 else
-    @inline function Base.view{T,N}(A::AxisArray{T,N}, idxs::Vararg{Idx,N})
+    @propagate_inbounds function Base.view{T,N}(A::AxisArray{T,N}, idxs::Vararg{Idx,N})
         AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
     end
-    function Base.view(A::AxisArray, idx::Idx)
+    @propagate_inbounds function Base.view(A::AxisArray, idx::Idx)
         AxisArray(view(A.data, idx), reaxis(A, idx))
     end
-    @inline function Base.view{N}(A::AxisArray, idxs::Vararg{Idx,N})
+    @propagate_inbounds function Base.view{N}(A::AxisArray, idxs::Vararg{Idx,N})
         # this should eventually be deleted, see julia #14770
         AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
     end
 end
 
 # Setindex is so much simpler. Just assign it to the data:
-@inline Base.setindex!(A::AxisArray, v, idxs::Idx...) = (A.data[idxs...] = v)
+@propagate_inbounds Base.setindex!(A::AxisArray, v, idxs::Idx...) = (A.data[idxs...] = v)
 
 ### Fancier indexing capabilities provided only by AxisArrays ###
-@inline Base.getindex(A::AxisArray, idxs...) = A[to_index(A,idxs...)...]
-@inline Base.setindex!(A::AxisArray, v, idxs...) = (A[to_index(A,idxs...)...] = v)
+@propagate_inbounds Base.getindex(A::AxisArray, idxs...) = A[to_index(A,idxs...)...]
+@propagate_inbounds Base.setindex!(A::AxisArray, v, idxs...) = (A[to_index(A,idxs...)...] = v)
 # Deal with lots of ambiguities here
 if VERSION >= v"0.6.0-dev.672"
-    Base.view(A::AxisArray, idxs::ViewIndex...) = view(A, to_index(A,idxs...)...)
-    Base.view(A::AxisArray, idxs::Union{ViewIndex,AbstractCartesianIndex}...) = view(A, to_index(A,Base.IteratorsMD.flatten(idxs)...)...)
-    Base.view(A::AxisArray, idxs...) = view(A, to_index(A,idxs...)...)
+    @propagate_inbounds Base.view(A::AxisArray, idxs::ViewIndex...) = view(A, to_index(A,idxs...)...)
+    @propagate_inbounds Base.view(A::AxisArray, idxs::Union{ViewIndex,AbstractCartesianIndex}...) = view(A, to_index(A,Base.IteratorsMD.flatten(idxs)...)...)
+    @propagate_inbounds Base.view(A::AxisArray, idxs...) = view(A, to_index(A,idxs...)...)
 else
     for T in (:ViewIndex, :Any)
         @eval begin
-            @inline function Base.view{T,N}(A::AxisArray{T,N}, idxs::Vararg{$T,N})
+            @propagate_inbounds function Base.view{T,N}(A::AxisArray{T,N}, idxs::Vararg{$T,N})
                 view(A, to_index(A,idxs...)...)
             end
-            function Base.view(A::AxisArray, idx::$T)
+            @propagate_inbounds function Base.view(A::AxisArray, idx::$T)
                 view(A, to_index(A,idx)...)
             end
-            @inline function Base.view{N}(A::AxisArray, idsx::Vararg{$T,N})
+            @propagate_inbounds function Base.view{N}(A::AxisArray, idsx::Vararg{$T,N})
                 # this should eventually be deleted, see julia #14770
                 view(A, to_index(A,idxs...)...)
             end
@@ -229,3 +227,9 @@ end
 @inline getaxis{Ax<:Axis}(::Type{Ax}, ax::Ax, axs...) = ax
 @inline getaxis{Ax<:Axis}(::Type{Ax}, ax::Axis, axs...) = getaxis(Ax, axs...)
 @noinline getaxis{Ax<:Axis}(::Type{Ax}) = throw(ArgumentError("no axis of type $Ax was found"))
+
+# Boundschecking specialization: defer to the data array.
+# Note that we could unwrap AxisArrays when they are used as indices into other
+# arrays within Base's to_index/to_indices methods, but that requires a bigger
+# refactor to merge our to_index method with Base's.
+@inline Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, A::AxisArray) = Base.checkindex(Bool, inds, A.data)
