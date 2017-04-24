@@ -114,7 +114,7 @@ AxisArrays.axistrait(::AbstractVector{IntLike}) = AxisArrays.Dimensional
 end
 
 for (r, Irel) in ((0.1:0.1:10.0, -0.5..0.5),  # FloatRange
-                  (linspace(0.1, 10.0, 100), -0.5..0.5),  # LinSpace
+                  (linspace(0.1, 10.0, 100), -0.51..0.51),  # LinSpace
                   (IL.IntLike(1):IL.IntLike(1):IL.IntLike(100),
                    IL.IntLike(-5)..IL.IntLike(5))) # StepRange
     Iabs = r[20]..r[30]
