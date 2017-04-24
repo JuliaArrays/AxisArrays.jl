@@ -59,7 +59,7 @@ else
     @inline inbounds_getindex(r::StepRangeLen, i::Integer) = Base.unsafe_getindex(r, i)
     @inline function inbounds_getindex(r::StepRangeLen, s::OrdinalRange)
         vfirst = Base.unsafe_getindex(r, first(s))
-        StepRangeLen(vfirst, r.step*step(s), length(s))
+        StepRangeLen(vfirst, step(r)*step(s), length(s))
     end
     """)
 end
