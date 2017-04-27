@@ -54,11 +54,11 @@ end
 E = similar(A, Float64, Axis{:col}(1:2))
 @test size(E) == (2,2,4)
 @test eltype(E) == Float64
-F = similar(A, Axis{:row}())
-@test size(F) == size(A)[2:end]
-@test eltype(F) == eltype(A)
-@test axisvalues(F) == axisvalues(A)[2:end]
-@test axisnames(F) == axisnames(A)[2:end]
+# F = similar(A, Axis{:row}())
+# @test size(F) == size(A)[2:end]
+#@test eltype(F) == eltype(A)
+#@test axisvalues(F) == axisvalues(A)[2:end]
+#@test axisnames(F) == axisnames(A)[2:end]
 G = similar(A, Float64)
 @test size(G) == size(A)
 @test eltype(G) == Float64
