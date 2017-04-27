@@ -1,6 +1,6 @@
 const Idx = Union{Real,Colon,AbstractArray{Int}}
 
-using Base: ViewIndex, @propagate_inbounds
+using Base: ViewIndex, @propagate_inbounds, tail
 
 # Defer IndexStyle to the wrapped array
 @compat Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)
@@ -12,46 +12,58 @@ using Base: ViewIndex, @propagate_inbounds
 # Cartesian iteration
 Base.eachindex(A::AxisArray) = eachindex(A.data)
 
-@generated function reaxis(A::AxisArray, I::Idx...)
-    N = length(I)
-    # Determine the new axes:
-    # Drop linear indexing over multiple axes
-    droplastaxis = ndims(A) > N && !(I[end] <: Real) ? 1 : 0
-    # Drop trailing scalar dimensions
-    lastnonscalar = N
-    while lastnonscalar > 0 && I[lastnonscalar] <: Real
-        lastnonscalar -= 1
+"""
+    reaxis(A::AxisArray, I...)
+
+This internal function determines the new set of axes that are constructed upon
+indexing with I.
+"""
+reaxis(A::AxisArray, I::Idx...) = _reaxis(make_axes_match(axes(A), I), I)
+# Ensure the number of axes matches the number of indexing dimensions
+@inline make_axes_match(axs, idxs) = _make_axes_match((), axs, Base.index_ndims(idxs...))
+# Move the axes into newaxes, until we run out of both simultaneously
+@inline _make_axes_match(newaxes, axs::Tuple, nidxs::Tuple) =
+    _make_axes_match((newaxes..., axs[1]), tail(axs), tail(nidxs))
+@inline _make_axes_match(newaxes, axs::Tuple{}, nidxs::Tuple{}) = newaxes
+# Drop trailing axes, replacing it with a default name for the linear span
+@inline _make_axes_match(newaxes, axs::Tuple, nidxs::Tuple{}) =
+    (maybefront(newaxes)..., _nextaxistype(newaxes)(Base.OneTo(length(newaxes[end]) * prod(map(length, axs)))))
+# Insert phony singleton trailing axes
+@inline _make_axes_match(newaxes, axs::Tuple{}, nidxs::Tuple) =
+    _make_axes_match((newaxes..., _nextaxistype(newaxes)(Base.OneTo(1))), (), tail(nidxs))
+
+@inline maybefront(::Tuple{}) = ()
+@inline maybefront(t::Tuple) = Base.front(t)
+
+# Now we can reaxis without worrying about mismatched axes/indices
+@inline _reaxis(axs::Tuple{}, idxs::Tuple{}) = ()
+# Scalars are dropped
+const ScalarIndex = Union{Real, AbstractArray{T, 0} where T}
+@inline _reaxis(axs::Tuple, idxs::Tuple{ScalarIndex, Vararg{Any}}) = _reaxis(tail(axs), tail(idxs))
+# Colon passes straight through
+@inline _reaxis(axs::Tuple, idxs::Tuple{Colon, Vararg{Any}}) = (axs[1], _reaxis(tail(axs), tail(idxs))...)
+# But arrays can add or change dimensions and accompanying axis names
+@inline _reaxis(axs::Tuple, idxs::Tuple{AbstractArray, Vararg{Any}}) =
+    (_new_axes(axs[1], idxs[1])..., _reaxis(tail(axs), tail(idxs))...)
+
+# Vectors simply create new axes with the same name; just subsetted by their value
+@inline _new_axes(ax::Axis{name}, idx::AbstractVector) where {name} = (Axis{name}(ax.val[idx]),)
+# Arrays create multiple axes with _N appended to the axis name containing their indices
+@generated function _new_axes(ax::Axis{name}, idx::AbstractArray{T,N} where T) where {name, N}
+    newaxes = Expr(:tuple)
+    for i=1:N
+        push!(newaxes.args, :($(Axis{Symbol(name, "_", i)})(indices(idx, $i))))
     end
-    names = axisnames(A)
-    newaxes = Expr[]
-    drange = 1:lastnonscalar-droplastaxis
-    for d=drange
-        if I[d] <: AxisArray
-            # Indexing with an AxisArray joins the axis names
-            idxnames = axisnames(I[d])
-            for i=1:ndims(I[d])
-                push!(newaxes, :($(Axis{Symbol(names[d], "_", idxnames[i])})(I[$d].axes[$i].val)))
-            end
-        elseif I[d] <: Real
-        elseif I[d] <: AbstractVector
-            push!(newaxes, :($(Axis{names[d]})(A.axes[$d].val[Base.to_index(I[$d])])))
-        elseif I[d] <: Colon
-            if d < length(I) || d <= ndims(A)
-                push!(newaxes, :($(Axis{names[d]})(A.axes[$d].val)))
-            else
-                dimname = _defaultdimname(d)
-                push!(newaxes, :($(Axis{dimname})(Base.OneTo(Base.trailingsize(A, $d)))))
-            end
-        elseif I[d] <: AbstractArray
-            for i=1:ndims(I[d])
-                # When we index with non-vector arrays, we *add* dimensions.
-                push!(newaxes, :($(Axis{Symbol(names[d], "_", i)})(indices(I[$d], $i))))
-            end
-        end
+    newaxes
+end
+# And indexing with an AxisArray joins the name and overrides the values
+@generated function _new_axes(ax::Axis{name}, idx::AxisArray{<:Any, N}) where {name, N}
+    newaxes = Expr(:tuple)
+    idxnames = axisnames(idx)
+    for i=1:N
+        push!(newaxes.args, :($(Axis{Symbol(name, "_", idxnames[i])})(idx.axes[$i].val)))
     end
-    quote
-        ($(newaxes...),)
-    end
+    newaxes
 end
 
 @propagate_inbounds function Base.getindex(A::AxisArray, idxs::Idx...)

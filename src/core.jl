@@ -166,9 +166,9 @@ _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symb
 default_axes(A::AbstractArray) = _default_axes(A, indices(A), ())
 _default_axes{T,N}(A::AbstractArray{T,N}, inds, axs::NTuple{N,Axis}) = axs
 @inline _default_axes{T,N,M}(A::AbstractArray{T,N}, inds, axs::NTuple{M,Axis}) =
-    _default_axes(A, inds, (axs..., _nextaxistype(A, axs)(inds[M+1])))
+    _default_axes(A, inds, (axs..., _nextaxistype(axs)(inds[M+1])))
 # Why doesn't @pure work here?
-@generated function _nextaxistype{T,M}(A::AbstractArray{T}, axs::NTuple{M,Axis})
+@generated function _nextaxistype{M}(axs::NTuple{M,Axis})
     name = _defaultdimname(M+1)
     :(Axis{$(Expr(:quote, name))})
 end
