@@ -114,6 +114,7 @@ AxisArrays.axistrait(::AbstractVector{IntLike}) = AxisArrays.Dimensional
 end
 
 for (r, Irel) in ((0.1:0.1:10.0, -0.5..0.5),  # FloatRange
+                  (linspace(0.1, 10.0, 100), -0.51..0.51),  # LinSpace
                   (IL.IntLike(1):IL.IntLike(1):IL.IntLike(100),
                    IL.IntLike(-5)..IL.IntLike(5))) # StepRange
     Iabs = r[20]..r[30]
@@ -127,6 +128,9 @@ for (r, Irel) in ((0.1:0.1:10.0, -0.5..0.5),  # FloatRange
     @test A[r[[25, 35]] + Irel,  :c1] == [20:30 30:40]
     @test_throws BoundsError A[atindex(Irel, 5), :c1]
     @test_throws BoundsError A[atindex(Irel, [5, 15, 25]), :]
+
+    B = A[r[[25, 35]] + Irel,  :c1]
+    @test B[:,:] == B[Irel, :] == [20:30 30:40]
 end
 
 # Indexing with CartesianIndex
