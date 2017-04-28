@@ -1,16 +1,17 @@
 A = AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4)
 D = similar(A)
 D[1,1,1,1,1] = 10
-@test D[1,1,1,1,1] == D[1] == D.data[1] == 10
+@test @inferred(D[1,1,1,1,1]) == @inferred(D[1]) == D.data[1] == 10
+@test @inferred(D[1,1,1,:]) == @inferred(D[1,1,1,1:1]) == @inferred(D[1,1,1,[1]]) == AxisArray([10], Axis{:dim_4}(Base.OneTo(1)))
 
 # Test slices
 
 @test A == A.data
 @test A[:,:,:] == A[Axis{:row}(:)] == A[Axis{:col}(:)] == A[Axis{:page}(:)] == A.data[:,:,:]
 # Test UnitRange slices
-@test A[1:2,:,:] == A.data[1:2,:,:] == A[Axis{:row}(1:2)]  == A[Axis{1}(1:2)] == A[Axis{:row}(ClosedInterval(-Inf,Inf))] == A[[true,true],:,:]
-@test @view(A[1:2,:,:]) == A.data[1:2,:,:] == @view(A[Axis{:row}(1:2)]) == @view(A[Axis{1}(1:2)]) == @view(A[Axis{:row}(ClosedInterval(-Inf,Inf))]) == @view(A[[true,true],:,:])
-@test A[:,1:2,:] == A.data[:,1:2,:] == A[Axis{:col}(1:2)]  == A[Axis{2}(1:2)] == A[Axis{:col}(ClosedInterval(0.0, .25))] == A[:,[true,true,false],:]
+@test @inferred(A[1:2,:,:]) == A.data[1:2,:,:] == @inferred(A[Axis{:row}(1:2)])  == @inferred(A[Axis{1}(1:2)]) == @inferred(A[Axis{:row}(ClosedInterval(-Inf,Inf))]) == @inferred(A[[true,true],:,:])
+@test @inferred(view(A,1:2,:,:)) == A.data[1:2,:,:] == @inferred(view(A,Axis{:row}(1:2))) == @inferred(view(A,Axis{1}(1:2))) == @inferred(view(A,Axis{:row}(ClosedInterval(-Inf,Inf)))) == @inferred(view(A,[true,true],:,:))
+@test @inferred(A[:,1:2,:]) == A.data[:,1:2,:] == @inferred(A[Axis{:col}(1:2)])  == @inferred(A[Axis{2}(1:2)]) == @inferred(A[Axis{:col}(ClosedInterval(0.0, .25))]) == @inferred(A[:,[true,true,false],:])
 @test @view(A[:,1:2,:]) == A.data[:,1:2,:] == @view(A[Axis{:col}(1:2)])  == @view(A[Axis{2}(1:2)]) == @view(A[Axis{:col}(ClosedInterval(0.0, .25))]) == @view(A[:,[true,true,false],:])
 @test A[:,:,1:2] == A.data[:,:,1:2] == A[Axis{:page}(1:2)] == A[Axis{3}(1:2)] == A[Axis{:page}(ClosedInterval(-1., .22))] == A[:,:,[true,true,false,false]]
 @test @view(A[:,:,1:2]) == @view(A.data[:,:,1:2]) == @view(A[Axis{:page}(1:2)]) == @view(A[Axis{3}(1:2)]) == @view(A[Axis{:page}(ClosedInterval(-1., .22))]) == @view(A[:,:,[true,true,false,false]])
