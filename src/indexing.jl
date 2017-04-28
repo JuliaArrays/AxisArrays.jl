@@ -38,7 +38,7 @@ reaxis(A::AxisArray, I::Idx...) = _reaxis(make_axes_match(axes(A), I), I)
 # Now we can reaxis without worrying about mismatched axes/indices
 @inline _reaxis(axs::Tuple{}, idxs::Tuple{}) = ()
 # Scalars are dropped
-const ScalarIndex = Union{Real, AbstractArray{T, 0} where T}
+const ScalarIndex = @compat Union{Real, AbstractArray{<:Any, 0}}
 @inline _reaxis(axs::Tuple, idxs::Tuple{ScalarIndex, Vararg{Any}}) = _reaxis(tail(axs), tail(idxs))
 # Colon passes straight through
 @inline _reaxis(axs::Tuple, idxs::Tuple{Colon, Vararg{Any}}) = (axs[1], _reaxis(tail(axs), tail(idxs))...)
@@ -47,9 +47,9 @@ const ScalarIndex = Union{Real, AbstractArray{T, 0} where T}
     (_new_axes(axs[1], idxs[1])..., _reaxis(tail(axs), tail(idxs))...)
 
 # Vectors simply create new axes with the same name; just subsetted by their value
-@inline _new_axes(ax::Axis{name}, idx::AbstractVector) where {name} = (Axis{name}(ax.val[idx]),)
+@inline _new_axes{name}(ax::Axis{name}, idx::AbstractVector) = (Axis{name}(ax.val[idx]),)
 # Arrays create multiple axes with _N appended to the axis name containing their indices
-@generated function _new_axes(ax::Axis{name}, idx::AbstractArray{T,N} where T) where {name, N}
+@generated function _new_axes{name, N}(ax::Axis{name}, idx::@compat(AbstractArray{<:Any,N}))
     newaxes = Expr(:tuple)
     for i=1:N
         push!(newaxes.args, :($(Axis{Symbol(name, "_", i)})(indices(idx, $i))))
@@ -57,7 +57,7 @@ const ScalarIndex = Union{Real, AbstractArray{T, 0} where T}
     newaxes
 end
 # And indexing with an AxisArray joins the name and overrides the values
-@generated function _new_axes(ax::Axis{name}, idx::AxisArray{<:Any, N}) where {name, N}
+@generated function _new_axes{name, N}(ax::Axis{name}, idx::@compat(AxisArray{<:Any, N}))
     newaxes = Expr(:tuple)
     idxnames = axisnames(idx)
     for i=1:N
