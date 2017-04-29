@@ -163,25 +163,28 @@ end
 #
 _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
 
-default_axes(A::AbstractArray) = _default_axes(A, indices(A), ())
-_default_axes{T,N}(A::AbstractArray{T,N}, inds, axs::NTuple{N,Axis}) = axs
-@inline _default_axes{T,N,M}(A::AbstractArray{T,N}, inds, axs::NTuple{M,Axis}) =
-    _default_axes(A, inds, (axs..., _nextaxistype(axs)(inds[M+1])))
 # Why doesn't @pure work here?
 @generated function _nextaxistype{M}(axs::NTuple{M,Axis})
     name = _defaultdimname(M+1)
     :(Axis{$(Expr(:quote, name))})
 end
 
-AxisArray(A::AbstractArray, axs::Axis...) = AxisArray(A, axs)
+
+@inline default_axes(A::AbstractArray, args=indices(A)) = _default_axes(A, args, ())
+_default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{}, axs::NTuple{N,Axis}) = axs
+_default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::NTuple{N,Axis}) = throw(ArgumentError("too many axes provided"))
+_default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::NTuple{N,Axis}) = throw(ArgumentError("too many axes provided"))
+@inline _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{}, axs::Tuple) =
+    _default_axes(A, args, (axs..., _nextaxistype(axs)(indices(A, length(axs)+1))))
+@inline _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::Tuple) =
+    _default_axes(A, Base.tail(args), (axs..., _nextaxistype(axs)(args[1])))
+@inline _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::Tuple) =
+    _default_axes(A, Base.tail(args), (axs..., args[1]))
+
 function AxisArray{T,N}(A::AbstractArray{T,N}, axs::NTuple{N,Axis})
     checksizes(axs, _size(A)) || throw(ArgumentError("the length of each axis must match the corresponding size of data"))
     checknames(axisnames(axs...)...)
     AxisArray{T,N,typeof(A),typeof(axs)}(A, axs)
-end
-function AxisArray{L}(A::AbstractArray, axs::NTuple{L,Axis})
-    newaxs = _default_axes(A, indices(A), axs)
-    AxisArray(A, newaxs)
 end
 
 @inline checksizes(axs, sz) =
@@ -202,7 +205,8 @@ checknames() = ()
 # Simple non-type-stable constructors to specify just the name or axis values
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
 AxisArray(A::AbstractArray, names::Symbol...)         = (inds = indices(A); AxisArray(A, ntuple(i->Axis{names[i]}(inds[i]), length(names))))
-AxisArray(A::AbstractArray, vects::AbstractVector...) = AxisArray(A, ntuple(i->Axis{_defaultdimname(i)}(vects[i]), length(vects)))
+AxisArray(A::AbstractArray, vects::Union{AbstractVector, Axis}...) = AxisArray(A, vects)
+AxisArray(A::AbstractArray, vects::Tuple{Vararg{Union{AbstractVector, Axis}}}) = AxisArray(A, default_axes(A, vects))
 function AxisArray{T,N}(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple{N,Number}, offsets::NTuple{N,Number}=map(zero, steps))
     axs = ntuple(i->Axis{names[i]}(range(offsets[i], steps[i], size(A,i))), N)
     AxisArray(A, axs...)
