@@ -1,6 +1,7 @@
 A = @inferred(AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4))
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3, .1:.1:.4)
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3)
+@test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4, 1:1)
 @test parent(A) === reshape(1:24, 2,3,4)
 # Test iteration
 for (a,b) in zip(A, A.data)
@@ -129,17 +130,22 @@ B = AxisArray([1 4; 2 5; 3 6], (:x, :y), (0.2, 100), (-3,14))
 @test AxisArrays.HasAxes(A)   == AxisArrays.HasAxes{true}()
 @test AxisArrays.HasAxes([1]) == AxisArrays.HasAxes{false}()
 
-# Test axisdim
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4),
                                      Axis{1}(.1:.1:.2),
                                      Axis{2}(1//10:1//10:3//10),
                                      Axis{3}(["a", "b", "c", "d"])) # Axis need to be symbols
+@test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4),
+                                     Axis{:x}(.1:.1:.2),
+                                     Axis{:y}(1//10:1//10:3//10),
+                                     Axis{:z}(["a", "b", "c", "d"]),
+                                     Axis{:_}(1:1)) # Too many Axes
 
 A = @inferred(AxisArray(reshape(1:24, 2,3,4),
               Axis{:x}(.1:.1:.2),
               Axis{:y}(1//10:1//10:3//10),
               Axis{:z}(["a", "b", "c", "d"])))
 
+# Test axisdim
 @test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == 1
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2
 @test axisdim(A, Axis{:z}) == axisdim(A, Axis{:z}()) == 3
