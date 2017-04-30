@@ -76,6 +76,7 @@ immutable IndexAxis{I,A} <: AbstractUnitRange{Int}
     index::I
     axis::A
 end
+@inline Base.convert{I,name,T}(::Type{IndexAxis{I,Axis{name,T}}}, index::AbstractUnitRange) = IndexAxis(index, Axis{name}(index))
 @inline Base.indices(I::IndexAxis) = indices(I.index)
 @inline Base.unsafe_indices(I::IndexAxis) = Base.unsafe_indices(I.index)
 @inline Base.indices1(I::IndexAxis) = Base.indices1(I.index)
@@ -342,48 +343,6 @@ function Base.similar(A::AbstractArray{T}, shape::AxisDims) where T
     AxisArray(similar(A, T, map(_ensure_index, axs)), axs)
 end
 
-# These methods allow us to preserve the AxisArray under reductions
-# Note that we only extend the following two methods, and then have it
-# dispatch to package-local `reduced_indices` and `reduced_indices0`
-# methods. This avoids a whole slew of ambiguities.
-if VERSION == v"0.5.0"
-    Base.reduced_dims(A::AxisArray, region)  = reduced_indices(axes(A), region)
-    Base.reduced_dims0(A::AxisArray, region) = reduced_indices0(axes(A), region)
-else
-    Base.reduced_indices(A::AxisArray, region)  = reduced_indices(axes(A), region)
-    Base.reduced_indices0(A::AxisArray, region) = reduced_indices0(axes(A), region)
-end
-
-reduced_indices{N}(axs::Tuple{Vararg{Axis,N}}, ::Tuple{})  = axs
-reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, ::Tuple{}) = axs
-reduced_indices{N}(axs::Tuple{Vararg{Axis,N}}, region::Integer) =
-    reduced_indices(axs, (region,))
-reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, region::Integer) =
-    reduced_indices0(axs, (region,))
-
-reduced_indices{N}(axs::Tuple{Vararg{Axis,N}}, region::Dims) =
-    map((ax,d)->d∈region ? reduced_axis(ax) : ax, axs, ntuple(identity, Val{N}))
-reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, region::Dims) =
-    map((ax,d)->d∈region ? reduced_axis0(ax) : ax, axs, ntuple(identity, Val{N}))
-
-@inline reduced_indices{Ax<:Axis}(axs::Tuple{Vararg{Axis}}, region::Type{Ax}) =
-    _reduced_indices(reduced_axis, (), region, axs...)
-@inline reduced_indices0{Ax<:Axis}(axs::Tuple{Vararg{Axis}}, region::Type{Ax}) =
-    _reduced_indices(reduced_axis0, (), region, axs...)
-@inline reduced_indices(axs::Tuple{Vararg{Axis}}, region::Axis) =
-    _reduced_indices(reduced_axis, (), region, axs...)
-@inline reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Axis) =
-    _reduced_indices(reduced_axis0, (), region, axs...)
-
-reduced_indices(axs::Tuple{Vararg{Axis}}, region::Tuple) =
-    reduced_indices(reduced_indices(axs, region[1]), tail(region))
-reduced_indices(axs::Tuple{Vararg{Axis}}, region::Tuple{Vararg{Axis}}) =
-    reduced_indices(reduced_indices(axs, region[1]), tail(region))
-reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Tuple) =
-    reduced_indices0(reduced_indices0(axs, region[1]), tail(region))
-reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Tuple{Vararg{Axis}}) =
-    reduced_indices0(reduced_indices0(axs, region[1]), tail(region))
-
 @pure samesym{n1,n2}(::Type{Axis{n1}}, ::Type{Axis{n2}}) = Val{n1==n2}()
 samesym{n1,n2,T1,T2}(::Type{Axis{n1,T1}}, ::Type{Axis{n2,T2}}) = samesym(Axis{n1},Axis{n2})
 samesym{n1,n2}(::Type{Axis{n1}}, ::Axis{n2}) = samesym(Axis{n1}, Axis{n2})
@@ -485,6 +444,28 @@ end
 @inline dropax{name,T}(ax::Type{Axis{name,T}}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
 dropax(ax) = ()
 
+# Reductions: Support specifying the reduction in terms of Axis{:name} or Axis{:name}()
+const _AxTyp = Union{@compat(Type{<:Axis}), @compat(Axis{<:Any, Tuple{}})}
+if VERSION == v"0.5.0"
+    Base.reduced_dims{N}(A::AxisArray, region::Union{_AxTyp, Tuple{_AxTyp, Vararg{_AxTyp}}}) =
+        Base.reduced_dims(A, findax(indices(A), region))
+    Base.reduced_dims0{N}(A::AxisArray, region::Union{_AxTyp, Tuple{_AxTyp, Vararg{_AxTyp}}}) =
+        Base.reduced_dims(A, findax(indices(A), region))
+else
+    Base.reduced_indices{N}(inds::Base.Indices{N}, region::Union{_AxTyp, Tuple{_AxTyp, Vararg{_AxTyp}}}) =
+        Base.reduced_indices(inds, findax(inds, region))
+    Base.reduced_indices0{N}(inds::Base.Indices{N}, region::Union{_AxTyp, Tuple{_AxTyp, Vararg{_AxTyp}}}) =
+        Base.reduced_indices0(inds, findax(inds, region))
+end
+findax(inds, region) = _findax(1, inds, region)
+findax(inds, region::Tuple) = map(x->findax(inds, x), region)
+_findax(dim, inds::Tuple{IndexAxis, Vararg{Any}}, region) =
+    axisname(inds[1].axis) == axisname(region) ? dim : _findax(dim+1, tail(inds), region)
+_findax(dim, inds::Tuple{Axis, Vararg{Any}}, region) =
+    axisname(inds[1]) == axisname(region) ? dim : _findax(dim+1, tail(inds), region)
+_findax(dim, inds::Tuple{Any, Vararg{Any}}, region) =
+    _defaultdimname(dim) == axisname(region) ? dim : _findax(dim+1, tail(inds), region)
+_findax(dim, ::Tuple{}, region) = throw(ArgumentError("Axis $region not found"))
 
 # A simple display method to include axis information. It might be nice to
 # eventually display the axis labels alongside the data array, but that is
