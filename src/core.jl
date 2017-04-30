@@ -160,16 +160,25 @@ immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     axes::Ax # Ax<:NTuple{N, Axis}, but with specialized Axis{...} types
     (::Type{AxisArray{T,N,D,Ax}}){T,N,D,Ax}(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) = new{T,N,D,Ax}(data, axs)
 end
-#
-_defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
 
+# Helper functions: Default axis names (if not provided)
+_defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
 # Why doesn't @pure work here?
 @generated function _nextaxistype{M}(axs::NTuple{M,Axis})
     name = _defaultdimname(M+1)
     :(Axis{$(Expr(:quote, name))})
 end
 
+"""
+    default_axes(A::AbstractArray)
+    default_axes(A::AbstractArray, axs)
 
+Return a tuple of Axis objects that appropriately index into the array A.
+
+The optional second argument can take a tuple of vectors or axes, which will be
+wrapped with the appropriate axis name, and it will ensure no axis goes beyond
+the dimensionality of the array A.
+"""
 @inline default_axes(A::AbstractArray, args=indices(A)) = _default_axes(A, args, ())
 _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{}, axs::NTuple{N,Axis}) = axs
 _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::NTuple{N,Axis}) = throw(ArgumentError("too many axes provided"))
@@ -181,16 +190,10 @@ _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::N
 @inline _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::Tuple) =
     _default_axes(A, Base.tail(args), (axs..., args[1]))
 
-function AxisArray{T,N}(A::AbstractArray{T,N}, axs::NTuple{N,Axis})
-    checksizes(axs, _size(A)) || throw(ArgumentError("the length of each axis must match the corresponding size of data"))
-    checknames(axisnames(axs...)...)
-    AxisArray{T,N,typeof(A),typeof(axs)}(A, axs)
-end
-
+# Axis consistency checks — ensure sizes match and the names are unique
 @inline checksizes(axs, sz) =
     (length(axs[1]) == sz[1]) & checksizes(tail(axs), tail(sz))
 checksizes(::Tuple{}, sz) = true
-
 @inline function checknames(name::Symbol, names...)
     matches = false
     for n in names
@@ -202,11 +205,18 @@ end
 checknames(name, names...) = throw(ArgumentError("the Axis names must be Symbols"))
 checknames() = ()
 
-# Simple non-type-stable constructors to specify just the name or axis values
-AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
-AxisArray(A::AbstractArray, names::Symbol...)         = (inds = indices(A); AxisArray(A, ntuple(i->Axis{names[i]}(inds[i]), length(names))))
+# The primary AxisArray constructors — specify an array to wrap and the axes
 AxisArray(A::AbstractArray, vects::Union{AbstractVector, Axis}...) = AxisArray(A, vects)
 AxisArray(A::AbstractArray, vects::Tuple{Vararg{Union{AbstractVector, Axis}}}) = AxisArray(A, default_axes(A, vects))
+function AxisArray{T,N}(A::AbstractArray{T,N}, axs::NTuple{N,Axis})
+    checksizes(axs, _size(A)) || throw(ArgumentError("the length of each axis must match the corresponding size of data"))
+    checknames(axisnames(axs...)...)
+    AxisArray{T,N,typeof(A),typeof(axs)}(A, axs)
+end
+
+# Simple non-type-stable constructors to specify names as symbols
+AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
+AxisArray(A::AbstractArray, names::Symbol...)         = (inds = indices(A); AxisArray(A, ntuple(i->Axis{names[i]}(inds[i]), length(names))))
 function AxisArray{T,N}(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple{N,Number}, offsets::NTuple{N,Number}=map(zero, steps))
     axs = ntuple(i->Axis{names[i]}(range(offsets[i], steps[i], size(A,i))), N)
     AxisArray(A, axs...)
