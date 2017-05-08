@@ -3,7 +3,7 @@ __precompile__()
 module AxisArrays
 
 using Base: tail
-using RangeArrays, Iterators, IntervalSets
+using RangeArrays, IntervalSets
 using Compat
 
 export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex
