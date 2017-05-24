@@ -1,4 +1,4 @@
 *.cov
 *.mem
-doc/build
-doc/site
+docs/build
+docs/site
