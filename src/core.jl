@@ -130,16 +130,10 @@ Two main types of axes supported by default include:
 
 User-defined axis types can be added along with custom indexing
 behaviors. To add add a custom type as a Categorical or Dimensional
-axis, add a trait using `AxisArrays.axistrait`. Here is the example of
-adding a custom Dimensional axis:
-
-```julia
-AxisArrays.axistrait(v::MyCustomAxis) = AxisArrays.Dimensional
-```
+axis, add a trait using [`AxisArrays.axistrait`](@ref).
 
 For more advanced indexing, you can define custom methods for
-`AxisArrays.axisindexes`.
-
+[`AxisArrays.axisindexes`](@ref).
 
 ### Examples
 
@@ -520,6 +514,23 @@ immutable Dimensional <: AxisTrait end
 immutable Categorical <: AxisTrait end
 immutable Unsupported <: AxisTrait end
 
+"""
+    axistrait(ax::Axis) -> Type{<:AxisTrait}
+
+Returns the indexing type of an `Axis`, any subtype of `AxisTrait`.
+The default is `Unsupported`, meaning there is no special indexing behaviour for this axis
+and indexes into this axis are passed directly to the underlying array.
+
+Two main types of axes supported by default are `Categorical` and `Dimensional`; see
+[Indexing](@ref) for more information on these types.
+
+User-defined axis types can be added along with custom indexing behaviors by defining new
+methods of this function. Here is the example of adding a custom Dimensional axis:
+
+```julia
+AxisArrays.axistrait(v::MyCustomAxis) = AxisArrays.Dimensional
+```
+"""
 axistrait(::Any) = Unsupported
 axistrait(ax::Axis) = axistrait(ax.val)
 axistrait{T<:Union{Number, Dates.AbstractTime}}(::AbstractVector{T}) = Dimensional
