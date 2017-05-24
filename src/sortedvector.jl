@@ -1,7 +1,7 @@
 
 export SortedVector
 
-@doc """
+"""
 
 A SortedVector is an AbstractVector where the underlying data is
 ordered (monotonically increasing).
@@ -48,7 +48,7 @@ A[ClosedInterval(:a,:b), :]
 A[ClosedInterval((:a,:x),(:b,:x)), :]
 ```
 
-""" ->
+"""
 immutable SortedVector{T} <: AbstractVector{T}
     data::AbstractVector{T}
 end
