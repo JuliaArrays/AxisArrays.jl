@@ -144,6 +144,28 @@ end
 ### Indexing along values of the axes ###
 
 # Default axes indexing throws an error
+"""
+    axisindexes(ax::Axis, axis_idx) -> array_idx
+    axisindexes(::Type{<:AxisTrait}, axis_values, axis_idx) -> array_idx
+
+Translate an index into an axis into an index into the underlying array.
+Users can add additional indexing behaviours for custom axes or custom indices by adding
+methods to this function.
+
+## Examples
+
+Add a method for indexing into an `Axis{name, SortedSet}`:
+
+```julia
+AxisArrays.axisindexes(::Type{Categorical}, ax::SortedSet, idx::AbstractVector) = findin(collect(ax), idx)
+```
+
+Add a method for indexing into a `Categorical` axis with a `SortedSet`:
+
+```julia
+AxisArrays.axisindexes(::Type{Categorical}, ax::AbstractVector, idx::SortedSet) = findin(ax, idx)
+```
+"""
 axisindexes(ax, idx) = axisindexes(axistrait(ax.val), ax.val, idx)
 axisindexes(::Type{Unsupported}, ax, idx) = error("elementwise indexing is not supported for axes of type $(typeof(ax))")
 axisindexes(t, ax, idx) = error("cannot index $(typeof(ax)) with $(typeof(idx)); expected $(eltype(ax)) axis value or Integer index")

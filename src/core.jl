@@ -10,7 +10,7 @@ end
 
 const Symbols = Tuple{Symbol,Vararg{Symbol}}
 
-@doc """
+"""
 Type-stable axis-specific indexing and identification with a
 parametric type.
 
@@ -47,7 +47,7 @@ A[Axis{:row}(2)] # grabs the second row
 A[Axis{2}(2:5)] # grabs the second through 5th columns
 ```
 
-""" ->
+"""
 immutable Axis{name,T}
     val::T
 end
@@ -70,7 +70,7 @@ Base.length(A::Axis) = length(A.val)
 Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name,T}) = ax
 Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name}) = Axis{name}(convert(T, ax.val))
 
-@doc """
+"""
 An AxisArray is an AbstractArray that wraps another AbstractArray and
 adds axis names and values to each array dimension. AxisArrays can be indexed
 by using the named axes as an alternative to positional indexing by
@@ -130,16 +130,10 @@ Two main types of axes supported by default include:
 
 User-defined axis types can be added along with custom indexing
 behaviors. To add add a custom type as a Categorical or Dimensional
-axis, add a trait using `AxisArrays.axistrait`. Here is the example of
-adding a custom Dimensional axis:
-
-```julia
-AxisArrays.axistrait(v::MyCustomAxis) = AxisArrays.Dimensional
-```
+axis, add a trait using [`AxisArrays.axistrait`](@ref).
 
 For more advanced indexing, you can define custom methods for
-`AxisArrays.axisindexes`.
-
+[`AxisArrays.axisindexes`](@ref).
 
 ### Examples
 
@@ -154,7 +148,7 @@ A[Axis{:time}(ClosedInterval(.2,.4))] # restrict the AxisArray along the time ax
 A[ClosedInterval(0.,.3), [:a, :c]]   # select an interval and two columns
 ```
 
-""" ->
+"""
 immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     data::D  # D <:AbstractArray, enforced in constructor to avoid dispatch bugs (https://github.com/JuliaLang/julia/issues/6383)
     axes::Ax # Ax<:NTuple{N, Axis}, but with specialized Axis{...} types
@@ -229,13 +223,13 @@ HasAxes{A<:AbstractArray}(::Type{A}) = HasAxes{false}()
 HasAxes(A::AbstractArray) = HasAxes(typeof(A))
 
 # Axis definitions
-@doc """
+"""
     axisdim(::AxisArray, ::Axis) -> Int
     axisdim(::AxisArray, ::Type{Axis}) -> Int
 
 Given an AxisArray and an Axis, return the integer dimension of
 the Axis within the array.
-""" ->
+"""
 axisdim(A::AxisArray, ax::Axis) = axisdim(A, typeof(ax))
 @generated function axisdim{T<:Axis}(A::AxisArray, ax::Type{T})
     dim = axisdim(A, T)
@@ -460,14 +454,14 @@ function Base.summary(A::AxisArray)
 end
 
 # Custom methods specific to AxisArrays
-@doc """
+"""
     axisnames(A::AxisArray)           -> (Symbol...)
     axisnames(::Type{AxisArray{...}}) -> (Symbol...)
     axisnames(ax::Axis...)            -> (Symbol...)
     axisnames(::Type{Axis{...}}...)   -> (Symbol...)
 
 Returns the axis names of an AxisArray or list of Axises as a tuple of Symbols.
-""" ->
+"""
 axisnames{T,N,D,Ax}(::AxisArray{T,N,D,Ax})       = _axisnames(Ax)
 axisnames{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = _axisnames(Ax)
 axisnames{Ax<:Tuple{Vararg{Axis}}}(::Type{Ax})   = _axisnames(Ax)
@@ -481,17 +475,17 @@ axisname{name,T}(::Type{Axis{name,T}}) = name
 axisname{name  }(::Type{Axis{name  }}) = name
 axisname(ax::Axis) = axisname(typeof(ax))
 
-@doc """
+"""
     axisvalues(A::AxisArray)           -> (AbstractVector...)
     axisvalues(ax::Axis...)            -> (AbstractVector...)
 
 Returns the axis values of an AxisArray or list of Axises as a tuple of vectors.
-""" ->
+"""
 axisvalues(A::AxisArray) = axisvalues(A.axes...)
 axisvalues() = ()
 axisvalues(ax::Axis, axs::Axis...) = tuple(ax.val, axisvalues(axs...)...)
 
-@doc """
+"""
     axes(A::AxisArray) -> (Axis...)
     axes(A::AxisArray, ax::Axis) -> Axis
     axes(A::AxisArray, dim::Int) -> Axis
@@ -503,7 +497,7 @@ than `axes(A)[1]`.
 
 For an AbstractArray without `Axis` information, `axes` returns the
 default axes, i.e., those that would be produced by `AxisArray(A)`.
-""" ->
+"""
 axes(A::AxisArray) = A.axes
 axes(A::AxisArray, dim::Int) = A.axes[dim]
 axes(A::AxisArray, ax::Axis) = axes(A, typeof(ax))
@@ -520,6 +514,23 @@ immutable Dimensional <: AxisTrait end
 immutable Categorical <: AxisTrait end
 immutable Unsupported <: AxisTrait end
 
+"""
+    axistrait(ax::Axis) -> Type{<:AxisTrait}
+
+Returns the indexing type of an `Axis`, any subtype of `AxisTrait`.
+The default is `Unsupported`, meaning there is no special indexing behaviour for this axis
+and indexes into this axis are passed directly to the underlying array.
+
+Two main types of axes supported by default are `Categorical` and `Dimensional`; see
+[Indexing](@ref) for more information on these types.
+
+User-defined axis types can be added along with custom indexing behaviors by defining new
+methods of this function. Here is the example of adding a custom Dimensional axis:
+
+```julia
+AxisArrays.axistrait(v::MyCustomAxis) = AxisArrays.Dimensional
+```
+"""
 axistrait(::Any) = Unsupported
 axistrait(ax::Axis) = axistrait(ax.val)
 axistrait{T<:Union{Number, Dates.AbstractTime}}(::AbstractVector{T}) = Dimensional
