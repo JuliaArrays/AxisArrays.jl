@@ -1,17 +1,36 @@
 using AxisArrays
 using Base.Test
 
-if VERSION < v"0.6.0-dev"
-    @test isempty(detect_ambiguities(AxisArrays, Base, Core))
+@testset "AxisArrays" begin
+    if VERSION < v"0.6.0-dev"
+        @test isempty(detect_ambiguities(AxisArrays, Base, Core))
+    end
+
+    @testset "Core" begin
+        include("core.jl")
+    end
+
+    @testset "Intervals" begin
+        include("intervals.jl")
+    end
+
+    @testset "Indexing" begin
+        include("indexing.jl")
+    end
+
+    @testset "SortedVector" begin
+        include("sortedvector.jl")
+    end
+
+    @testset "Search" begin
+        include("search.jl")
+    end
+
+    @testset "Combine" begin
+        include("combine.jl")
+    end
+
+    @testset "README" begin
+        include("readme.jl")
+    end
 end
-
-include("core.jl")
-include("intervals.jl")
-include("indexing.jl")
-include("sortedvector.jl")
-include("search.jl")
-include("combine.jl")
-
-include("readme.jl")
-
-nothing
