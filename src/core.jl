@@ -516,6 +516,7 @@ immutable Unsupported <: AxisTrait end
 
 """
     axistrait(ax::Axis) -> Type{<:AxisTrait}
+    axistrait{T}(::Type{T}) -> Type{<:AxisTrait}
 
 Returns the indexing type of an `Axis`, any subtype of `AxisTrait`.
 The default is `Unsupported`, meaning there is no special indexing behaviour for this axis
@@ -528,13 +529,16 @@ User-defined axis types can be added along with custom indexing behaviors by def
 methods of this function. Here is the example of adding a custom Dimensional axis:
 
 ```julia
-AxisArrays.axistrait(v::MyCustomAxis) = AxisArrays.Dimensional
+AxisArrays.axistrait(::Type{MyCustomAxis}) = AxisArrays.Dimensional
 ```
 """
-axistrait(::Any) = Unsupported
-axistrait(ax::Axis) = axistrait(ax.val)
-axistrait{T<:Union{Number, Dates.AbstractTime}}(::AbstractVector{T}) = Dimensional
-axistrait{T<:Union{Symbol, AbstractString}}(::AbstractVector{T}) = Categorical
+axistrait{T}(::T) = axistrait(T)
+axistrait{T}(::Type{T}) = Unsupported
+axistrait{name, T}(::Type{Axis{name, T}}) = axistrait(T)
+axistrait{T<:AbstractVector}(::Type{T}) = _axistrait_el(eltype(T))
+_axistrait_el{T<:Union{Number, Dates.AbstractTime}}(::Type{T}) = Dimensional
+_axistrait_el{T<:Union{Symbol, AbstractString}}(::Type{T}) = Categorical
+_axistrait_el{T}(::Type{T}) = Unsupported
 
 checkaxis(ax::Axis) = checkaxis(ax.val)
 checkaxis(ax) = checkaxis(axistrait(ax), ax)
