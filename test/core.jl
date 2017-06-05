@@ -187,9 +187,13 @@ A = @inferred(AxisArray(vals, Axis{:Timestamp}(dt-Dates.Hour(2):Dates.Hour(1):dt
 @test A[dt, :].data == vals[3, :]
 
 @test AxisArrays.axistrait(A.axes[1]) == AxisArrays.Dimensional
+@test AxisArrays.axistrait(typeof(A.axes[1])) == AxisArrays.Dimensional
 @test AxisArrays.axistrait(A.axes[1].val) == AxisArrays.Dimensional
+@test AxisArrays.axistrait(typeof(A.axes[1].val)) == AxisArrays.Dimensional
 @test AxisArrays.axistrait(A.axes[2]) == AxisArrays.Categorical
+@test AxisArrays.axistrait(typeof(A.axes[2])) == AxisArrays.Categorical
 @test AxisArrays.axistrait(A.axes[2].val) == AxisArrays.Categorical
+@test AxisArrays.axistrait(typeof(A.axes[2].val)) == AxisArrays.Categorical
 
 @test_throws ArgumentError AxisArrays.checkaxis(Axis{:x}(10:-1:1))
 @test_throws ArgumentError AxisArrays.checkaxis(10:-1:1)
