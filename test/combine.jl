@@ -47,3 +47,20 @@ ABdata[3:6,3:6,:,2] = Bdata
 @test join(A,B,method=:left) == AxisArray(ABdata[1:4, 1:4, :, :], A.axes...)
 @test join(A,B,method=:right) == AxisArray(ABdata[3:6, 3:6, :, :], B.axes...)
 @test join(A,B,method=:outer) == join(A,B)
+
+# flatten
+A1 = AxisArray(A1data, Axis{:X}(1:2), Axis{:Y}(1:2))
+A2 = AxisArray(reshape(A2data, size(A2data)..., 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:Z}([:foo]))
+
+@test flatten(A1, A2; array_names=[:A1, :A2]) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:page}(CategoricalVector([(:A1,), (:A2, :foo)])))
+@test flatten(A1; array_names=[:foo]) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:page}(CategoricalVector([(:foo,)])))
+@test flatten(A1; array_names=[:a], axis_name=:ax) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:ax}(CategoricalVector([(:a,)])))
+
+@test_throws ArgumentError flatten(-1, A1)
+@test_throws ArgumentError flatten(10, A1)
+
+A1ᵀ = transpose(A1)
+@test flatten(A1, A1ᵀ) == flatten(0, A1, A1ᵀ)
+@test_throws ArgumentError flatten(-1, A1, A1ᵀ)
+@test_throws ArgumentError flatten(1, A1, A1ᵀ)
+@test_throws ArgumentError flatten(10, A1, A1ᵀ)

@@ -139,3 +139,89 @@ function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
     return result
 
 end #join
+
+function greatest_common_axis(As::AxisArray...)
+    length(As) == 1 && return ndims(first(As))
+
+    for (i, zip_axes) in enumerate(zip(axes.(As)...))
+        if !all(ax -> ax == zip_axes[1], zip_axes[2:end])
+            return i - 1
+        end
+    end
+
+    return minimum(map(ndims, As))
+end
+
+function flatten_array_axes(array_name, array_axes)
+    map(zip(repeated(array_name), product(map(Ax->Ax.val, array_axes)...))) do tup
+        tup_name, tup_idx = tup
+        return (tup_name, tup_idx...)
+    end
+end
+
+function flatten_axes(array_names, array_axes)
+    collect(chain(map(flatten_array_axes, array_names, array_axes)...))
+end
+
+"""
+    flatten(As::AxisArray...) -> AxisArray
+    flatten(last_dim::Integer, As::AxisArray...) -> AxisArray
+
+Concatenates AxisArrays with equal leading axes into a single AxisArray.
+All additional axes in any of the arrays are flattened into a single additional
+CategoricalVector{Tuple} axis.
+
+### Arguments
+
+* `last_dim::Integer`: (optional) the greatest common dimension to share between all input
+                       arrays. The remaining axes are flattened. If this argument is not
+                       provided, the greatest common axis found among the input arrays is
+                       used. All preceeding axes must also be common to each input array, at
+                       the same dimension. Values from 0 up to one more than the minimum
+                       number of dimensions across all input arrays are allowed.
+* `As::AxisArray...`: AxisArrays to be flattened together.
+"""
+function flatten(As::AxisArray...; kwargs...)
+    gca = greatest_common_axis(As...)
+
+    return _flatten(gca, As...; kwargs...)
+end
+
+function flatten(last_dim::Integer, As::AxisArray...; kwargs...)
+    last_dim >= 0 || throw(ArgumentError("last_dim must be at least 0"))
+
+    if last_dim > minimum(map(ndims, As))
+        throw(ArgumentError(
+            "There must be at least $last_dim (last_dim) axes in each argument"
+        ))
+    end
+
+    if last_dim > greatest_common_axis(As...)
+        throw(ArgumentError(
+            "The first $last_dim axes don't all match across all arguments"
+        ))
+    end
+
+    return _flatten(last_dim, As...; kwargs...)
+end
+
+function _flatten(
+    last_dim::Integer,
+    As::AxisArray...;
+    array_names=1:length(As),
+    axis_name=nothing,
+)
+    common_axes = axes(As[1])[1:last_dim]
+
+    if axis_name === nothing
+        axis_name = _defaultdimname(last_dim + 1)
+    elseif !isa(axis_name, Symbol)
+        throw(ArgumentError("axis_name must be a Symbol"))
+    end
+
+    new_data = cat(last_dim + 1, (view(A.data, repeated(:, last_dim + 1)...) for A in As)...)
+    new_axis = flatten_axes(array_names, map(A -> axes(A)[last_dim+1:end], As))
+
+    # TODO: Consider creating a SortedVector axis when all flattened axes are Dimensional
+    return AxisArray(new_data, common_axes..., CategoricalVector(new_axis))
+end
