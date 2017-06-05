@@ -240,8 +240,10 @@ map!(*, A2, A, A)
 # Reductions (issue #55)
 A = AxisArray(collect(reshape(1:15,3,5)), :y, :x)
 B = @inferred(AxisArray(collect(reshape(1:15,3,5)), Axis{:y}(0.1:0.1:0.3), Axis{:x}(10:10:50)))
-for C in (A, B)
-    for op in (sum, minimum)  # together, cover both reduced_indices and reduced_indices0
+arrays = (A, B)
+functions = (sum, minimum)
+for C in arrays
+    for op in functions  # together, cover both reduced_indices and reduced_indices0
         axv = axisvalues(C)
         C1 = @inferred(op(C, 1))
         @test typeof(C1) == typeof(C)
