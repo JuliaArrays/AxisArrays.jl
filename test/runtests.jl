@@ -23,6 +23,10 @@ using Base.Test
         include("sortedvector.jl")
     end
 
+    @testset "CategoricalVector" begin
+        include("categoricalvector.jl")
+    end
+
     @testset "Search" begin
         include("search.jl")
     end

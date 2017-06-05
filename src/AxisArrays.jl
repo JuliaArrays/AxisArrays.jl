@@ -17,6 +17,7 @@ include("intervals.jl")
 include("search.jl")
 include("indexing.jl")
 include("sortedvector.jl")
+include("categoricalvector.jl")
 include("combine.jl")
 
 end

@@ -261,6 +261,17 @@ end
     ex = Expr(:tuple)
     n = 0
     for i=1:length(I)
+        if axistrait(I[i]) <: Categorical && i <= length(Ax.parameters)
+            if I[i] <: Axis
+                push!(ex.args, :(axisindexes(A.axes[$i], I[$i].val)))
+            else
+                push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
+            end
+            n += 1
+
+            continue
+        end
+
         if I[i] <: Idx
             push!(ex.args, :(I[$i]))
             n += 1
@@ -273,7 +284,11 @@ end
             end
             n += length(I[i])
         elseif i <= length(Ax.parameters)
-            push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
+            if I[i] <: Axis
+                push!(ex.args, :(axisindexes(A.axes[$i], I[$i].val)))
+            else
+                push!(ex.args, :(axisindexes(A.axes[$i], I[$i])))
+            end
             n += 1
         else
             push!(ex.args, :(error("dimension ", $i, " does not have an axis to index")))
