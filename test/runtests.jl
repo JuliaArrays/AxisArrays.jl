@@ -2,7 +2,8 @@ using AxisArrays
 using Base.Test
 
 @testset "AxisArrays" begin
-    if VERSION < v"0.6.0-dev"
+    # during this time there was an ambiguity in base with checkbounds_linear_indices
+    if VERSION < v"0.6.0-dev.2374" || VERSION >= v"0.6.0-dev.2884"
         @test isempty(detect_ambiguities(AxisArrays, Base, Core))
     end
 
