@@ -16,6 +16,25 @@ function searchsortednearest(vec::AbstractVector, x)
     return idx
 end
 
+function unsafe_searchsortednearest(vec::Range, x)
+    idx = unsafe_searchsortedfirst(vec, x) # Returns the first idx | vec[idx] >= x
+    if (inbounds_getindex(vec, idx) - x) > (x - inbounds_getindex(vec, idx-1))
+        idx -= 1 # The previous element is closer
+    end
+    return idx
+end
+
+"""
+    relativesearchsorted(r::Range, x)
+
+Returns a tuple of indices and values that represent how the value `x` is offset
+from zero for the range `r`.
+"""
+function relativesearchsorted(r::Range, x)
+    idxs = unsafe_searchsorted(r, x)
+    vals = inbounds_getindex(r, idxs)
+    return (idxs - unsafe_searchsortednearest(r, 0), vals)
+end
 # We depend upon extrapolative behaviors in searching ranges to shift axes.
 # This can be done by stealing Base's implementations and removing the bounds-
 # correcting min/max.
@@ -57,9 +76,15 @@ if VERSION < v"0.6.0-dev.2390"
 else
     include_string("""
     @inline inbounds_getindex(r::StepRangeLen, i::Integer) = Base.unsafe_getindex(r, i)
-    @inline function inbounds_getindex(r::StepRangeLen, s::OrdinalRange)
-        vfirst = Base.unsafe_getindex(r, first(s))
-        StepRangeLen(vfirst, step(r)*step(s), length(s))
+    @inline function inbounds_getindex(r::StepRangeLen, s::AbstractUnitRange)
+        soffset = 1 + (r.offset - first(s))
+        soffset = clamp(soffset, 1, length(s))
+        ioffset = first(s) + (soffset-1)
+        if ioffset == r.offset
+            StepRangeLen(r.ref, r.step, length(s), max(1,soffset))
+        else
+            StepRangeLen(r.ref + (ioffset-r.offset)*r.step, r.step, length(s), max(1,soffset))
+        end
     end
     """)
 end
