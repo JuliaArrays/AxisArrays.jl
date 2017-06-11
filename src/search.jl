@@ -24,6 +24,20 @@ function unsafe_searchsortednearest(vec::Range, x)
     return idx
 end
 
+# Dekker div2
+import Base: TwicePrecision, splitprec
+function Base.inv(y::TwicePrecision)
+    c = inv(y.hi)
+    chh, clo = splitprec(c)
+    u = TwicePrecision(chi, clo) * y.hi
+    cc = (((1 - u.hi) - u.lo) - c*y.lo)/y.hi
+    TwicePrecision(c, cc)
+end
+function *{T}(x::TwicePrecision{T}, y::TwicePrecision{T})
+    c = TwicePrecision(splitprec(x.hi)...) * y.hi
+    cc = (x.hi * y.lo + x.lo* y.hi) + c.lo
+    TwicePrecision(c.hi, cc)
+end
 
 function nsteps(x, step)
     offset = floor(Int, abs(x / step))
