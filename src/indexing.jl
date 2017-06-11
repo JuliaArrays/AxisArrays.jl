@@ -199,7 +199,11 @@ axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::ClosedInterval) 
 # (the fencepost problem). As such, we need to be careful about how and when we
 # snap the provided intervals and offsets to exact axis values (and indices).
 # 
-# 
+# Note that this is fundamentally different than indexing by a single interval;
+# whereas those intervals are specified in the same units as the elements of the
+# axis itself, repeated intervals are specified in terms of _offsets_. This is
+# most obvious with dates; single intervals are between dates, repeated
+# intervals use intervals of days (for example) and offsets of dates.
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedInterval) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedInterval)
     idxs, vals = relativewindow(ax, idx.window)

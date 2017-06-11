@@ -25,12 +25,16 @@ function unsafe_searchsortednearest(vec::Range, x)
 end
 
 
-nsteps(x, step) = floor(Int, abs(x / step)) * Int(sign(x))
+function nsteps(x, step)
+    offset = floor(Int, abs(x / step))
+    return x < zero(x) ? -offset : offset
+end
 function nsteps{T}(x, step::Base.TwicePrecision{T})
     # this is basically a hack because Base hasn't defined x/step at TwicePrecision resolution
     nf = abs(x / convert(T, step))
     nc = ceil(Int, nf)
-    return (abs(convert(T, nc*step)) <= abs(x) ? nc : floor(Int, nf)) * Int(sign(x))
+    offset = (abs(convert(T, nc*step)) <= abs(x) ? nc : floor(Int, nf))
+    return x < zero(x) ? -offset : offset
 end
 
 _step(r::Range) = step(r)

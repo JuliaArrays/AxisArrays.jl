@@ -121,7 +121,6 @@ Base.div(x::IntLike, y::IntLike) = div(x.val, y.val)
 Base.:*(x::IntLike, y::Int) = IntLike(x.val * y)
 Base.:*(x::Int, y::IntLike) = y*x
 Base.:/(x::IntLike, y::Int) = IntLike(x.val / y)
-Base.abs(x::IntLike) = IntLike(abs(x.val))
 Base.promote_rule(::Type{IntLike}, ::Type{Int}) = Int
 Base.convert(::Type{Int}, x::IntLike) = x.val
 using AxisArrays
@@ -180,3 +179,11 @@ A = AxisArray(rand(2,2), :x, :y)
 acc = zeros(Int, 4, 1, 2)
 Base.mapreducedim!(x->x>5, +, acc, A3)
 @test acc == reshape([1 3; 2 3; 2 3; 2 3], 4, 1, 2)
+
+# Test using dates
+using Base.Dates: Day, Month
+A = AxisArray(1:365, Date(2017,1,1):Date(2017,12,31))
+@test A[Date(2017,2,1) .. Date(2017,2,28)] == collect(31 + (1:28)) # February
+@test A[(-Day(13)..Day(14)) + Date(2017,2,14)] == collect(31 + (1:28))
+@test A[(-Day(14)..Day(14)) + DateTime(2017,2,14,12)] == collect(31 + (1:28))
+@test A[(Day(0)..Day(6)) + (Date(2017,1,1):Month(1):Date(2017,4,12))] == [1:7 32:38 60:66 91:97]
