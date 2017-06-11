@@ -223,16 +223,16 @@ else
 end
 function relativewindow(r::Range, x::ClosedInterval)
     pr = phony_range(r)
-    idxs = unsafe_searchsorted(pr, x)
-    vals = inbounds_getindex(pr, idxs)
+    idxs = Extrapolated.searchsorted(pr, x)
+    vals = Extrapolated.getindex(pr, idxs)
     return (idxs, vals)
 end
 
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedInterval) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedInterval)
     idxs, vals = relativewindow(ax, idx.window)
-    offsets = [unsafe_searchsortednearest(ax, offset) for offset in idx.offsets]
-    AxisArray(RepeatedRangeMatrix(idxs, offsets), Axis{:sub}(vals), Axis{:rep}(inbounds_getindex(ax, offsets)))
+    offsets = [Extrapolated.searchsortednearest(ax, offset) for offset in idx.offsets]
+    AxisArray(RepeatedRangeMatrix(idxs, offsets), Axis{:sub}(vals), Axis{:rep}(Extrapolated.getindex(ax, offsets)))
 end
 
 # We also have special datatypes to represent intervals about indices
