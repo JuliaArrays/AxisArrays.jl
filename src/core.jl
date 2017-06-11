@@ -205,6 +205,7 @@ AxisArray(A::AbstractArray, vects::Tuple{Vararg{Union{AbstractVector, Axis}}}) =
 function AxisArray{T,N}(A::AbstractArray{T,N}, axs::NTuple{N,Axis})
     checksizes(axs, _size(A)) || throw(ArgumentError("the length of each axis must match the corresponding size of data"))
     checknames(axisnames(axs...)...)
+    checkaxes(axs...)
     AxisArray{T,N,typeof(A),typeof(axs)}(A, axs)
 end
 
@@ -551,6 +552,9 @@ function checkaxis(::Type{Categorical}, ax)
         push!(seen, elt)
     end
 end
+
+checkaxes() = nothing
+@inline checkaxes(ax, axs...) = (checkaxis(ax); checkaxes(axs...))
 
 _length(A::AbstractArray) = length(linearindices(A))
 _length(A) = length(A)
