@@ -202,7 +202,7 @@ axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::ClosedInterval) 
 # 
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedInterval) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedInterval)
-    idxs, vals = relativesearchsorted(ax, idx.window)
+    idxs, vals = relativewindow(ax, idx.window)
     offsets = [searchsortednearest(ax, offset) for offset in idx.offsets]
     AxisArray(RepeatedRangeMatrix(idxs, offsets), Axis{:sub}(vals), Axis{:rep}(ax[offsets]))
 end
@@ -210,13 +210,13 @@ end
 # We also have special datatypes to represent intervals about indices
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::IntervalAtIndex) = searchsorted(ax, idx.window + ax[idx.index])
 function axisindexes(::Type{Dimensional}, ax::Range, idx::IntervalAtIndex)
-    idxs, vals = relativesearchsorted(ax, idx.window)
+    idxs, vals = relativewindow(ax, idx.window)
     AxisArray(idxs + idx.index, Axis{:sub}(vals))
 end
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedIntervalAtIndexes) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedIntervalAtIndexes)
     n = length(idx.indexes)
-    idxs, vals = relativesearchsorted(ax, idx.window)
+    idxs, vals = relativewindow(ax, idx.window)
     AxisArray(RepeatedRangeMatrix(idxs, idx.indexes), Axis{:sub}(vals), Axis{:rep}(ax[idx.indexes]))
 end
 

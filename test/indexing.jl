@@ -121,6 +121,7 @@ Base.div(x::IntLike, y::IntLike) = div(x.val, y.val)
 Base.:*(x::IntLike, y::Int) = IntLike(x.val * y)
 Base.:*(x::Int, y::IntLike) = y*x
 Base.:/(x::IntLike, y::Int) = IntLike(x.val / y)
+Base.abs(x::IntLike) = IntLike(abs(x.val))
 Base.promote_rule(::Type{IntLike}, ::Type{Int}) = Int
 Base.convert(::Type{Int}, x::IntLike) = x.val
 using AxisArrays

@@ -24,16 +24,29 @@ function unsafe_searchsortednearest(vec::Range, x)
     return idx
 end
 
+
+nsteps(x, step) = floor(Int, abs(x / step)) * Int(sign(x))
+function nsteps{T}(x, step::Base.TwicePrecision{T})
+    # this is basically a hack because Base hasn't defined x/step at TwicePrecision resolution
+    nf = abs(x / convert(T, step))
+    nc = ceil(Int, nf)
+    return (abs(convert(T, nc*step)) <= abs(x) ? nc : floor(Int, nf)) * Int(sign(x))
+end
+
+_step(r::Range) = step(r)
+_step(r::StepRangeLen) = r.step
+
 """
-    relativesearchsorted(r::Range, x)
+    relativewindow(r::Range, x::ClosedInterval)
 
 Returns a tuple of indices and values that represent how the value `x` is offset
 from zero for the range `r`.
 """
-function relativesearchsorted(r::Range, x)
-    idxs = unsafe_searchsorted(r, x)
-    vals = inbounds_getindex(r, idxs)
-    return (idxs - unsafe_searchsortednearest(r, 0), vals)
+function relativewindow(r::Range, x::ClosedInterval)
+    s = _step(r)
+    idxs = nsteps(x.left, s):nsteps(x.right, s)
+    vals = StepRangeLen(idxs[1]*s, s, length(idxs))
+    return (idxs, vals)
 end
 # We depend upon extrapolative behaviors in searching ranges to shift axes.
 # This can be done by stealing Base's implementations and removing the bounds-
