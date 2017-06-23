@@ -218,10 +218,10 @@ A2 = map(f1, A)
 @test A2.axes == A.axes
 @test A2.data == map(f1, A.data)
 
-map!(~, A2)
+map!(~, A2, A2)
 @test isa(A2, AxisArray)
 @test A2.axes == A.axes
-@test A2.data == ~map(f1, A).data
+@test A2.data == map(~, map(f1, A).data)
 
 A2 = map(+, A, A)
 @test isa(A2, AxisArray)
