@@ -184,30 +184,67 @@ axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::ClosedInterval) 
 
 # Or repeated intervals, which only work if the axis is a range since otherwise
 # there will be a non-constant number of indices in each repetition.
-# Two small tricks are used here:
-# * Compute the resulting interval axis with unsafe indexing without any offset
-#   - Since it's a range, we can do this, and it makes the resulting axis useful
-# * Snap the offsets to the nearest datapoint to avoid fencepost problems
-# Adds a dimension to the result; rows represent the interval and columns are offsets.
+#
+# There are a number of challenges here:
+#   * This operation adds a dimension to the result; rows represent the interval
+#     (or subset) and columns are offsets (or repetition). A RepeatedRangeMatrix
+#     represents the resulting matrix of indices very nicely.
+#   * We also want the returned matrix to keep track of its axes; the axis
+#     subset (ax_sub) is the relative location of the interval with respect to
+#     each offset, and the repetitions (ax_rep) is the array of offsets.
+#   * We are interested in the resulting *addition* of the interval against the
+#     offsets. Either the offsets or the interval may independently be out of
+#     bounds prior to this addition. Even worse: the interval may have different
+#     units than the axis (e.g., `(Day(-1)..Day(1)) + dates` for a three-day
+#     span around dates of interest over a Date axis).
+#   * It is possible (and likely!) that neither the interval endpoints nor the
+#     offsets fall exactly upon an axis value. Or even worse: the some offsets
+#     when added to the interval could span more elements than others (the
+#     fencepost problem). As such, we need to be careful about how and when we
+#     snap the provided intervals and offsets to exact axis values (and indices).
+# 
+# To avoid the fencepost problems and to define the axes, we convert the
+# interval to a UnitRange of relative indices and the array of offsets to an
+# array of absolute indices (independently of each other). Exactly how we do so
+# must be carefully considered.
+# 
+# Note that this is fundamentally different than indexing by a single interval;
+# whereas those intervals are specified in the same units as the elements of the
+# axis itself, these intervals are specified in terms of _offsets_. At the same
+# time, we want `A[interval] == vec(A[interval + [0]])`. To make these
+# computations as similar as possible, we use a phony range of the form
+# `step(ax):step(ax):step(ax)` in order to search for the interval.
+phony_range(r::Range) = step(r):step(r):step(r)
+phony_range(r::AbstractUnitRange) = step(r):step(r)
+if VERSION < v"0.6-pre"
+    phony_range(r::FloatRange) = FloatRange(r.step, r.step, one(r.len), r.divisor)
+else
+    phony_range(r::StepRangeLen) = StepRangeLen(r.step, r.step, 1)
+end
+function relativewindow(r::Range, x::ClosedInterval)
+    pr = phony_range(r)
+    idxs = Extrapolated.searchsorted(pr, x)
+    vals = Extrapolated.getindex(pr, idxs)
+    return (idxs, vals)
+end
+
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedInterval) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedInterval)
-    n = length(idx.offsets)
-    idxs = unsafe_searchsorted(ax, idx.window)
-    offsets = [searchsortednearest(ax, idx.offsets[i]) for i=1:n]
-    AxisArray(RepeatedRangeMatrix(idxs, offsets), Axis{:sub}(inbounds_getindex(ax, idxs)), Axis{:rep}(ax[offsets]))
+    idxs, vals = relativewindow(ax, idx.window)
+    offsets = [Extrapolated.searchsortednearest(ax, offset) for offset in idx.offsets]
+    AxisArray(RepeatedRangeMatrix(idxs, offsets), Axis{:sub}(vals), Axis{:rep}(Extrapolated.getindex(ax, offsets)))
 end
 
 # We also have special datatypes to represent intervals about indices
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::IntervalAtIndex) = searchsorted(ax, idx.window + ax[idx.index])
 function axisindexes(::Type{Dimensional}, ax::Range, idx::IntervalAtIndex)
-    idxs = unsafe_searchsorted(ax, idx.window)
-    AxisArray(idxs + idx.index, Axis{:sub}(inbounds_getindex(ax, idxs)))
+    idxs, vals = relativewindow(ax, idx.window)
+    AxisArray(idxs + idx.index, Axis{:sub}(vals))
 end
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedIntervalAtIndexes) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::Range, idx::RepeatedIntervalAtIndexes)
-    n = length(idx.indexes)
-    idxs = unsafe_searchsorted(ax, idx.window)
-    AxisArray(RepeatedRangeMatrix(idxs, idx.indexes), Axis{:sub}(inbounds_getindex(ax, idxs)), Axis{:rep}(ax[idx.indexes]))
+    idxs, vals = relativewindow(ax, idx.window)
+    AxisArray(RepeatedRangeMatrix(idxs, idx.indexes), Axis{:sub}(vals), Axis{:rep}(ax[idx.indexes]))
 end
 
 # Categorical axes may be indexed by their elements
