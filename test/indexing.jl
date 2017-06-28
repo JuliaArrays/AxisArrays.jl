@@ -178,3 +178,9 @@ A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
 @test @inferred(A[:, atvalue(2.0)]) == [1,3]
 @test @inferred(A[Axis{:x}(atvalue(4.0))]) == [3,4]
 @test @inferred(A[Axis{:y}(atvalue(6.1))]) == [2,4]
+
+# Indexing by value directly is forbidden for indexes that are Real
+@test_throws ArgumentError A[4.0]
+@test_throws ArgumentError A[BigFloat(1.0)]
+@test_throws ArgumentError A[1.0f0]
+@test_throws ArgumentError A[:,6.1]

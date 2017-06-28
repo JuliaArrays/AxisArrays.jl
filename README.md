@@ -92,8 +92,23 @@ julia> axes(ans, 1)
 AxisArrays.Axis{:time,StepRangeLen{Quantity{Float64, Dimensions:{𝐓}, Units:{s}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}}}}(5.0e-5 s:2.5e-5 s:0.0002 s)
 ```
 
+You can also index by a single value on an axis using `atvalue`. This will drop
+a dimension. Indexing with an `Interval` type retains dimensions, even
+when the ends of the interval are equal:
+
+```jl
+julia> A[atvalue(2.5e-5s), :c1]
+-1.6820949242530765
+
+julia> A[2.5e-5s..2.5e-5s, :c1]
+1-dimensional AxisArray{Float64,1,...} with axes:
+    :time, 2.5e-5 s:2.5e-5 s:2.5e-5 s
+And data, a 1-element Array{Float64,1}:
+ -1.68209
+```
+
 Sometimes, though, what we're really interested in is a window of time about a
-specific index. The operation above (looking for values in the window from 40µs
+specific index. One of the operations above (looking for values in the window from 40µs
 to 220µs) might be more clearly expressed as a symmetrical window about a
 specific index where we know something interesting happened. To represent this,
 we use the `atindex` function:

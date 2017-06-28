@@ -175,8 +175,10 @@ axisindexes(ax, idx) = axisindexes(axistrait(ax.val), ax.val, idx)
 axisindexes(::Type{Unsupported}, ax, idx) = error("elementwise indexing is not supported for axes of type $(typeof(ax))")
 axisindexes(t, ax, idx) = error("cannot index $(typeof(ax)) with $(typeof(idx)); expected $(eltype(ax)) axis value or Integer index")
 
-# Dimensional axes may be indexed directy by their elements if Non-Real and unique
+# Dimensional axes may be indexed directly by their elements if Non-Real and unique
 # Maybe extend error message to all <: Numbers if Base allows it?
+axisindexes{T<:Real}(::Type{Dimensional}, ax::AbstractVector, idx::T) =
+    throw(ArgumentError("invalid index: $idx. Use `atvalue` when indexing by value."))
 function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx)
     idxs = searchsorted(ax, ClosedInterval(idx,idx))
     length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
