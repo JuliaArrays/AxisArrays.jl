@@ -177,17 +177,18 @@ axisindexes(t, ax, idx) = error("cannot index $(typeof(ax)) with $(typeof(idx));
 
 # Dimensional axes may be indexed directly by their elements if Non-Real and unique
 # Maybe extend error message to all <: Numbers if Base allows it?
-axisindexes{T<:Real}(::Type{Dimensional}, ax::AbstractVector, idx::T) =
+axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Real) =
     throw(ArgumentError("invalid index: $idx. Use `atvalue` when indexing by value."))
-function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx)
+axisindexes(::Type{Dimensional}, ax::AbstractVector, idx) =
+    _axisindexes(Dimensional, ax::AbstractVector, idx)
+# Dimensional axes may always be indexed by value if in a Value type wrapper.
+axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Value) =
+    _axisindexes(Dimensional, ax::AbstractVector, idx.val)
+function _axisindexes(::Type{Dimensional}, ax::AbstractVector, idx)
     idxs = searchsorted(ax, ClosedInterval(idx,idx))
     length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
     idxs[1]
 end
-
-# Dimensional axes may always be indexed by value if in a Value type wrapper.
-axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Value) =
-    findfirst(ax.==idx.val)
 
 # Dimensional axes may be indexed by intervals to select a range
 axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::ClosedInterval) = searchsorted(ax, idx)
