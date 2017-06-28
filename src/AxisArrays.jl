@@ -6,7 +6,7 @@ using Base: tail
 using RangeArrays, IntervalSets
 using Compat
 
-export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex
+export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue
 
 # From IntervalSets:
 export ClosedInterval, ..

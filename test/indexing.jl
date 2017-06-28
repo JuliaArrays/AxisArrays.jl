@@ -165,3 +165,16 @@ A = AxisArray(rand(2,2), :x, :y)
 acc = zeros(Int, 4, 1, 2)
 Base.mapreducedim!(x->x>5, +, acc, A3)
 @test acc == reshape([1 3; 2 3; 2 3; 2 3], 4, 1, 2)
+
+# Indexing by value using `atvalue`
+A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
+@test @inferred(A[atvalue(1.0)]) == @inferred(A[atvalue(1.0), :]) == [1,2]
+# `atvalue` doesn't require same type:
+@test @inferred(A[atvalue(1)]) == @inferred(A[atvalue(1), :]) ==[1,2]
+@test A[atvalue(4.0)] == A[atvalue(4.0),:] == [3,4]
+@test A[atvalue(4)] == A[atvalue(4),:] == [3,4]
+@test_throws BoundsError A[atvalue(5.0)]    # more suitable error?
+@test @inferred(A[atvalue(1.0), atvalue(2.0)]) == 1
+@test @inferred(A[:, atvalue(2.0)]) == [1,3]
+@test @inferred(A[Axis{:x}(atvalue(4.0))]) == [3,4]
+@test @inferred(A[Axis{:y}(atvalue(6.1))]) == [2,4]
