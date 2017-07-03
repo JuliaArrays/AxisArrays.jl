@@ -6,8 +6,18 @@ immutable Value{T}
     val::T
     tol::T
 end
-Value(v,t) = Value(promote(v,t)...)
+Value(x, tol=Base.rtoldefault(typeof(x))*abs(x)) = Value(promote(x,tol)...)
 atvalue(x; rtol=Base.rtoldefault(typeof(x)), atol=zero(x)) = Value(x, atol+rtol*abs(x))
+
+# For throwing a BoundsError with a Value index, we need to define the following
+# (note that we could inherit them for free, were Value <: Number)
+Base.start(::Value) = false
+Base.next(x::Value, state) = (x, true)
+Base.done(x::Value, state) = state
+
+# How to show Value objects (e.g. in a BoundsError)
+Base.show(io::IO, v::Value) =
+    print(io, string("Value(", v.val, ", tol≈", (@sprintf "%0.2e" v.tol), ")"))
 
 # Defer IndexStyle to the wrapped array
 @compat Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)
@@ -195,7 +205,7 @@ function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Value)
     else # it's zero
         last(idxs) > 0 && abs(ax[last(idxs)] - idx.val) < idx.tol && return last(idxs)
         first(idxs) <= length(ax) && abs(ax[first(idxs)] - idx.val) < idx.tol && return first(idxs)
-        return 0
+        throw(BoundsError(ax, idx))
     end
 end
 

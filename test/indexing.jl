@@ -173,7 +173,7 @@ A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
 @test @inferred(A[atvalue(1)]) == @inferred(A[atvalue(1), :]) ==[1,2]
 @test A[atvalue(4.0)] == A[atvalue(4.0),:] == [3,4]
 @test A[atvalue(4)] == A[atvalue(4),:] == [3,4]
-@test_throws BoundsError A[atvalue(5.0)]    # more suitable error?
+@test_throws BoundsError A[atvalue(5.0)]
 @test @inferred(A[atvalue(1.0), atvalue(2.0)]) == 1
 @test @inferred(A[:, atvalue(2.0)]) == [1,3]
 @test @inferred(A[Axis{:x}(atvalue(4.0))]) == [3,4]
@@ -181,6 +181,13 @@ A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
 @test @inferred(A[Axis{:x}(atvalue(4.00000001))]) == [3,4]
 @test @inferred(A[Axis{:x}(atvalue(2.0, atol=5))]) == [1,2]
 @test_throws BoundsError A[Axis{:x}(atvalue(4.00000001, rtol=0))]
+
+# Indexing by value into an OffsetArray
+A = AxisArray(OffsetArrays.OffsetArray([1 2; 3 4], 0:1, 1:2),
+    Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
+@test_broken @inferred(A[atvalue(4.0)]) == [3,4]
+@test @inferred(A[:, atvalue(2.0)]) == OffsetArrays.OffsetArray([1,3], 0:1)
+@test_throws BoundsError A[atvalue(5.0)]
 
 # Indexing by value directly is forbidden for indexes that are Real
 @test_throws ArgumentError A[4.0]
