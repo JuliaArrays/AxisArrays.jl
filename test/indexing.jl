@@ -193,4 +193,10 @@ A = AxisArray(OffsetArrays.OffsetArray([1 2; 3 4], 0:1, 1:2),
 @test_throws ArgumentError A[4.0]
 @test_throws ArgumentError A[BigFloat(1.0)]
 @test_throws ArgumentError A[1.0f0]
-@test_throws ArgumentError A[:,6.1]
+if VERSION == v"0.5.2"
+    # Cannot compose @test_broken with @test_throws (Julia #21098)
+    # A[:,6.1] incorrectly throws a BoundsError instead of an ArgumentError on Julia 0.5.2
+    @test_broken A[:,6.1]
+else
+    @test_throws ArgumentError A[:,6.1]
+end
