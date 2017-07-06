@@ -1,6 +1,6 @@
 # AxisArrays
 
-[![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/JuliaArrays/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/r/JuliaArrays/AxisArrays.jl?branch=master)
+[![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaArrays/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaArrays/AxisArrays.jl?branch=master)
 
 This package for the Julia language provides an array type (the `AxisArray`) that knows about its dimension names and axis values.
 This allows for indexing with the axis name without incurring any runtime overhead.
@@ -13,14 +13,14 @@ Collaboration is welcome! This is still a work-in-progress. See [the roadmap](ht
 ## Example of currently-implemented behavior:
 
 ```julia
-julia> Pkg.clone("https://github.com/JuliaArrays/AxisArrays.jl")
-       using AxisArrays, SIUnits
-       import SIUnits.ShortUnits: s, ms, µs
+julia> Pkg.add("AxisArrays")
+       using AxisArrays, Unitful
+       import Unitful: s, ms, µs
 
 julia> fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
        y = randn(60*fs+1)*3
-       for spk = (sin(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05]   .* 50,
-                  sin(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
+       for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50,
+                  sin.(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
            i = rand(round(Int,.001fs):1fs)
            while i+length(spk)-1 < length(y)
                y[i:i+length(spk)-1] += spk
@@ -54,16 +54,15 @@ indices in *any* order, just so long as we annotate them with the axis name:
 
 ```jl
 julia> A[Axis{:time}(4)]
-2-dimensional AxisArray{Float64,2,...} with axes:
-    :time, 7.5e-5 s:2.5e-5 s:7.5e-5 s
-    :chan, [:c1,:c2]
-And data, a 1x2 SubArray{Float64,2,Array{Float64,2},Tuple{UnitRange{Int64},Colon},2}:
+2-dimensional AxisArray{Float64,1,...} with axes:
+    :chan, Symbol[:c1,:c2]
+And data, a 2-element Array{Float64,1}:
  -1.4144  -2.82879
 
 julia> A[Axis{:chan}(:c2), Axis{:time}(1:5)]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 0.0 s:2.5e-5 s:0.0001 s
-And data, a 5-element SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2}:
+And data, a 5-element Array{Float64,1}:
  -6.12181
   0.304668
  15.7366
@@ -80,7 +79,7 @@ still has the correct time information for those datapoints!
 julia> A[40µs .. 220µs, :c1]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 5.0e-5 s:2.5e-5 s:0.0002 s
-And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64},Int64},2}:
+And data, a 7-element Array{Float64,1}:
   7.86831
  -1.4144
  -2.02881
@@ -90,11 +89,26 @@ And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{UnitRange{Int64}
  -1.97716
 
 julia> axes(ans, 1)
-AxisArrays.Axis{:time,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}(5.0e-5 s:2.5e-5 s:0.0002 s)
+AxisArrays.Axis{:time,StepRangeLen{Quantity{Float64, Dimensions:{𝐓}, Units:{s}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}}}}(5.0e-5 s:2.5e-5 s:0.0002 s)
+```
+
+You can also index by a single value on an axis using `atvalue`. This will drop
+a dimension. Indexing with an `Interval` type retains dimensions, even
+when the ends of the interval are equal:
+
+```jl
+julia> A[atvalue(2.5e-5s), :c1]
+0.152334
+
+julia> A[2.5e-5s..2.5e-5s, :c1]
+1-dimensional AxisArray{Float64,1,...} with axes:
+    :time, 2.5e-5 s:2.5e-5 s:2.5e-5 s
+And data, a 1-element Array{Float64,1}:
+0.152334
 ```
 
 Sometimes, though, what we're really interested in is a window of time about a
-specific index. The operation above (looking for values in the window from 40µs
+specific index. One of the operations above (looking for values in the window from 40µs
 to 220µs) might be more clearly expressed as a symmetrical window about a
 specific index where we know something interesting happened. To represent this,
 we use the `atindex` function:
@@ -125,7 +139,7 @@ julia> idxs = find(diff(A[:,:c1] .< -15) .> 0)
 julia> spks = A[atindex(-200µs .. 800µs, idxs), :c1]
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time_sub, -0.000175 s:2.5e-5 s:0.000775 s
-    :time_rep, SIUnits.SIQuantity{Float64,0,0,1,0,0,0,0,0,0}[0.178725 s,0.806825 s,0.88305 s,1.47485 s,1.50465 s,1.53805 s,1.541025 s,2.16365 s,2.368425 s,2.739 s  …  57.797925 s,57.924075 s,58.06075 s,58.215125 s,58.6403 s,58.96215 s,58.990225 s,59.001325 s,59.48395 s,59.611525 s]
+    :time_rep, Quantity{Float64, Dimensions:{𝐓}, Units:{s}}[0.178725 s,0.806825 s,0.88305 s,1.47485 s,1.50465 s,1.53805 s,1.541025 s,2.16365 s,2.368425 s,2.739 s  …  57.797925 s,57.924075 s,58.06075 s,58.215125 s,58.6403 s,58.96215 s,58.990225 s,59.001325 s,59.48395 s,59.611525 s]
 And data, a 39x242 Array{Float64,2}:
  -1.53038     4.72882     5.8706    …  -0.231564      0.624714   3.44076
  -2.24961     2.12414     5.69936       7.00179       2.30993    5.20432

@@ -165,3 +165,38 @@ A = AxisArray(rand(2,2), :x, :y)
 acc = zeros(Int, 4, 1, 2)
 Base.mapreducedim!(x->x>5, +, acc, A3)
 @test acc == reshape([1 3; 2 3; 2 3; 2 3], 4, 1, 2)
+
+# Indexing by value using `atvalue`
+A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
+@test @inferred(A[atvalue(1.0)]) == @inferred(A[atvalue(1.0), :]) == [1,2]
+# `atvalue` doesn't require same type:
+@test @inferred(A[atvalue(1)]) == @inferred(A[atvalue(1), :]) ==[1,2]
+@test A[atvalue(4.0)] == A[atvalue(4.0),:] == [3,4]
+@test A[atvalue(4)] == A[atvalue(4),:] == [3,4]
+@test_throws BoundsError A[atvalue(5.0)]
+@test @inferred(A[atvalue(1.0), atvalue(2.0)]) == 1
+@test @inferred(A[:, atvalue(2.0)]) == [1,3]
+@test @inferred(A[Axis{:x}(atvalue(4.0))]) == [3,4]
+@test @inferred(A[Axis{:y}(atvalue(6.1))]) == [2,4]
+@test @inferred(A[Axis{:x}(atvalue(4.00000001))]) == [3,4]
+@test @inferred(A[Axis{:x}(atvalue(2.0, atol=5))]) == [1,2]
+@test_throws BoundsError A[Axis{:x}(atvalue(4.00000001, rtol=0))]
+
+# Indexing by value into an OffsetArray
+A = AxisArray(OffsetArrays.OffsetArray([1 2; 3 4], 0:1, 1:2),
+    Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
+@test_broken @inferred(A[atvalue(4.0)]) == [3,4]
+@test @inferred(A[:, atvalue(2.0)]) == OffsetArrays.OffsetArray([1,3], 0:1)
+@test_throws BoundsError A[atvalue(5.0)]
+
+# Indexing by value directly is forbidden for indexes that are Real
+@test_throws ArgumentError A[4.0]
+@test_throws ArgumentError A[BigFloat(1.0)]
+@test_throws ArgumentError A[1.0f0]
+if VERSION == v"0.5.2"
+    # Cannot compose @test_broken with @test_throws (Julia #21098)
+    # A[:,6.1] incorrectly throws a BoundsError instead of an ArgumentError on Julia 0.5.2
+    @test_broken A[:,6.1]
+else
+    @test_throws ArgumentError A[:,6.1]
+end
