@@ -17,7 +17,7 @@ Base.done(x::Value, state) = state
 
 # How to show Value objects (e.g. in a BoundsError)
 Base.show(io::IO, v::Value) =
-    print(io, string("Value(", v.val, ", tol≈", (@sprintf "%0.2e" v.tol), ")"))
+    print(io, string("Value(", v.val, ", tol=", v.tol, ")"))
 
 # Defer IndexStyle to the wrapped array
 @compat Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)

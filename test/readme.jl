@@ -22,7 +22,9 @@ axes(ax, 1)
 A[atindex(-90µs .. 90µs, 5), :c2]
 idxs = find(diff(A[:,:c1] .< -15) .> 0)
 spks = A[atindex(-200µs .. 800µs, idxs), :c1]
-
+A[atvalue(2.5e-5s), :c1]
+A[2.5e-5s..2.5e-5s, :c1]
+A[atvalue(25μs)]
 
 # # A possible "dynamic verification" strategy
 # const readmefile = joinpath(dirname(dirname(@__FILE__)), "README.md")

@@ -13,13 +13,13 @@ Collaboration is welcome! This is still a work-in-progress. See [the roadmap](ht
 ## Example of currently-implemented behavior:
 
 ```julia
-julia> Pkg.clone("https://github.com/JuliaArrays/AxisArrays.jl")
+julia> Pkg.add("AxisArrays.jl")
        using AxisArrays, Unitful
        import Unitful: s, ms, µs
 
 julia> fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
        y = randn(60*fs+1)*3
-       for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05]   .* 50,
+       for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50,
                   sin.(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
            i = rand(round(Int,.001fs):1fs)
            while i+length(spk)-1 < length(y)
@@ -62,7 +62,7 @@ And data, a 2-element Array{Float64,1}:
 julia> A[Axis{:chan}(:c2), Axis{:time}(1:5)]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 0.0 s:2.5e-5 s:0.0001 s
-A[Axis{:chan}(:c2), Axis{:time}(1:5)]:
+And data, a 5-element Array{Float64,1}:
  -6.12181
   0.304668
  15.7366
@@ -98,13 +98,13 @@ when the ends of the interval are equal:
 
 ```jl
 julia> A[atvalue(2.5e-5s), :c1]
--1.6820949242530765
+0.152334
 
 julia> A[2.5e-5s..2.5e-5s, :c1]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 2.5e-5 s:2.5e-5 s:2.5e-5 s
 And data, a 1-element Array{Float64,1}:
- -1.68209
+0.152334
 ```
 
 Sometimes, though, what we're really interested in is a window of time about a
