@@ -42,8 +42,12 @@ A[(:a,:x), :]
 A[(:a,:x,:x), :]
 ```
 """
-immutable CategoricalVector{T} <: AbstractVector{T}
-    data::AbstractVector{T}
+immutable CategoricalVector{T, A<:AbstractVector{T}} <: AbstractVector{T}
+    data::A
+end
+
+function CategoricalVector(data::AbstractVector{T}) where T
+    CategoricalVector{T, typeof(data)}(data)
 end
 
 Base.getindex(v::CategoricalVector, idx::Int) = v.data[idx]
@@ -54,16 +58,16 @@ Base.size(v::CategoricalVector) = size(v.data)
 Base.size(v::CategoricalVector, i) = size(v.data, i)
 Base.indices(v::CategoricalVector) = indices(v.data)
 
-axistrait{T}(::Type{CategoricalVector{T}}) = Categorical
+axistrait(::Type{CategoricalVector{T,A}}) where {T,A} = Categorical
 checkaxis(::CategoricalVector) = nothing
 
 
 ## Add some special indexing for CategoricalVector{Tuple}'s to achieve something like
 ## Panda's hierarchical indexing
 
-axisindexes{T<:Tuple,S}(ax::Axis{S,CategoricalVector{T}}, idx) = axisindexes(ax, (idx,))
+axisindexes{T<:Tuple,S,A}(ax::Axis{S,CategoricalVector{T,A}}, idx) = axisindexes(ax, (idx,))
 
-function axisindexes{T<:Tuple,S}(ax::Axis{S,CategoricalVector{T}}, idx::Tuple)
+function axisindexes{T<:Tuple,S,A}(ax::Axis{S,CategoricalVector{T,A}}, idx::Tuple)
     collect(filter(ax_idx->_tuple_matches(ax.val[ax_idx], idx), indices(ax.val)...))
 end
 
@@ -77,5 +81,5 @@ function _tuple_matches(element::Tuple, idx::Tuple)
     return true
 end
 
-axisindexes{T<:Tuple,S}(ax::Axis{S,CategoricalVector{T}}, idx::AbstractArray) =
+axisindexes{T<:Tuple,S,A}(ax::Axis{S,CategoricalVector{T,A}}, idx::AbstractArray) =
     vcat([axisindexes(ax, i) for i in idx]...)

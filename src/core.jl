@@ -508,6 +508,15 @@ end
 axes(A::AbstractArray) = default_axes(A)
 axes(A::AbstractArray, dim::Int) = default_axes(A)[dim]
 
+"""
+    axisparams(::AxisArray) -> Vararg{::Type{Axis}}
+    axisparams(::Type{AxisArray}) -> Vararg{::Type{Axis}}
+
+Returns the axis parameters for an AxisArray.
+"""
+axisparams{T,N,D,Ax}(::AxisArray{T,N,D,Ax}) = (Ax.parameters...)
+axisparams{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = (Ax.parameters...)
+
 ### Axis traits ###
 @compat abstract type AxisTrait end
 immutable Dimensional <: AxisTrait end

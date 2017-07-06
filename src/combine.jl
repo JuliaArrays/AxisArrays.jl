@@ -140,88 +140,122 @@ function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
 
 end #join
 
-function greatest_common_axis(As::AxisArray...)
-    length(As) == 1 && return ndims(first(As))
-
-    for (i, zip_axes) in enumerate(zip(axes.(As)...))
-        if !all(ax -> ax == zip_axes[1], zip_axes[2:end])
-            return i - 1
-        end
-    end
-
-    return minimum(map(ndims, As))
+function _flatten_array_axes(array_name, array_axes...)
+    ((array_name, (idx isa Tuple ? idx : (idx,))...) for idx in product((Ax.val for Ax in array_axes)...))
 end
 
-function flatten_array_axes(array_name, array_axes)
-    map(zip(repeated(array_name), product(map(Ax->Ax.val, array_axes)...))) do tup
-        tup_name, tup_idx = tup
-        return (tup_name, tup_idx...)
-    end
+function _flatten_axes(array_names, array_axes)
+    collect(Iterators.flatten(map(array_names, array_axes) do tup_name, tup_array_axes
+        _flatten_array_axes(tup_name, tup_array_axes...)
+    end))
 end
 
-function flatten_axes(array_names, array_axes)
-    collect(chain(map(flatten_array_axes, array_names, array_axes)...))
+function _splitall{N}(::Type{Val{N}}, As...)
+    tuple((Base.IteratorsMD.split(A, Val{N}) for A in As)...)
+end
+
+function _reshapeall{N}(::Type{Val{N}}, As...)
+    tuple((reshape(A, Val{N}) for A in As)...)
+end
+
+function _check_common_axes(common_axis_tuple)
+    if !all(axisname(first(common_axis_tuple)) .=== axisname.(common_axis_tuple[2:end]))
+        throw(ArgumentError("Leading common axes must have the same name in each array"))
+    end
+
+    return nothing
+end
+
+function _flat_axis_eltype(LType, trailing_axes)
+    eltypes = map(trailing_axes) do array_trailing_axes
+        Tuple{LType, eltype.(array_trailing_axes)...}
+    end
+
+    return typejoin(eltypes...)
+end
+
+function flatten{N, NA}(::Type{Val{N}}, As::Vararg{AxisArray, NA})
+    flatten(Val{N}, ntuple(identity, Val{NA}), As...)
 end
 
 """
     flatten(As::AxisArray...) -> AxisArray
-    flatten(last_dim::Integer, As::AxisArray...) -> AxisArray
+    flatten(last_dim::Type{Val{N}}, As::AxisArray...) -> AxisArray
+    flatten(last_dim::Type{Val{N}}, labels::Tuple, As::AxisArray...) -> AxisArray
 
-Concatenates AxisArrays with equal leading axes into a single AxisArray.
+Concatenates AxisArrays with N equal leading axes into a single AxisArray.
 All additional axes in any of the arrays are flattened into a single additional
 CategoricalVector{Tuple} axis.
 
 ### Arguments
 
-* `last_dim::Integer`: (optional) the greatest common dimension to share between all input
-                       arrays. The remaining axes are flattened. If this argument is not
-                       provided, the greatest common axis found among the input arrays is
-                       used. All preceeding axes must also be common to each input array, at
-                       the same dimension. Values from 0 up to one more than the minimum
-                       number of dimensions across all input arrays are allowed.
+* `::Type{Val{N}}`:   the greatest common dimension to share between all input
+                      arrays. The remaining axes are flattened. All N axes must be common
+                      to each input array, at the same dimension. Values from 0 up to the
+                      minimum number of dimensions across all input arrays are allowed.
+* `labels::Tuple`:    (optional) a label for each AxisArray in As which is used in the flat
+                      axis
 * `As::AxisArray...`: AxisArrays to be flattened together.
 """
-function flatten(As::AxisArray...; kwargs...)
-    gca = greatest_common_axis(As...)
+@generated function flatten{N, AN, LType}(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN})
+    if N < 0
+        throw(ArgumentError("flatten dimension N must be at least 0"))
+    end
 
-    return _flatten(gca, As...; kwargs...)
-end
-
-function flatten(last_dim::Integer, As::AxisArray...; kwargs...)
-    last_dim >= 0 || throw(ArgumentError("last_dim must be at least 0"))
-
-    if last_dim > minimum(map(ndims, As))
+    if N > minimum(ndims.(As))
         throw(ArgumentError(
-            "There must be at least $last_dim (last_dim) axes in each argument"
+            """
+            flatten dimension N must not be greater than the maximum number of dimensions
+            across all input arrays
+            """
         ))
     end
 
-    if last_dim > greatest_common_axis(As...)
-        throw(ArgumentError(
-            "The first $last_dim axes don't all match across all arguments"
-        ))
+    flat_dim = Val{N + 1}
+    flat_dim_int = Int(N) + 1
+
+    common_axes, trailing_axes = zip(_splitall(Val{N}, axisparams.(As)...)...)
+
+    foreach(_check_common_axes, zip(common_axes...))
+
+    new_common_axes = first(common_axes)
+    flat_axis_eltype = _flat_axis_eltype(LType, trailing_axes)
+    flat_axis_type = CategoricalVector{flat_axis_eltype, Vector{flat_axis_eltype}}
+
+    new_axes_type = Tuple{new_common_axes..., Axis{:flat, flat_axis_type}}
+    new_eltype = Base.promote_eltype(As...)
+
+    quote
+        common_axes, trailing_axes = zip(_splitall(Val{N}, axes.(As)...)...)
+
+        for common_axis_tuple in zip(common_axes...)
+            if !isempty(common_axis_tuple)
+                for common_axis in common_axis_tuple[2:end]
+                    if !all(axisvalues(common_axis) .== axisvalues(common_axis_tuple[1]))
+                        throw(ArgumentError(
+                            """
+                            Leading common axes must be identical across
+                            all input arrays"""
+                        ))
+                    end
+                end
+            end
+        end
+
+        array_data = cat($flat_dim, _reshapeall($flat_dim, As...)...)
+
+        axis_array_type = AxisArray{
+            $new_eltype,
+            $flat_dim_int,
+            Array{$new_eltype, $flat_dim_int},
+            $new_axes_type
+        }
+
+        new_axes = (
+            first(common_axes)...,
+            Axis{:flat, $flat_axis_type}($flat_axis_type(_flatten_axes(labels, trailing_axes))),
+        )
+
+        return axis_array_type(array_data, new_axes)
     end
-
-    return _flatten(last_dim, As...; kwargs...)
-end
-
-function _flatten(
-    last_dim::Integer,
-    As::AxisArray...;
-    array_names=1:length(As),
-    axis_name=nothing,
-)
-    common_axes = axes(As[1])[1:last_dim]
-
-    if axis_name === nothing
-        axis_name = _defaultdimname(last_dim + 1)
-    elseif !isa(axis_name, Symbol)
-        throw(ArgumentError("axis_name must be a Symbol"))
-    end
-
-    new_data = cat(last_dim + 1, (view(A.data, repeated(:, last_dim + 1)...) for A in As)...)
-    new_axis = flatten_axes(array_names, map(A -> axes(A)[last_dim+1:end], As))
-
-    # TODO: Consider creating a SortedVector axis when all flattened axes are Dimensional
-    return AxisArray(new_data, common_axes..., CategoricalVector(new_axis))
 end

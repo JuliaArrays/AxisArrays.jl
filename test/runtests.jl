@@ -1,5 +1,6 @@
 using AxisArrays
 using Base.Test
+import IterTools
 
 @testset "AxisArrays" begin
     # during this time there was an ambiguity in base with checkbounds_linear_indices

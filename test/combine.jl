@@ -52,15 +52,21 @@ ABdata[3:6,3:6,:,2] = Bdata
 A1 = AxisArray(A1data, Axis{:X}(1:2), Axis{:Y}(1:2))
 A2 = AxisArray(reshape(A2data, size(A2data)..., 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:Z}([:foo]))
 
-@test flatten(A1, A2; array_names=[:A1, :A2]) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:page}(CategoricalVector([(:A1,), (:A2, :foo)])))
-@test flatten(A1; array_names=[:foo]) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:page}(CategoricalVector([(:foo,)])))
-@test flatten(A1; array_names=[:a], axis_name=:ax) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:ax}(CategoricalVector([(:a,)])))
+@test @inferred(flatten(Val{2}, A1, A2)) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(1,), (2, :foo)])))
+@test @inferred(flatten(Val{2}, A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(1,)])))
+@test @inferred(flatten(Val{2}, A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:flat}(CategoricalVector([(1,)])))
 
-@test_throws ArgumentError flatten(-1, A1)
-@test_throws ArgumentError flatten(10, A1)
+@test @inferred(flatten(Val{2}, (:A1, :A2), A1, A2)) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(:A1,), (:A2, :foo)])))
+@test @inferred(flatten(Val{2}, (:foo,), A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(:foo,)])))
+@test @inferred(flatten(Val{2}, (:a,), A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:flat}(CategoricalVector([(:a,)])))
+
+@test @inferred(flatten(Val{0}, A1)) == AxisArray(vec(A1data), Axis{:flat}(CategoricalVector(collect(IterTools.product((1,), axisvalues(A1)...)))))
+@test @inferred(flatten(Val{1}, A1)) == AxisArray(A1data, Axis{:row}(1:2), Axis{:flat}(CategoricalVector(collect(IterTools.product((1,), axisvalues(A1)[2])))))
+
+@test_throws ArgumentError flatten(Val{-1}, A1)
+@test_throws ArgumentError flatten(Val{10}, A1)
 
 A1ᵀ = transpose(A1)
-@test flatten(A1, A1ᵀ) == flatten(0, A1, A1ᵀ)
-@test_throws ArgumentError flatten(-1, A1, A1ᵀ)
-@test_throws ArgumentError flatten(1, A1, A1ᵀ)
-@test_throws ArgumentError flatten(10, A1, A1ᵀ)
+@test_throws ArgumentError flatten(Val{-1}, A1, A1ᵀ)
+@test_throws ArgumentError flatten(Val{1}, A1, A1ᵀ)
+@test_throws ArgumentError flatten(Val{10}, A1, A1ᵀ)

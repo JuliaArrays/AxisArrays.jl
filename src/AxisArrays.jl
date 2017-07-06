@@ -3,6 +3,7 @@ __precompile__()
 module AxisArrays
 
 using Base: tail
+import Base.Iterators: repeated
 using RangeArrays, IntervalSets
 using IterTools
 using Compat
