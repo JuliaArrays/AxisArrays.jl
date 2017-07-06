@@ -13,7 +13,7 @@ Collaboration is welcome! This is still a work-in-progress. See [the roadmap](ht
 ## Example of currently-implemented behavior:
 
 ```julia
-julia> Pkg.add("AxisArrays.jl")
+julia> Pkg.add("AxisArrays")
        using AxisArrays, Unitful
        import Unitful: s, ms, µs
 
