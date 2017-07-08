@@ -17,57 +17,66 @@ julia> Pkg.add("AxisArrays")
        using AxisArrays, Unitful
        import Unitful: s, ms, µs
 
-julia> fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
-       y = randn(60*fs+1)*3
+julia> rng = MersenneTwister(123) # Seed a random number generator for repeatable examples
+       fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
+       y = randn(rng, 60*fs+1)*3
        for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50,
                   sin.(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
-           i = rand(round(Int,.001fs):1fs)
+           i = rand(rng, round(Int,.001fs):1fs)
            while i+length(spk)-1 < length(y)
                y[i:i+length(spk)-1] += spk
-               i += rand(round(Int,.001fs):1fs)
+               i += rand(rng, round(Int,.001fs):1fs)
            end
        end
 
 julia> A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time, 0.0 s:2.5e-5 s:60.0 s
-    :chan, [:c1,:c2]
-And data, a 2400001x2 Array{Float64,2}:
- -3.06091    -6.12181
-  0.152334    0.304668
-  7.86831    15.7366
- -1.4144     -2.82879
- -2.02881    -4.05763
-  9.87901    19.758
-  ⋮
- -0.0254444  -0.0508888
-  0.204358    0.408717
- -4.80093    -9.60186
-  5.39751    10.795
-  0.976276    1.95255
-  0.336558    0.673116
+    :chan, Symbol[:c1, :c2]
+And data, a 2400001×2 Array{Float64,2}:
+  3.5708     7.14161
+  6.14454   12.2891  
+  3.42795    6.85591
+  1.37825    2.75649
+ -1.19004   -2.38007
+ -1.99414   -3.98828
+  2.9429     5.88581
+ -0.226449  -0.452898
+  0.821446   1.64289
+ -0.582687  -1.16537
+  ⋮                  
+ -3.50593   -7.01187
+  2.26783    4.53565
+ -0.16902   -0.33804
+ -3.84852   -7.69703
+  0.226457   0.452914
+  0.560809   1.12162
+  4.67663    9.35326
+ -2.41005   -4.8201  
+ -3.71612   -7.43224
 ```
 
 AxisArrays behave like regular arrays, but they additionally use the axis
 information to enable all sorts of fancy behaviors. For example, we can specify
 indices in *any* order, just so long as we annotate them with the axis name:
 
-```jl
+```julia
 julia> A[Axis{:time}(4)]
-2-dimensional AxisArray{Float64,1,...} with axes:
-    :chan, Symbol[:c1,:c2]
+1-dimensional AxisArray{Float64,1,...} with axes:
+    :chan, Symbol[:c1, :c2]
 And data, a 2-element Array{Float64,1}:
- -1.4144  -2.82879
+ 1.37825
+ 2.75649
 
 julia> A[Axis{:chan}(:c2), Axis{:time}(1:5)]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 0.0 s:2.5e-5 s:0.0001 s
 And data, a 5-element Array{Float64,1}:
- -6.12181
-  0.304668
- 15.7366
- -2.82879
- -4.05763
+  7.14161
+ 12.2891
+  6.85591
+  2.75649
+ -2.38007
 ```
 
 We can also index by the *values* of each axis using an `Interval` type that
@@ -75,18 +84,18 @@ selects all values between two endpoints `a .. b` or the axis values directly.
 Notice that the returned AxisArray still has axis information itself... and it
 still has the correct time information for those datapoints!
 
-```jl
+```julia
 julia> A[40µs .. 220µs, :c1]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 5.0e-5 s:2.5e-5 s:0.0002 s
 And data, a 7-element Array{Float64,1}:
-  7.86831
- -1.4144
- -2.02881
-  9.87901
-  0.463201
-  2.49211
- -1.97716
+  3.42795
+  1.37825
+ -1.19004
+ -1.99414
+  2.9429  
+ -0.226449
+  0.821446
 
 julia> axes(ans, 1)
 AxisArrays.Axis{:time,StepRangeLen{Quantity{Float64, Dimensions:{𝐓}, Units:{s}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}}}}(5.0e-5 s:2.5e-5 s:0.0002 s)
@@ -96,15 +105,15 @@ You can also index by a single value on an axis using `atvalue`. This will drop
 a dimension. Indexing with an `Interval` type retains dimensions, even
 when the ends of the interval are equal:
 
-```jl
+```julia
 julia> A[atvalue(2.5e-5s), :c1]
-0.152334
+6.14453912336772
 
 julia> A[2.5e-5s..2.5e-5s, :c1]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 2.5e-5 s:2.5e-5 s:2.5e-5 s
 And data, a 1-element Array{Float64,1}:
-0.152334
+ 6.14454
 ```
 
 Sometimes, though, what we're really interested in is a window of time about a
@@ -113,18 +122,18 @@ to 220µs) might be more clearly expressed as a symmetrical window about a
 specific index where we know something interesting happened. To represent this,
 we use the `atindex` function:
 
-```jl
+```julia
 julia> A[atindex(-90µs .. 90µs, 5), :c2]
 1-dimensional AxisArray{Float64,1,...} with axes:
-    :time_sub, -7.5e-5 s:2.5e-5 s:7.5e-5 s
-And data, a 7-element SubArray{Float64,1,Array{Float64,2},Tuple{AxisArrays.AxisArray{Int64,1,UnitRange{Int64},Tuple{AxisArrays.Axis{:sub,SIUnits.SIRange{FloatRange{Float64},Float64,0,0,1,0,0,0,0,0,0}}}},Int64},0}:
- 15.7366
- -2.82879
- -4.05763
- 19.758
-  0.926402
-  4.98423
- -3.95433
+    :time_sub, -7.5e-5 s:2.5e-5 s:7.500000000000002e-5 s
+And data, a 7-element Array{Float64,1}:
+  6.85591
+  2.75649
+ -2.38007
+ -3.98828
+  5.88581
+ -0.452898
+  1.64289
 ```
 
 Note that the returned AxisArray has its time axis shifted to represent the
@@ -132,28 +141,34 @@ interval about the given index!  This simple concept can be extended to some
 very powerful behaviors. For example, let's threshold our data and find windows
 about those threshold crossings.
 
-```jl
-julia> idxs = find(diff(A[:,:c1] .< -15) .> 0)
-242-element Array{Int64,1}: ...
+```julia
+julia> idxs = find(diff(A[:,:c1] .< -15) .> 0);
 
 julia> spks = A[atindex(-200µs .. 800µs, idxs), :c1]
 2-dimensional AxisArray{Float64,2,...} with axes:
-    :time_sub, -0.000175 s:2.5e-5 s:0.000775 s
-    :time_rep, Quantity{Float64, Dimensions:{𝐓}, Units:{s}}[0.178725 s,0.806825 s,0.88305 s,1.47485 s,1.50465 s,1.53805 s,1.541025 s,2.16365 s,2.368425 s,2.739 s  …  57.797925 s,57.924075 s,58.06075 s,58.215125 s,58.6403 s,58.96215 s,58.990225 s,59.001325 s,59.48395 s,59.611525 s]
-And data, a 39x242 Array{Float64,2}:
- -1.53038     4.72882     5.8706    …  -0.231564      0.624714   3.44076
- -2.24961     2.12414     5.69936       7.00179       2.30993    5.20432
-  5.96311     3.9713     -4.38335       1.32617      -0.686648   0.443454
-  3.86592     5.7466      2.32469       1.30803       3.44585    1.17781
-  3.56837    -3.32178     1.16106      -3.91796       2.41779   -6.17495
- -9.52063    -2.07014    -1.18463   …  -3.55719       2.23117    1.76089
-  ⋮                                 ⋱                 ⋮
-  3.51708    -1.63627     0.281915     -2.41759       3.39403    0.101004
-  0.0421772  -2.13557    -4.71965       0.066912      3.25141   -0.445574
-  3.53238    -3.72221     1.68314   …  -4.15147      -5.25241   -1.77557
- -4.38307     1.38275    -1.33641       3.40342       0.272826  -3.22013
-  2.54846    -0.0194032   2.58679      -0.000676503  -2.71147   -0.288483
-  0.260694   -4.1724     -0.111377      3.283         1.77147   -0.367888
+    :time_sub, -0.0002 s:2.5e-5 s:0.0008 s
+    :time_rep, Quantity{Float64, Dimensions:{𝐓}, Units:{s}}[0.162 s, 0.20045 s, 0.28495 s, 0.530325 s, 0.821725 s, 1.0453 s, 1.11967 s, 1.1523 s, 1.22085 s, 1.6253 s  …  57.0094 s, 57.5818 s, 57.8716 s, 57.8806 s, 58.4353 s, 58.7041 s, 59.1015 s, 59.1783 s, 59.425 s, 59.5657 s]
+And data, a 41×247 Array{Float64,2}:
+   0.672063    7.25649      0.633375  …    1.54583     5.81194    -4.706
+  -1.65182     2.57487      0.477408       3.09505     3.52478     4.13037
+   4.46035     2.11313      4.78372        1.23385     7.2525      3.57485
+   5.25651    -2.19785      3.05933        0.965021    6.78414     5.94854
+   7.8537      0.345008     0.960533       0.812989    0.336715    0.303909
+   0.466816    0.643649    -3.67087   …    3.92978    -3.1242      0.789722
+  -6.0445    -13.2441      -4.60716        0.265144   -4.50987    -8.84897
+  -9.21703   -13.2254     -14.4409        -8.6664    -13.3457    -11.6213
+ -16.1809    -22.7037     -25.023        -15.9376    -28.0817    -16.996
+ -23.2671    -31.2021     -25.3787       -24.4914    -32.2599    -26.1118
+   ⋮                                  ⋱                ⋮
+  -0.301629    0.0683982   -4.36574        1.92362    -5.12333    -3.4431
+   4.7182      1.18615      4.40717       -4.51757    -8.64314     0.0800021
+  -2.43775    -0.151882    -1.40817       -3.38555    -2.23418     0.728549
+   3.2482     -0.60967      0.471288  …    2.53395     0.468817   -3.65905
+  -4.26967     2.24747     -3.13758        1.74967     4.5052     -0.145357
+  -0.752487    1.69446     -1.20491        1.71429     1.81936     0.290158
+   4.64348    -3.94187     -1.59213        7.15428    -0.539748    4.82309
+   1.09652    -2.66999      0.521931      -3.80528     1.70421     3.40583
+  -0.94341     2.60785     -3.34291   …    1.10584     4.31118     3.6404
 ```
 
 By indexing with a repeated interval, we have *added* a dimension to the
@@ -164,21 +179,6 @@ is that the returned matrix knows precisely where its data came from, and has
 labeled its dimensions appropriately. Not only is there the proper time
 base for each waveform, but we also have recorded the event times as the axis
 across the columns.
-
-Now we can do a cursory clustering analysis on these spike snippets to separate
-the two "neurons" back out into their own groups with Clustering.jl, and plot
-using Gadfly.
-
-```jl
-julia> using Clustering
-       Ks = Clustering.kmeans(spks.data, 2);
-
-julia> using Gadfly
-       plot(spks, x=:time_sub, y=:data, group=:time_rep, color=DataFrames.RepeatedVector(Ks.assignments, size(spks, 1), 1), Geom.line)
-```
-
-![clustered spike snippets](docs/spikes.png)
-
 
 ## Indexing
 
