@@ -20,7 +20,6 @@
 const Scalar = Union{Number, Dates.AbstractTime}
 Base.promote_rule{T<:Scalar}(::Type{ClosedInterval{T}}, ::Type{T}) = ClosedInterval{T}
 Base.promote_rule{T,S<:Scalar}(::Type{ClosedInterval{T}}, ::Type{S}) = ClosedInterval{promote_type(T,S)}
-Base.promote_rule{T,S}(::Type{ClosedInterval{T}}, ::Type{ClosedInterval{S}}) = ClosedInterval{promote_type(T,S)}
 
 import Base: isless, <=, >=, ==, +, -, *, /, ^, //
 # TODO: Is this a total ordering? (antisymmetric, transitive, total)?
@@ -62,7 +61,7 @@ immutable RepeatedInterval{T,S,A} <: AbstractVector{T}
 end
 RepeatedInterval{S,A<:AbstractVector}(window::ClosedInterval{S}, offsets::A) = RepeatedInterval{promote_type(ClosedInterval{S}, eltype(A)), S, A}(window, offsets)
 Base.size(r::RepeatedInterval) = size(r.offsets)
-@compat Base.IndexStyle(::Type{<:RepeatedInterval}) = IndexLinear()
+Base.IndexStyle(::Type{<:RepeatedInterval}) = IndexLinear()
 Base.getindex(r::RepeatedInterval, i::Int) = r.window + r.offsets[i]
 +(window::ClosedInterval, offsets::AbstractVector) = RepeatedInterval(window, offsets)
 +(offsets::AbstractVector, window::ClosedInterval) = RepeatedInterval(window, offsets)
@@ -84,5 +83,5 @@ immutable RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{
 end
 atindex(window::ClosedInterval, indexes::AbstractVector) = RepeatedIntervalAtIndexes(window, indexes)
 Base.size(r::RepeatedIntervalAtIndexes) = size(r.indexes)
-@compat Base.IndexStyle(::Type{<:RepeatedIntervalAtIndexes}) = IndexLinear()
+Base.IndexStyle(::Type{<:RepeatedIntervalAtIndexes}) = IndexLinear()
 Base.getindex(r::RepeatedIntervalAtIndexes, i::Int) = IntervalAtIndex(r.window, r.indexes[i])

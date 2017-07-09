@@ -45,23 +45,10 @@ end
     st = oftype(f, f + (first(s)-1)*step(r))
     range(st, step(r)*step(s), length(s))
 end
-if VERSION < v"0.6.0-dev.2390"
-    include_string("""
-    @inline function inbounds_getindex{T}(r::FloatRange{T}, i::Integer)
-        convert(T, (r.start + (i-1)*r.step)/r.divisor)
-    end
-    @inline function inbounds_getindex(r::FloatRange, s::OrdinalRange)
-        FloatRange(r.start + (first(s)-1)*r.step, step(s)*r.step, length(s), r.divisor)
-    end
-    """)
-else
-    include_string("""
-    @inline inbounds_getindex(r::StepRangeLen, i::Integer) = Base.unsafe_getindex(r, i)
-    @inline function inbounds_getindex(r::StepRangeLen, s::OrdinalRange)
-        vfirst = Base.unsafe_getindex(r, first(s))
-        StepRangeLen(vfirst, step(r)*step(s), length(s))
-    end
-    """)
+@inline inbounds_getindex(r::StepRangeLen, i::Integer) = Base.unsafe_getindex(r, i)
+@inline function inbounds_getindex(r::StepRangeLen, s::OrdinalRange)
+    vfirst = Base.unsafe_getindex(r, first(s))
+    StepRangeLen(vfirst, step(r)*step(s), length(s))
 end
 
 function unsafe_searchsortedlast{T<:Number}(a::Range{T}, x::Number)
