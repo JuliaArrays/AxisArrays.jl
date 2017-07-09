@@ -8,6 +8,7 @@ struct Value{T}
 end
 Value(x, tol=Base.rtoldefault(typeof(x))*abs(x)) = Value(promote(x,tol)...)
 atvalue(x; rtol=Base.rtoldefault(typeof(x)), atol=zero(x)) = Value(x, atol+rtol*abs(x))
+const Values = AbstractArray{<:Value}
 
 # For throwing a BoundsError with a Value index, we need to define the following
 # (note that we could inherit them for free, were Value <: Number)
@@ -280,6 +281,9 @@ end
             n += 1
         elseif I[i] <: AbstractArray{Bool}
             push!(ex.args, :(find(I[$i])))
+            n += 1
+        elseif I[i] <: Values
+            push!(ex.args, :(axisindexes.(A.axes[$i], I[$i])))
             n += 1
         elseif I[i] <: CartesianIndex
             for j = 1:length(I[i])
