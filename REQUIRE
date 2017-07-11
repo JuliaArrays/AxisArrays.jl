@@ -1,4 +1,4 @@
 julia 0.5
-IntervalSets
+IntervalSets 0.1
 RangeArrays
 Compat 0.19

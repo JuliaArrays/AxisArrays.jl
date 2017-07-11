@@ -20,7 +20,6 @@
 const Scalar = Union{Number, Dates.AbstractTime}
 Base.promote_rule{T<:Scalar}(::Type{ClosedInterval{T}}, ::Type{T}) = ClosedInterval{T}
 Base.promote_rule{T,S<:Scalar}(::Type{ClosedInterval{T}}, ::Type{S}) = ClosedInterval{promote_type(T,S)}
-Base.promote_rule{T,S}(::Type{ClosedInterval{T}}, ::Type{ClosedInterval{S}}) = ClosedInterval{promote_type(T,S)}
 
 import Base: isless, <=, >=, ==, +, -, *, /, ^, //
 # TODO: Is this a total ordering? (antisymmetric, transitive, total)?
