@@ -65,7 +65,7 @@ Base.size(v::SortedVector) = size(v.data)
 Base.size(v::SortedVector, i) = size(v.data, i)
 Base.indices(v::SortedVector) = indices(v.data)
 
-axistrait(::SortedVector) = Dimensional
+axistrait{T}(::Type{SortedVector{T}}) = Dimensional
 checkaxis(::SortedVector) = nothing
 
 
