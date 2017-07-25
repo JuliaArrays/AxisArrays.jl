@@ -1,3 +1,4 @@
 julia 0.6
 IntervalSets 0.1
 RangeArrays
+RecipesBase
