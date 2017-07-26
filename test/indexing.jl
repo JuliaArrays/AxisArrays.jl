@@ -39,7 +39,7 @@ D[1,1,1,1,1] = 10
 # Linear indexing across multiple dimensions drops tracking of those dims
 @test A[:].axes[1].val == 1:length(A)
 # TODO: remove the next 4 lines when we no longer feel we need to test for this
-VERSION >= v"0.6.0-dev" && info("partial linear indexing deprecation warning is expected")
+info("partial linear indexing deprecation warning is expected")
 B = A[1:2,:]
 @test B.axes[1].val == A.axes[1].val[1:2]
 @test B.axes[2].val == 1:Base.trailingsize(A,2)
@@ -193,10 +193,4 @@ A = AxisArray(OffsetArrays.OffsetArray([1 2; 3 4], 0:1, 1:2),
 @test_throws ArgumentError A[4.0]
 @test_throws ArgumentError A[BigFloat(1.0)]
 @test_throws ArgumentError A[1.0f0]
-if VERSION == v"0.5.2"
-    # Cannot compose @test_broken with @test_throws (Julia #21098)
-    # A[:,6.1] incorrectly throws a BoundsError instead of an ArgumentError on Julia 0.5.2
-    @test_broken A[:,6.1]
-else
-    @test_throws ArgumentError A[:,6.1]
-end
+@test_throws ArgumentError A[:,6.1]

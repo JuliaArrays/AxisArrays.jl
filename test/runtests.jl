@@ -3,10 +3,7 @@ using Base.Test
 import IterTools
 
 @testset "AxisArrays" begin
-    # during this time there was an ambiguity in base with checkbounds_linear_indices
-    if VERSION < v"0.6.0-dev.2374" || VERSION >= v"0.6.0-dev.2884"
-        @test isempty(detect_ambiguities(AxisArrays, Base, Core))
-    end
+    @test isempty(detect_ambiguities(AxisArrays, Base, Core))
 
     @testset "Core" begin
         include("core.jl")

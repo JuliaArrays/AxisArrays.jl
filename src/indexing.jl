@@ -20,7 +20,7 @@ Base.show(io::IO, v::Value) =
     print(io, string("Value(", v.val, ", tol=", v.tol, ")"))
 
 # Defer IndexStyle to the wrapped array
-@compat Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)
+Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)
 
 # Simple scalar indexing where we just set or return scalars
 @propagate_inbounds Base.getindex(A::AxisArray, idxs::Int...) = A.data[idxs...]
@@ -55,7 +55,7 @@ reaxis(A::AxisArray, I::Idx...) = _reaxis(make_axes_match(axes(A), I), I)
 # Now we can reaxis without worrying about mismatched axes/indices
 @inline _reaxis(axs::Tuple{}, idxs::Tuple{}) = ()
 # Scalars are dropped
-const ScalarIndex = @compat Union{Real, AbstractArray{<:Any, 0}}
+const ScalarIndex = Union{Real, AbstractArray{<:Any, 0}}
 @inline _reaxis(axs::Tuple, idxs::Tuple{ScalarIndex, Vararg{Any}}) = _reaxis(tail(axs), tail(idxs))
 # Colon passes straight through
 @inline _reaxis(axs::Tuple, idxs::Tuple{Colon, Vararg{Any}}) = (axs[1], _reaxis(tail(axs), tail(idxs))...)
@@ -66,7 +66,7 @@ const ScalarIndex = @compat Union{Real, AbstractArray{<:Any, 0}}
 # Vectors simply create new axes with the same name; just subsetted by their value
 @inline _new_axes{name}(ax::Axis{name}, idx::AbstractVector) = (Axis{name}(ax.val[idx]),)
 # Arrays create multiple axes with _N appended to the axis name containing their indices
-@generated function _new_axes{name, N}(ax::Axis{name}, idx::@compat(AbstractArray{<:Any,N}))
+@generated function _new_axes{name, N}(ax::Axis{name}, idx::AbstractArray{<:Any,N})
     newaxes = Expr(:tuple)
     for i=1:N
         push!(newaxes.args, :($(Axis{Symbol(name, "_", i)})(indices(idx, $i))))
@@ -74,7 +74,7 @@ const ScalarIndex = @compat Union{Real, AbstractArray{<:Any, 0}}
     newaxes
 end
 # And indexing with an AxisArray joins the name and overrides the values
-@generated function _new_axes{name, N}(ax::Axis{name}, idx::@compat(AxisArray{<:Any, N}))
+@generated function _new_axes{name, N}(ax::Axis{name}, idx::AxisArray{<:Any, N})
     newaxes = Expr(:tuple)
     idxnames = axisnames(idx)
     for i=1:N
@@ -88,21 +88,8 @@ end
 end
 
 # To resolve ambiguities, we need several definitions
-if VERSION >= v"0.6.0-dev.672"
-    using Base.AbstractCartesianIndex
-    @propagate_inbounds Base.view(A::AxisArray, idxs::Idx...) = AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
-else
-    @propagate_inbounds function Base.view{T,N}(A::AxisArray{T,N}, idxs::Vararg{Idx,N})
-        AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
-    end
-    @propagate_inbounds function Base.view(A::AxisArray, idx::Idx)
-        AxisArray(view(A.data, idx), reaxis(A, idx))
-    end
-    @propagate_inbounds function Base.view{N}(A::AxisArray, idxs::Vararg{Idx,N})
-        # this should eventually be deleted, see julia #14770
-        AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
-    end
-end
+using Base.AbstractCartesianIndex
+@propagate_inbounds Base.view(A::AxisArray, idxs::Idx...) = AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
 
 # Setindex is so much simpler. Just assign it to the data:
 @propagate_inbounds Base.setindex!(A::AxisArray, v, idxs::Idx...) = (A.data[idxs...] = v)
@@ -111,26 +98,9 @@ end
 @propagate_inbounds Base.getindex(A::AxisArray, idxs...) = A[to_index(A,idxs...)...]
 @propagate_inbounds Base.setindex!(A::AxisArray, v, idxs...) = (A[to_index(A,idxs...)...] = v)
 # Deal with lots of ambiguities here
-if VERSION >= v"0.6.0-dev.672"
-    @propagate_inbounds Base.view(A::AxisArray, idxs::ViewIndex...) = view(A, to_index(A,idxs...)...)
-    @propagate_inbounds Base.view(A::AxisArray, idxs::Union{ViewIndex,AbstractCartesianIndex}...) = view(A, to_index(A,Base.IteratorsMD.flatten(idxs)...)...)
-    @propagate_inbounds Base.view(A::AxisArray, idxs...) = view(A, to_index(A,idxs...)...)
-else
-    for T in (:ViewIndex, :Any)
-        @eval begin
-            @propagate_inbounds function Base.view{T,N}(A::AxisArray{T,N}, idxs::Vararg{$T,N})
-                view(A, to_index(A,idxs...)...)
-            end
-            @propagate_inbounds function Base.view(A::AxisArray, idx::$T)
-                view(A, to_index(A,idx)...)
-            end
-            @propagate_inbounds function Base.view{N}(A::AxisArray, idsx::Vararg{$T,N})
-                # this should eventually be deleted, see julia #14770
-                view(A, to_index(A,idxs...)...)
-            end
-        end
-    end
-end
+@propagate_inbounds Base.view(A::AxisArray, idxs::ViewIndex...) = view(A, to_index(A,idxs...)...)
+@propagate_inbounds Base.view(A::AxisArray, idxs::Union{ViewIndex,AbstractCartesianIndex}...) = view(A, to_index(A,Base.IteratorsMD.flatten(idxs)...)...)
+@propagate_inbounds Base.view(A::AxisArray, idxs...) = view(A, to_index(A,idxs...)...)
 
 # First is indexing by named axis. We simply sort the axes and re-dispatch.
 # When indexing by named axis the shapes of omitted dimensions are preserved

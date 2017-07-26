@@ -6,13 +6,11 @@ using Base: tail
 import Base.Iterators: repeated
 using RangeArrays, IntervalSets
 using IterTools
-using Compat
 
 export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, flatten
 
 # From IntervalSets:
 export ClosedInterval, ..
-Base.@deprecate_binding Interval ClosedInterval
 
 include("core.jl")
 include("intervals.jl")
