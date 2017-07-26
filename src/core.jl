@@ -293,13 +293,8 @@ end
 # Note that we only extend the following two methods, and then have it
 # dispatch to package-local `reduced_indices` and `reduced_indices0`
 # methods. This avoids a whole slew of ambiguities.
-if VERSION == v"0.5.0"
-    Base.reduced_dims(A::AxisArray, region)  = reduced_indices(axes(A), region)
-    Base.reduced_dims0(A::AxisArray, region) = reduced_indices0(axes(A), region)
-else
-    Base.reduced_indices(A::AxisArray, region)  = reduced_indices(axes(A), region)
-    Base.reduced_indices0(A::AxisArray, region) = reduced_indices0(axes(A), region)
-end
+Base.reduced_indices(A::AxisArray, region)  = reduced_indices(axes(A), region)
+Base.reduced_indices0(A::AxisArray, region) = reduced_indices0(axes(A), region)
 
 reduced_indices{N}(axs::Tuple{Vararg{Axis,N}}, ::Tuple{})  = axs
 reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, ::Tuple{}) = axs
@@ -509,7 +504,7 @@ axes(A::AbstractArray) = default_axes(A)
 axes(A::AbstractArray, dim::Int) = default_axes(A)[dim]
 
 ### Axis traits ###
-@compat abstract type AxisTrait end
+abstract type AxisTrait end
 immutable Dimensional <: AxisTrait end
 immutable Categorical <: AxisTrait end
 immutable Unsupported <: AxisTrait end
