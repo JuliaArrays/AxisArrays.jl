@@ -174,14 +174,29 @@ function _flat_axis_eltype(LType, trailing_axes)
     return typejoin(eltypes...)
 end
 
-function flatten{N, NA}(::Type{Val{N}}, As::Vararg{AxisArray, NA})
-    flatten(Val{N}, ntuple(identity, Val{NA}), As...)
+function flatten{N, AN}(::Type{Val{N}}, As::Vararg{AxisArray, AN})
+    flatten(Val{N}, ntuple(identity, Val{AN}), As...)
+end
+
+function flatten{N, AN, NewArrayType<:AbstractArray}(::Type{Val{N}}, ::Type{NewArrayType}, As::Vararg{AxisArray, AN})
+    flatten(Val{N}, NewArrayType, ntuple(identity, Val{AN}), As...)
+end
+
+@generated function flatten{N, AN, LType}(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN})
+    flat_dim = Val{N + 1}
+    flat_dim_int = Int(N) + 1
+    new_eltype = Base.promote_eltype(As...)
+
+    quote
+        flatten(Val{N}, Array{$new_eltype, $flat_dim_int}, labels, As...)
+    end
 end
 
 """
-    flatten(As::AxisArray...) -> AxisArray
-    flatten(last_dim::Type{Val{N}}, As::AxisArray...) -> AxisArray
-    flatten(last_dim::Type{Val{N}}, labels::Tuple, As::AxisArray...) -> AxisArray
+    flatten(::Type{Val{N}}, As::AxisArray...) -> AxisArray
+    flatten(::Type{Val{N}}, labels::Tuple, As::AxisArray...) -> AxisArray
+    flatten(::Type{Val{N}}, ::Type{NewArrayType}, As::AxisArray...) -> AxisArray
+    flatten(::Type{Val{N}}, ::Type{NewArrayType}, labels::Tuple, As::AxisArray...) -> AxisArray
 
 Concatenates AxisArrays with N equal leading axes into a single AxisArray.
 All additional axes in any of the arrays are flattened into a single additional
@@ -189,15 +204,22 @@ CategoricalVector{Tuple} axis.
 
 ### Arguments
 
-* `::Type{Val{N}}`:   the greatest common dimension to share between all input
-                      arrays. The remaining axes are flattened. All N axes must be common
-                      to each input array, at the same dimension. Values from 0 up to the
-                      minimum number of dimensions across all input arrays are allowed.
-* `labels::Tuple`:    (optional) a label for each AxisArray in As which is used in the flat
-                      axis
+* `::Type{Val{N}}`: the greatest common dimension to share between all input
+                    arrays. The remaining axes are flattened. All N axes must be common
+                    to each input array, at the same dimension. Values from 0 up to the
+                    minimum number of dimensions across all input arrays are allowed.
+* `labels::Tuple`: (optional) a label for each AxisArray in As which is used in the flat
+                   axis.
+* `::Type{NewArrayType<:AbstractArray{_, N+1}}`: (optional) the desired underlying array
+                                                 type for the returned AxisArray.
 * `As::AxisArray...`: AxisArrays to be flattened together.
 """
-@generated function flatten{N, AN, LType}(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN})
+@generated function flatten{N, AN, LType, NewArrayType<:AbstractArray}(
+    ::Type{Val{N}},
+    ::Type{NewArrayType},
+    labels::NTuple{AN, LType},
+    As::Vararg{AxisArray, AN},
+)
     if N < 0
         throw(ArgumentError("flatten dimension N must be at least 0"))
     end
@@ -247,7 +269,7 @@ CategoricalVector{Tuple} axis.
         axis_array_type = AxisArray{
             $new_eltype,
             $flat_dim_int,
-            Array{$new_eltype, $flat_dim_int},
+            $NewArrayType,
             $new_axes_type
         }
 

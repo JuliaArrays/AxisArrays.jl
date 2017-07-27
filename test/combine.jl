@@ -62,6 +62,9 @@ A2 = AxisArray(reshape(A2data, size(A2data)..., 1), Axis{:X}(1:2), Axis{:Y}(1:2)
 
 @test @inferred(flatten(Val{0}, A1)) == AxisArray(vec(A1data), Axis{:flat}(CategoricalVector(collect(IterTools.product((1,), axisvalues(A1)...)))))
 @test @inferred(flatten(Val{1}, A1)) == AxisArray(A1data, Axis{:row}(1:2), Axis{:flat}(CategoricalVector(collect(IterTools.product((1,), axisvalues(A1)[2])))))
+@test @inferred(flatten(Val{1}, (1,), A1)) == flatten(Val{1}, A1)
+@test @inferred(flatten(Val{1}, Array{Int, 2}, A1)) == flatten(Val{1}, A1)
+@test @inferred(flatten(Val{1}, Array{Int, 2}, (1,), A1)) == flatten(Val{1}, A1)
 
 @test_throws ArgumentError flatten(Val{-1}, A1)
 @test_throws ArgumentError flatten(Val{10}, A1)
