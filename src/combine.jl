@@ -174,31 +174,31 @@ function _flat_axis_eltype(LType, trailing_axes)
     return typejoin(eltypes...)
 end
 
-function flatten{N, AN}(::Type{Val{N}}, As::Vararg{AxisArray, AN})
-    flatten(Val{N}, ntuple(identity, Val{AN}), As...)
+function collapse{N, AN}(::Type{Val{N}}, As::Vararg{AxisArray, AN})
+    collapse(Val{N}, ntuple(identity, Val{AN}), As...)
 end
 
-function flatten{N, AN, NewArrayType<:AbstractArray}(::Type{Val{N}}, ::Type{NewArrayType}, As::Vararg{AxisArray, AN})
-    flatten(Val{N}, NewArrayType, ntuple(identity, Val{AN}), As...)
+function collapse{N, AN, NewArrayType<:AbstractArray}(::Type{Val{N}}, ::Type{NewArrayType}, As::Vararg{AxisArray, AN})
+    collapse(Val{N}, NewArrayType, ntuple(identity, Val{AN}), As...)
 end
 
-@generated function flatten{N, AN, LType}(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN})
+@generated function collapse{N, AN, LType}(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN})
     flat_dim = Val{N + 1}
     flat_dim_int = Int(N) + 1
     new_eltype = Base.promote_eltype(As...)
 
     quote
-        flatten(Val{N}, Array{$new_eltype, $flat_dim_int}, labels, As...)
+        collapse(Val{N}, Array{$new_eltype, $flat_dim_int}, labels, As...)
     end
 end
 
 """
-    flatten(::Type{Val{N}}, As::AxisArray...) -> AxisArray
-    flatten(::Type{Val{N}}, labels::Tuple, As::AxisArray...) -> AxisArray
-    flatten(::Type{Val{N}}, ::Type{NewArrayType}, As::AxisArray...) -> AxisArray
-    flatten(::Type{Val{N}}, ::Type{NewArrayType}, labels::Tuple, As::AxisArray...) -> AxisArray
+    collapse(::Type{Val{N}}, As::AxisArray...) -> AxisArray
+    collapse(::Type{Val{N}}, labels::Tuple, As::AxisArray...) -> AxisArray
+    collapse(::Type{Val{N}}, ::Type{NewArrayType}, As::AxisArray...) -> AxisArray
+    collapse(::Type{Val{N}}, ::Type{NewArrayType}, labels::Tuple, As::AxisArray...) -> AxisArray
 
-Concatenates `AxisArray`s with `N` equal leading axes into a single `AxisArray`.
+Collapses `AxisArray`s with `N` equal leading axes into a single `AxisArray`.
 All additional axes in any of the arrays are flattened into a single additional
 `CategoricalVector{Tuple}` axis.
 
@@ -212,7 +212,7 @@ All additional axes in any of the arrays are flattened into a single additional
                    axis.
 * `::Type{NewArrayType<:AbstractArray{_, N+1}}`: (optional) the desired underlying array
                                                  type for the returned `AxisArray`.
-* `As::AxisArray...`: `AxisArray`s to be flattened together.
+* `As::AxisArray...`: `AxisArray`s to be collapsed together.
 
 ### Examples
 
@@ -248,7 +248,7 @@ And data, a 10×2 Array{Float64,2}:
  0.650277     0.135061
  0.688773     0.513845
 
-julia> flattened = flatten(Val{1}, (:price, :size), price_data, size_data)
+julia> collapsed = collapse(Val{1}, (:price, :size), price_data, size_data)
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time, 2016-01-01:1 day:2016-01-10
     :flat, Tuple{Symbol,Vararg{Symbol,N} where N}[(:price,), (:size, :area), (:size, :volume)]
@@ -264,23 +264,23 @@ And data, a 10×3 Array{Float64,2}:
  0.393801  0.650277     0.135061
  0.260207  0.688773     0.513845
 
-julia> flattened[Axis{:flat}(:size)] == size_data
+julia> collapsed[Axis{:flat}(:size)] == size_data
 true
 ```
 
 """
-@generated function flatten(::Type{Val{N}},
-                            ::Type{NewArrayType},
-                            labels::NTuple{AN, LType},
-                            As::Vararg{AxisArray, AN}) where {N, AN, LType, NewArrayType<:AbstractArray}
+@generated function collapse(::Type{Val{N}},
+                             ::Type{NewArrayType},
+                             labels::NTuple{AN, LType},
+                             As::Vararg{AxisArray, AN}) where {N, AN, LType, NewArrayType<:AbstractArray}
     if N < 0
-        throw(ArgumentError("flatten dimension N must be at least 0"))
+        throw(ArgumentError("collapse dimension N must be at least 0"))
     end
 
     if N > minimum(ndims.(As))
         throw(ArgumentError(
             """
-            flatten dimension N must not be greater than the maximum number of dimensions
+            collapse dimension N must not be greater than the maximum number of dimensions
             across all input arrays
             """
         ))

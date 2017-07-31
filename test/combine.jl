@@ -48,28 +48,28 @@ ABdata[3:6,3:6,:,2] = Bdata
 @test join(A,B,method=:right) == AxisArray(ABdata[3:6, 3:6, :, :], B.axes...)
 @test join(A,B,method=:outer) == join(A,B)
 
-# flatten
+# collapse
 A1 = AxisArray(A1data, Axis{:X}(1:2), Axis{:Y}(1:2))
 A2 = AxisArray(reshape(A2data, size(A2data)..., 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:Z}([:foo]))
 
-@test @inferred(flatten(Val{2}, A1, A2)) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(1,), (2, :foo)])))
-@test @inferred(flatten(Val{2}, A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(1,)])))
-@test @inferred(flatten(Val{2}, A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:flat}(CategoricalVector([(1,)])))
+@test @inferred(collapse(Val{2}, A1, A2)) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(1,), (2, :foo)])))
+@test @inferred(collapse(Val{2}, A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(1,)])))
+@test @inferred(collapse(Val{2}, A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:flat}(CategoricalVector([(1,)])))
 
-@test @inferred(flatten(Val{2}, (:A1, :A2), A1, A2)) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(:A1,), (:A2, :foo)])))
-@test @inferred(flatten(Val{2}, (:foo,), A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(:foo,)])))
-@test @inferred(flatten(Val{2}, (:a,), A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:flat}(CategoricalVector([(:a,)])))
+@test @inferred(collapse(Val{2}, (:A1, :A2), A1, A2)) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(:A1,), (:A2, :foo)])))
+@test @inferred(collapse(Val{2}, (:foo,), A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:flat}(CategoricalVector([(:foo,)])))
+@test @inferred(collapse(Val{2}, (:a,), A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:flat}(CategoricalVector([(:a,)])))
 
-@test @inferred(flatten(Val{0}, A1)) == AxisArray(vec(A1data), Axis{:flat}(CategoricalVector(collect(IterTools.product((1,), axisvalues(A1)...)))))
-@test @inferred(flatten(Val{1}, A1)) == AxisArray(A1data, Axis{:row}(1:2), Axis{:flat}(CategoricalVector(collect(IterTools.product((1,), axisvalues(A1)[2])))))
-@test @inferred(flatten(Val{1}, (1,), A1)) == flatten(Val{1}, A1)
-@test @inferred(flatten(Val{1}, Array{Int, 2}, A1)) == flatten(Val{1}, A1)
-@test @inferred(flatten(Val{1}, Array{Int, 2}, (1,), A1)) == flatten(Val{1}, A1)
+@test @inferred(collapse(Val{0}, A1)) == AxisArray(vec(A1data), Axis{:flat}(CategoricalVector(collect(IterTools.product((1,), axisvalues(A1)...)))))
+@test @inferred(collapse(Val{1}, A1)) == AxisArray(A1data, Axis{:row}(1:2), Axis{:flat}(CategoricalVector(collect(IterTools.product((1,), axisvalues(A1)[2])))))
+@test @inferred(collapse(Val{1}, (1,), A1)) == collapse(Val{1}, A1)
+@test @inferred(collapse(Val{1}, Array{Int, 2}, A1)) == collapse(Val{1}, A1)
+@test @inferred(collapse(Val{1}, Array{Int, 2}, (1,), A1)) == collapse(Val{1}, A1)
 
-@test_throws ArgumentError flatten(Val{-1}, A1)
-@test_throws ArgumentError flatten(Val{10}, A1)
+@test_throws ArgumentError collapse(Val{-1}, A1)
+@test_throws ArgumentError collapse(Val{10}, A1)
 
 A1ᵀ = transpose(A1)
-@test_throws ArgumentError flatten(Val{-1}, A1, A1ᵀ)
-@test_throws ArgumentError flatten(Val{1}, A1, A1ᵀ)
-@test_throws ArgumentError flatten(Val{10}, A1, A1ᵀ)
+@test_throws ArgumentError collapse(Val{-1}, A1, A1ᵀ)
+@test_throws ArgumentError collapse(Val{1}, A1, A1ᵀ)
+@test_throws ArgumentError collapse(Val{10}, A1, A1ᵀ)
