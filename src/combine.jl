@@ -269,12 +269,10 @@ true
 ```
 
 """
-@generated function flatten{N, AN, LType, NewArrayType<:AbstractArray}(
-    ::Type{Val{N}},
-    ::Type{NewArrayType},
-    labels::NTuple{AN, LType},
-    As::Vararg{AxisArray, AN},
-)
+@generated function flatten(::Type{Val{N}},
+                            ::Type{NewArrayType},
+                            labels::NTuple{AN, LType},
+                            As::Vararg{AxisArray, AN}) where {N, AN, LType, NewArrayType<:AbstractArray}
     if N < 0
         throw(ArgumentError("flatten dimension N must be at least 0"))
     end
