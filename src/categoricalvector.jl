@@ -1,6 +1,3 @@
-
-export CategoricalVector
-
 """
 A CategoricalVector is an AbstractVector which is treated as a categorical axis regardless
 of the element type. Duplicate values are not allowed but are not filtered out.
