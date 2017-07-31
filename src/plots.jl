@@ -2,9 +2,9 @@ using RecipesBase
 
 @recipe function plot{T}(arr::AxisArray{T, 1})
     xlabel --> axisnames(arr)[1]
-    xticks --> (eachindex(arr.data), axisvalues(arr)[1])
     xrotation --> -45
-    eachindex(arr.data), arr.data
+    xs = first(axisvalues(arr))
+    xs, arr.data
 end
 
 @recipe function plot{T}(arr::AxisArray{T, 2})
