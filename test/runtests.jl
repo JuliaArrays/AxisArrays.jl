@@ -1,5 +1,6 @@
 using AxisArrays
 using Base.Test
+import IterTools
 
 @testset "AxisArrays" begin
     @test isempty(detect_ambiguities(AxisArrays, Base, Core))
@@ -18,6 +19,10 @@ using Base.Test
 
     @testset "SortedVector" begin
         include("sortedvector.jl")
+    end
+
+    @testset "CategoricalVector" begin
+        include("categoricalvector.jl")
     end
 
     @testset "Search" begin
