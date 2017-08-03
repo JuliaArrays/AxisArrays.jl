@@ -140,13 +140,13 @@ function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
 
 end #join
 
-function _flatten_array_axes(array_name, array_axes...)
+function _collapse_array_axes(array_name, array_axes...)
     ((array_name, (idx isa Tuple ? idx : (idx,))...) for idx in product((Ax.val for Ax in array_axes)...))
 end
 
-function _flatten_axes(array_names, array_axes)
+function _collapse_axes(array_names, array_axes)
     collect(Iterators.flatten(map(array_names, array_axes) do tup_name, tup_array_axes
-        _flatten_array_axes(tup_name, tup_array_axes...)
+        _collapse_array_axes(tup_name, tup_array_axes...)
     end))
 end
 
@@ -166,7 +166,7 @@ function _check_common_axes(common_axis_tuple)
     return nothing
 end
 
-function _flat_axis_eltype(LType, trailing_axes)
+function _collapsed_axis_eltype(LType, trailing_axes)
     eltypes = map(trailing_axes) do array_trailing_axes
         Tuple{LType, eltype.(array_trailing_axes)...}
     end
@@ -183,12 +183,11 @@ function collapse{N, AN, NewArrayType<:AbstractArray}(::Type{Val{N}}, ::Type{New
 end
 
 @generated function collapse{N, AN, LType}(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN})
-    flat_dim = Val{N + 1}
-    flat_dim_int = Int(N) + 1
+    collapsed_dim_int = Int(N) + 1
     new_eltype = Base.promote_eltype(As...)
 
     quote
-        collapse(Val{N}, Array{$new_eltype, $flat_dim_int}, labels, As...)
+        collapse(Val{N}, Array{$new_eltype, $collapsed_dim_int}, labels, As...)
     end
 end
 
@@ -199,17 +198,17 @@ end
     collapse(::Type{Val{N}}, ::Type{NewArrayType}, labels::Tuple, As::AxisArray...) -> AxisArray
 
 Collapses `AxisArray`s with `N` equal leading axes into a single `AxisArray`.
-All additional axes in any of the arrays are flattened into a single additional
-`CategoricalVector{Tuple}` axis.
+All additional axes in any of the arrays are collapsed into a single additional
+axis of type `Axis{:collapsed, CategoricalVector{Tuple}}`.
 
 ### Arguments
 
 * `::Type{Val{N}}`: the greatest common dimension to share between all input
-                    arrays. The remaining axes are flattened. All `N` axes must be common
+                    arrays. The remaining axes are collapsed. All `N` axes must be common
                     to each input array, at the same dimension. Values from `0` up to the
                     minimum number of dimensions across all input arrays are allowed.
-* `labels::Tuple`: (optional) a label for each `AxisArray` in `As` which is used in the flat
-                   axis.
+* `labels::Tuple`: (optional) an index for each array in `As` used as the leading element in
+                   the index tuples in the `:collapsed` axis. Defaults to `1:length(As)`.
 * `::Type{NewArrayType<:AbstractArray{_, N+1}}`: (optional) the desired underlying array
                                                  type for the returned `AxisArray`.
 * `As::AxisArray...`: `AxisArray`s to be collapsed together.
@@ -251,7 +250,7 @@ And data, a 10×2 Array{Float64,2}:
 julia> collapsed = collapse(Val{1}, (:price, :size), price_data, size_data)
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time, 2016-01-01:1 day:2016-01-10
-    :flat, Tuple{Symbol,Vararg{Symbol,N} where N}[(:price,), (:size, :area), (:size, :volume)]
+    :collapsed, Tuple{Symbol,Vararg{Symbol,N} where N}[(:price,), (:size, :area), (:size, :volume)]
 And data, a 10×3 Array{Float64,2}:
  0.885014  0.159434     0.456992
  0.418562  0.344521     0.374623
@@ -264,7 +263,7 @@ And data, a 10×3 Array{Float64,2}:
  0.393801  0.650277     0.135061
  0.260207  0.688773     0.513845
 
-julia> collapsed[Axis{:flat}(:size)] == size_data
+julia> collapsed[Axis{:collapsed}(:size)] == size_data
 true
 ```
 
@@ -286,18 +285,18 @@ true
         ))
     end
 
-    flat_dim = Val{N + 1}
-    flat_dim_int = Int(N) + 1
+    collapsed_dim = Val{N + 1}
+    collapsed_dim_int = Int(N) + 1
 
     common_axes, trailing_axes = zip(_splitall(Val{N}, axisparams.(As)...)...)
 
     foreach(_check_common_axes, zip(common_axes...))
 
     new_common_axes = first(common_axes)
-    flat_axis_eltype = _flat_axis_eltype(LType, trailing_axes)
-    flat_axis_type = CategoricalVector{flat_axis_eltype, Vector{flat_axis_eltype}}
+    collapsed_axis_eltype = _collapsed_axis_eltype(LType, trailing_axes)
+    collapsed_axis_type = CategoricalVector{collapsed_axis_eltype, Vector{collapsed_axis_eltype}}
 
-    new_axes_type = Tuple{new_common_axes..., Axis{:flat, flat_axis_type}}
+    new_axes_type = Tuple{new_common_axes..., Axis{:collapsed, collapsed_axis_type}}
     new_eltype = Base.promote_eltype(As...)
 
     quote
@@ -317,18 +316,18 @@ true
             end
         end
 
-        array_data = cat($flat_dim, _reshapeall($flat_dim, As...)...)
+        array_data = cat($collapsed_dim, _reshapeall($collapsed_dim, As...)...)
 
         axis_array_type = AxisArray{
             $new_eltype,
-            $flat_dim_int,
+            $collapsed_dim_int,
             $NewArrayType,
             $new_axes_type
         }
 
         new_axes = (
             first(common_axes)...,
-            Axis{:flat, $flat_axis_type}($flat_axis_type(_flatten_axes(labels, trailing_axes))),
+            Axis{:collapsed, $collapsed_axis_type}($collapsed_axis_type(_collapse_axes(labels, trailing_axes))),
         )
 
         return axis_array_type(array_data, new_axes)
