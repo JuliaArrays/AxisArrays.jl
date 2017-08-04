@@ -1,12 +1,6 @@
 # Core types and definitions
 
-if VERSION < v"0.5.0-dev"
-    macro pure(ex)
-        esc(ex)
-    end
-else
-    using Base: @pure
-end
+using Base: @pure
 
 const Symbols = Tuple{Symbol,Vararg{Symbol}}
 
