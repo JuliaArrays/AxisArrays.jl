@@ -145,6 +145,16 @@ A = @inferred(AxisArray(reshape(1:24, 2,3,4),
               Axis{:y}(1//10:1//10:3//10),
               Axis{:z}(["a", "b", "c", "d"])))
 
+# Ensure Axes conform to requirements
+@test_throws ArgumentError AxisArray(1:3, [1,2,1])
+@test_throws ArgumentError AxisArray(1:3, -3:-1:1)
+@test_throws ArgumentError AxisArray(1:3, [:a,:b,:a])
+@test_throws ArgumentError A[[2,1], :, :]
+@test_throws ArgumentError A[:, [1,2,1], :]
+@test_throws ArgumentError A[:, :, [1, 1, 2]]
+@test A[1, 1, ["a", "b"]] == [1, 7]
+@test_broken A[1, 1, ["b", "a"]] == [7, 1]
+
 # Test axisdim
 @test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == 1
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2
