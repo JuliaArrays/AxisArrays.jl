@@ -70,6 +70,19 @@ B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 
 @test B[Axis{:row}(ClosedInterval(0.15, 0.3))] == @view(B[Axis{:row}(ClosedInterval(0.15, 0.3))]) == B[2:3,:]
 
+# Test indexing by Intervals that aren't of the form step:step:last
+B = AxisArray(reshape(1:15, 5,3), 1.1:0.1:1.5, [:a, :b, :c])
+@test B[ClosedInterval(1.0,  1.5), :] == B[ClosedInterval(1.0,  1.5)] == B[:,:]
+@test B[ClosedInterval(1.0,  1.3), :] == B[ClosedInterval(1.0,  1.3)] == B[1:3,:]
+@test B[ClosedInterval(1.15, 1.3), :] == B[ClosedInterval(1.15, 1.3)] == B[2:3,:]
+@test B[ClosedInterval(1.2,  1.5), :] == B[ClosedInterval(1.2,  1.5)] == B[2:end,:]
+@test B[ClosedInterval(1.2,  1.6), :] == B[ClosedInterval(1.2,  1.6)] == B[2:end,:]
+@test @view(B[ClosedInterval(1.0,  1.5), :]) == @view(B[ClosedInterval(1.0,  1.5)]) == B[:,:]
+@test @view(B[ClosedInterval(1.0,  1.3), :]) == @view(B[ClosedInterval(1.0,  1.3)]) == B[1:3,:]
+@test @view(B[ClosedInterval(1.15, 1.3), :]) == @view(B[ClosedInterval(1.15, 1.3)]) == B[2:3,:]
+@test @view(B[ClosedInterval(1.2,  1.5), :]) == @view(B[ClosedInterval(1.2,  1.5)]) == B[2:end,:]
+@test @view(B[ClosedInterval(1.2,  1.6), :]) == @view(B[ClosedInterval(1.2,  1.6)]) == B[2:end,:]
+
 A = AxisArray(reshape(1:256, 4,4,4,4), Axis{:d1}(.1:.1:.4), Axis{:d2}(1//10:1//10:4//10), Axis{:d3}(["1","2","3","4"]), Axis{:d4}([:a, :b, :c, :d]))
 ax1 = axes(A)[1]
 @test A[Axis{:d1}(2)] == A[ax1(2)]
@@ -115,6 +128,7 @@ AxisArrays.axistrait(::AbstractVector{IntLike}) = AxisArrays.Dimensional
 end
 
 for (r, Irel) in ((0.1:0.1:10.0, -0.5..0.5),  # FloatRange
+                  (22.1:0.1:32.0, -0.5..0.5),
                   (linspace(0.1, 10.0, 100), -0.51..0.51),  # LinSpace
                   (IL.IntLike(1):IL.IntLike(1):IL.IntLike(100),
                    IL.IntLike(-5)..IL.IntLike(5))) # StepRange
@@ -194,3 +208,11 @@ A = AxisArray(OffsetArrays.OffsetArray([1 2; 3 4], 0:1, 1:2),
 @test_throws ArgumentError A[BigFloat(1.0)]
 @test_throws ArgumentError A[1.0f0]
 @test_throws ArgumentError A[:,6.1]
+
+# Test using dates
+using Base.Dates: Day, Month
+A = AxisArray(1:365, Date(2017,1,1):Date(2017,12,31))
+@test A[Date(2017,2,1) .. Date(2017,2,28)] == collect(31 + (1:28)) # February
+@test A[(-Day(13)..Day(14)) + Date(2017,2,14)] == collect(31 + (1:28))
+@test A[(-Day(14)..Day(14)) + DateTime(2017,2,14,12)] == collect(31 + (1:28))
+@test A[(Day(0)..Day(6)) + (Date(2017,1,1):Month(1):Date(2017,4,12))] == [1:7 32:38 60:66 91:97]
