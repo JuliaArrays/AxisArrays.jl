@@ -18,8 +18,8 @@
 # could be considered as <: Number themselves. We do this in general for any
 # supported Scalar:
 const Scalar = Union{Number, Dates.AbstractTime}
-Base.promote_rule{T<:Scalar}(::Type{ClosedInterval{T}}, ::Type{T}) = ClosedInterval{T}
-Base.promote_rule{T,S<:Scalar}(::Type{ClosedInterval{T}}, ::Type{S}) = ClosedInterval{promote_type(T,S)}
+Base.promote_rule(::Type{ClosedInterval{T}}, ::Type{T}) where {T<:Scalar} = ClosedInterval{T}
+Base.promote_rule(::Type{ClosedInterval{T}}, ::Type{S}) where {T,S<:Scalar} = ClosedInterval{promote_type(T,S)}
 
 import Base: isless, <=, >=, ==, +, -, *, /, ^, //
 # TODO: Is this a total ordering? (antisymmetric, transitive, total)?
@@ -59,7 +59,8 @@ immutable RepeatedInterval{T,S,A} <: AbstractVector{T}
     window::ClosedInterval{S}
     offsets::A # A <: AbstractVector
 end
-RepeatedInterval{S,A<:AbstractVector}(window::ClosedInterval{S}, offsets::A) = RepeatedInterval{promote_type(ClosedInterval{S}, eltype(A)), S, A}(window, offsets)
+RepeatedInterval(window::ClosedInterval{S}, offsets::A) where {S,A<:AbstractVector} =
+    RepeatedInterval{promote_type(ClosedInterval{S}, eltype(A)), S, A}(window, offsets)
 Base.size(r::RepeatedInterval) = size(r.offsets)
 Base.IndexStyle(::Type{<:RepeatedInterval}) = IndexLinear()
 Base.getindex(r::RepeatedInterval, i::Int) = r.window + r.offsets[i]

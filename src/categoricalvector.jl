@@ -62,9 +62,9 @@ checkaxis(::CategoricalVector) = nothing
 ## Add some special indexing for CategoricalVector{Tuple}'s to achieve something like
 ## Panda's hierarchical indexing
 
-axisindexes{T<:Tuple,S,A}(ax::Axis{S,CategoricalVector{T,A}}, idx) = axisindexes(ax, (idx,))
+axisindexes(ax::Axis{S,CategoricalVector{T,A}}, idx) where {T<:Tuple,S,A} = axisindexes(ax, (idx,))
 
-function axisindexes{T<:Tuple,S,A}(ax::Axis{S,CategoricalVector{T,A}}, idx::Tuple)
+function axisindexes(ax::Axis{S,CategoricalVector{T,A}}, idx::Tuple) where {T<:Tuple,S,A}
     collect(filter(ax_idx->_tuple_matches(ax.val[ax_idx], idx), indices(ax.val)...))
 end
 
@@ -78,5 +78,5 @@ function _tuple_matches(element::Tuple, idx::Tuple)
     return true
 end
 
-axisindexes{T<:Tuple,S,A}(ax::Axis{S,CategoricalVector{T,A}}, idx::AbstractArray) =
+axisindexes(ax::Axis{S,CategoricalVector{T,A}}, idx::AbstractArray) where {T<:Tuple,S,A} =
     vcat([axisindexes(ax, i) for i in idx]...)

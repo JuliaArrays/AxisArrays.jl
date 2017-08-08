@@ -9,11 +9,11 @@ function equalvalued(X::NTuple)
     return allequal
 end #equalvalued
 
-sizes{T<:AxisArray}(As::T...) = tuple(zip(map(a -> map(length, indices(a)), As)...)...)
-matchingdims{N,T<:AxisArray}(As::NTuple{N,T}) = all(equalvalued, sizes(As...))
-matchingdimsexcept{N,T<:AxisArray}(As::NTuple{N,T}, n::Int) = all(equalvalued, sizes(As...)[[1:n-1; n+1:end]])
+sizes(As::T...) where {T<:AxisArray} = tuple(zip(map(a -> map(length, indices(a)), As)...)...)
+matchingdims(As::NTuple{N,T}) where {N,T<:AxisArray} = all(equalvalued, sizes(As...))
+matchingdimsexcept(As::NTuple{N,T}, n::Int) where {N,T<:AxisArray} = all(equalvalued, sizes(As...)[[1:n-1; n+1:end]])
 
-function Base.cat{T}(n::Integer, As::AxisArray{T}...)
+function Base.cat(n::Integer, As::AxisArray{T}...) where T
     if n <= ndims(As[1])
         matchingdimsexcept(As, n) || error("All non-concatenated axes must be identically-valued")
         newaxis = Axis{axisnames(As[1])[n]}(vcat(map(A -> A.axes[n].val, As)...))
@@ -25,7 +25,7 @@ function Base.cat{T}(n::Integer, As::AxisArray{T}...)
     end #if
 end #Base.cat
 
-function axismerge{name,T}(method::Symbol, axes::Axis{name,T}...)
+function axismerge(method::Symbol, axes::Axis{name,T}...) where {name,T}
 
     axisvals = if method == :inner
         intersect(axisvalues(axes...)...)
@@ -45,7 +45,7 @@ function axismerge{name,T}(method::Symbol, axes::Axis{name,T}...)
 
 end
 
-function indexmappings{N}(oldaxes::NTuple{N,Axis}, newaxes::NTuple{N,Axis})
+function indexmappings(oldaxes::NTuple{N,Axis}, newaxes::NTuple{N,Axis}) where N
     oldvals = axisvalues(oldaxes...)
     newvals = axisvalues(newaxes...)
     return collect(zip(indexmapping.(oldvals, newvals)...))
@@ -94,7 +94,7 @@ end
 
 Combines AxisArrays with matching axis names into a single AxisArray spanning all of the axis values of the inputs. If a coordinate is defined in more than ones of the inputs, it takes its value from last input in which it appears. If a coordinate in the output array is not defined in any of the input arrays, it takes the value of the optional `fillvalue` keyword argument (default zero).
 """
-function Base.merge{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T))
+function Base.merge(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T)) where {T,N,D,Ax}
 
     resultaxes = map(as -> axismerge(:outer, as...), map(tuple, axes.(As)...))
     resultdata = fill(fillvalue, length.(resultaxes)...)
@@ -121,9 +121,9 @@ Combines AxisArrays with matching axis names into a single AxisArray. Unlike `me
 
 If an array value in the output array is not defined in any of the input arrays (i.e. in the case of a left, right, or outer join), it takes the value of the optional `fillvalue` keyword argument (default zero).
 """
-function Base.join{T,N,D,Ax}(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
-                             newaxis::Axis=_nextaxistype(As[1].axes)(1:length(As)),
-                             method::Symbol=:outer)
+function Base.join(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
+                   newaxis::Axis=_nextaxistype(As[1].axes)(1:length(As)),
+                   method::Symbol=:outer) where {T,N,D,Ax}
 
     prejoin_resultaxes = map(as -> axismerge(method, as...), map(tuple, axes.(As)...))
 
@@ -150,11 +150,11 @@ function _collapse_axes(array_names, array_axes)
     end))
 end
 
-function _splitall{N}(::Type{Val{N}}, As...)
+function _splitall(::Type{Val{N}}, As...) where N
     tuple((Base.IteratorsMD.split(A, Val{N}) for A in As)...)
 end
 
-function _reshapeall{N}(::Type{Val{N}}, As...)
+function _reshapeall(::Type{Val{N}}, As...) where N
     tuple((reshape(A, Val{N}) for A in As)...)
 end
 
@@ -174,15 +174,15 @@ function _collapsed_axis_eltype(LType, trailing_axes)
     return typejoin(eltypes...)
 end
 
-function collapse{N, AN}(::Type{Val{N}}, As::Vararg{AxisArray, AN})
+function collapse(::Type{Val{N}}, As::Vararg{AxisArray, AN}) where {N, AN}
     collapse(Val{N}, ntuple(identity, Val{AN}), As...)
 end
 
-function collapse{N, AN, NewArrayType<:AbstractArray}(::Type{Val{N}}, ::Type{NewArrayType}, As::Vararg{AxisArray, AN})
+function collapse(::Type{Val{N}}, ::Type{NewArrayType}, As::Vararg{AxisArray, AN}) where {N, AN, NewArrayType<:AbstractArray}
     collapse(Val{N}, NewArrayType, ntuple(identity, Val{AN}), As...)
 end
 
-@generated function collapse{N, AN, LType}(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN})
+@generated function collapse(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN}) where {N, AN, LType}
     collapsed_dim_int = Int(N) + 1
     new_eltype = Base.promote_eltype(As...)
 

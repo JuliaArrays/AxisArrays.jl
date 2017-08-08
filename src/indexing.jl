@@ -20,7 +20,7 @@ Base.show(io::IO, v::Value) =
     print(io, string("Value(", v.val, ", tol=", v.tol, ")"))
 
 # Defer IndexStyle to the wrapped array
-Base.IndexStyle{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = IndexStyle(D)
+Base.IndexStyle(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = IndexStyle(D)
 
 # Simple scalar indexing where we just set or return scalars
 @propagate_inbounds Base.getindex(A::AxisArray, idxs::Int...) = A.data[idxs...]
@@ -64,9 +64,9 @@ const ScalarIndex = Union{Real, AbstractArray{<:Any, 0}}
     (_new_axes(axs[1], idxs[1])..., _reaxis(tail(axs), tail(idxs))...)
 
 # Vectors simply create new axes with the same name; just subsetted by their value
-@inline _new_axes{name}(ax::Axis{name}, idx::AbstractVector) = (Axis{name}(ax.val[idx]),)
+@inline _new_axes(ax::Axis{name}, idx::AbstractVector) where {name} = (Axis{name}(ax.val[idx]),)
 # Arrays create multiple axes with _N appended to the axis name containing their indices
-@generated function _new_axes{name, N}(ax::Axis{name}, idx::AbstractArray{<:Any,N})
+@generated function _new_axes(ax::Axis{name}, idx::AbstractArray{<:Any,N}) where {name,N}
     newaxes = Expr(:tuple)
     for i=1:N
         push!(newaxes.args, :($(Axis{Symbol(name, "_", i)})(indices(idx, $i))))
@@ -74,7 +74,7 @@ const ScalarIndex = Union{Real, AbstractArray{<:Any, 0}}
     newaxes
 end
 # And indexing with an AxisArray joins the name and overrides the values
-@generated function _new_axes{name, N}(ax::Axis{name}, idx::AxisArray{<:Any, N})
+@generated function _new_axes(ax::Axis{name}, idx::AxisArray{<:Any, N}) where {name,N}
     newaxes = Expr(:tuple)
     idxnames = axisnames(idx)
     for i=1:N
@@ -107,7 +107,7 @@ using Base.AbstractCartesianIndex
 # TODO: should we handle multidimensional Axis indexes? It could be interpreted
 #       as adding dimensions in the middle of an AxisArray.
 # TODO: should we allow repeated axes? As a union of indices of the duplicates?
-@generated function to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I::Axis...)
+@generated function to_index(A::AxisArray{T,N,D,Ax}, I::Axis...) where {T,N,D,Ax}
     dims = Int[axisdim(A, ax) for ax in I]
     idxs = Expr[:(Colon()) for d = 1:N]
     names = axisnames(A)
@@ -122,7 +122,7 @@ using Base.AbstractCartesianIndex
     return :($meta; to_index(A, $(idxs...)))
 end
 
-function Base.reshape{N}(A::AxisArray, ::Type{Val{N}})
+function Base.reshape(A::AxisArray, ::Type{Val{N}}) where N
     # axN, _ = Base.IteratorsMD.split(axes(A), Val{N})
     # AxisArray(reshape(A.data, Val{N}), reaxis(A, Base.fill_to_length(axN, :, Val{N})...))
     AxisArray(reshape(A.data, Val{N}), reaxis(A, ntuple(d->Colon(), Val{N})...))
@@ -180,7 +180,7 @@ function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Value)
 end
 
 # Dimensional axes may be indexed by intervals to select a range
-axisindexes{T}(::Type{Dimensional}, ax::AbstractVector{T}, idx::ClosedInterval) = searchsorted(ax, idx)
+axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::ClosedInterval) = searchsorted(ax, idx)
 
 # Or repeated intervals, which only work if the axis is a range since otherwise
 # there will be a non-constant number of indices in each repetition.
@@ -260,7 +260,7 @@ end
 # indexing types to their integer or integer range equivalents using axisindexes
 # It is separate from the `Base.getindex` function to allow reuse between
 # set- and get- index.
-@generated function to_index{T,N,D,Ax}(A::AxisArray{T,N,D,Ax}, I...)
+@generated function to_index(A::AxisArray{T,N,D,Ax}, I...) where {T,N,D,Ax}
     ex = Expr(:tuple)
     n = 0
     for i=1:length(I)
@@ -305,10 +305,10 @@ end
 end
 
 ## Extracting the full axis (name + values) from the Axis{:name} type
-@inline Base.getindex{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = getaxis(Ax, axes(A)...)
-@inline getaxis{Ax<:Axis}(::Type{Ax}, ax::Ax, axs...) = ax
-@inline getaxis{Ax<:Axis}(::Type{Ax}, ax::Axis, axs...) = getaxis(Ax, axs...)
-@noinline getaxis{Ax<:Axis}(::Type{Ax}) = throw(ArgumentError("no axis of type $Ax was found"))
+@inline Base.getindex(A::AxisArray, ::Type{Ax}) where {Ax<:Axis} = getaxis(Ax, axes(A)...)
+@inline getaxis(::Type{Ax}, ax::Ax, axs...) where {Ax<:Axis} = ax
+@inline getaxis(::Type{Ax}, ax::Axis, axs...) where {Ax<:Axis} = getaxis(Ax, axs...)
+@noinline getaxis(::Type{Ax}) where {Ax<:Axis} = throw(ArgumentError("no axis of type $Ax was found"))
 
 # Boundschecking specialization: defer to the data array.
 # Note that we could unwrap AxisArrays when they are used as indices into other

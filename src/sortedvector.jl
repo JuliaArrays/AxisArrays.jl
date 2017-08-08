@@ -65,17 +65,17 @@ Base.size(v::SortedVector) = size(v.data)
 Base.size(v::SortedVector, i) = size(v.data, i)
 Base.indices(v::SortedVector) = indices(v.data)
 
-axistrait{T}(::Type{SortedVector{T}}) = Dimensional
+axistrait(::Type{<:SortedVector}) = Dimensional
 checkaxis(::SortedVector) = nothing
 
 
 ## Add some special indexing for SortedVector{Tuple}'s to achieve something like
 ## Panda's hierarchical indexing
 
-axisindexes{T<:Tuple,S}(ax::Axis{S,SortedVector{T}}, idx) =
+axisindexes(ax::Axis{S,SortedVector{T}}, idx) where {T<:Tuple,S} =
     searchsorted(ax.val, idx, 1, length(ax.val), Base.ord(_isless,identity,false,Base.Forward))
 
-axisindexes{T<:Tuple,S}(ax::Axis{S,SortedVector{T}}, idx::AbstractArray) =
+axisindexes(ax::Axis{S,SortedVector{T}}, idx::AbstractArray) where {T<:Tuple,S} =
     vcat([axisindexes(ax, i) for i in idx]...)
 
 

@@ -46,11 +46,11 @@ function searchsorted(a::Range, I::ClosedInterval)
     searchsortedfirst(a, I.left):searchsortedlast(a, I.right)
 end
 
-# When running with "--check-bounds=yes`(like on Travis), the bounds-check isn't elided
-@inline function getindex{T}(v::Range{T}, i::Integer)
+# When running with `--check-bounds=yes` (like on Travis), the bounds-check isn't elided
+@inline function getindex(v::Range{T}, i::Integer) where T
     convert(T, first(v) + (i-1)*step(v))
 end
-@inline function getindex{T<:Integer}(r::Range, s::Range{T})
+@inline function getindex(r::Range, s::Range{<:Integer})
     f = first(r)
     st = oftype(f, f + (first(s)-1)*step(r))
     range(st, step(r)*step(s), length(s))
@@ -78,19 +78,19 @@ function searchsortedfirst(a::Range, x)
     n = round(Integer,(x-first(a))/step(a))+1
     isless(getindex(a, n), x) ? n+1 : n
 end
-function searchsortedlast{T<:Integer}(a::Range{T}, x)
+function searchsortedlast(a::Range{<:Integer}, x)
     step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
     fld(floor(Integer,x)-first(a),step(a))+1
 end
-function searchsortedfirst{T<:Integer}(a::Range{T}, x)
+function searchsortedfirst(a::Range{<:Integer}, x)
     step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
     -fld(floor(Integer,-x)+first(a),step(a))+1
 end
-function searchsortedfirst{T<:Integer}(a::Range{T}, x::Unsigned)
+function searchsortedfirst(a::Range{<:Integer}, x::Unsigned)
     step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
     -fld(first(a)-signed(x),step(a))+1
 end
-function searchsortedlast{T<:Integer}(a::Range{T}, x::Unsigned)
+function searchsortedlast(a::Range{<:Integer}, x::Unsigned)
     step(a) == 0 && throw(ArgumentError("ranges with a zero step are unsupported"))
     fld(signed(x)-first(a),step(a))+1
 end

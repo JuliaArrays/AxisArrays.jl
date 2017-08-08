@@ -46,23 +46,23 @@ immutable Axis{name,T}
     val::T
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
-(::Type{Axis{name}}){name,T}(I::T=()) = Axis{name,T}(I)
-Base.:(==){name}(A::Axis{name}, B::Axis{name}) = A.val == B.val
-Base.hash{name}(A::Axis{name}, hx::UInt) = hash(A.val, hash(name, hx))
-axistype{name,T}(::Axis{name,T}) = T
-axistype{name,T}(::Type{Axis{name,T}}) = T
+(::Type{Axis{name}})(I::T=()) where {name,T} = Axis{name,T}(I)
+Base.:(==)(A::Axis{name}, B::Axis{name}) where {name} = A.val == B.val
+Base.hash(A::Axis{name}, hx::UInt) where {name} = hash(A.val, hash(name, hx))
+axistype(::Axis{name,T}) where {name,T} = T
+axistype(::Type{Axis{name,T}}) where {name,T} = T
 # Pass indexing and related functions straight through to the wrapped value
 # TODO: should Axis be an AbstractArray? AbstractArray{T,0} for scalar T?
 Base.getindex(A::Axis, i...) = A.val[i...]
-Base.eltype{_,T}(::Type{Axis{_,T}}) = eltype(T)
+Base.eltype(::Type{Axis{name,T}}) where {name,T} = eltype(T)
 Base.size(A::Axis) = size(A.val)
 Base.endof(A::Axis) = length(A)
 Base.indices(A::Axis) = indices(A.val)
 Base.indices(A::Axis, d) = indices(A.val, d)
 Base.length(A::Axis) = length(A.val)
-(A::Axis{name}){name}(i) = Axis{name}(i)
-Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name,T}) = ax
-Base.convert{name,T}(::Type{Axis{name,T}}, ax::Axis{name}) = Axis{name}(convert(T, ax.val))
+(A::Axis{name})(i) where {name} = Axis{name}(i)
+Base.convert(::Type{Axis{name,T}}, ax::Axis{name,T}) where {name,T} = ax
+Base.convert(::Type{Axis{name,T}}, ax::Axis{name}) where {name,T} = Axis{name}(convert(T, ax.val))
 
 """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
@@ -146,13 +146,13 @@ A[ClosedInterval(0.,.3), [:a, :c]]   # select an interval and two columns
 immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     data::D  # D <:AbstractArray, enforced in constructor to avoid dispatch bugs (https://github.com/JuliaLang/julia/issues/6383)
     axes::Ax # Ax<:NTuple{N, Axis}, but with specialized Axis{...} types
-    (::Type{AxisArray{T,N,D,Ax}}){T,N,D,Ax}(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) = new{T,N,D,Ax}(data, axs)
+    (::Type{AxisArray{T,N,D,Ax}})(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
 end
 
 # Helper functions: Default axis names (if not provided)
 _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
 # Why doesn't @pure work here?
-@generated function _nextaxistype{M}(axs::NTuple{M,Axis})
+@generated function _nextaxistype(axs::NTuple{M,Axis}) where M
     name = _defaultdimname(M+1)
     :(Axis{$(Expr(:quote, name))})
 end
@@ -168,14 +168,14 @@ wrapped with the appropriate axis name, and it will ensure no axis goes beyond
 the dimensionality of the array A.
 """
 @inline default_axes(A::AbstractArray, args=indices(A)) = _default_axes(A, args, ())
-_default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{}, axs::NTuple{N,Axis}) = axs
-_default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::NTuple{N,Axis}) = throw(ArgumentError("too many axes provided"))
-_default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::NTuple{N,Axis}) = throw(ArgumentError("too many axes provided"))
-@inline _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{}, axs::Tuple) =
+_default_axes(A::AbstractArray{T,N}, args::Tuple{}, axs::NTuple{N,Axis}) where {T,N} = axs
+_default_axes(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::NTuple{N,Axis}) where {T,N} = throw(ArgumentError("too many axes provided"))
+_default_axes(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::NTuple{N,Axis}) where {T,N} = throw(ArgumentError("too many axes provided"))
+@inline _default_axes(A::AbstractArray{T,N}, args::Tuple{}, axs::Tuple) where {T,N} =
     _default_axes(A, args, (axs..., _nextaxistype(axs)(indices(A, length(axs)+1))))
-@inline _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::Tuple) =
+@inline _default_axes(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::Tuple) where {T,N} =
     _default_axes(A, Base.tail(args), (axs..., _nextaxistype(axs)(args[1])))
-@inline _default_axes{T,N}(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::Tuple) =
+@inline _default_axes(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::Tuple) where {T,N} =
     _default_axes(A, Base.tail(args), (axs..., args[1]))
 
 # Axis consistency checks — ensure sizes match and the names are unique
@@ -196,25 +196,25 @@ checknames() = ()
 # The primary AxisArray constructors — specify an array to wrap and the axes
 AxisArray(A::AbstractArray, vects::Union{AbstractVector, Axis}...) = AxisArray(A, vects)
 AxisArray(A::AbstractArray, vects::Tuple{Vararg{Union{AbstractVector, Axis}}}) = AxisArray(A, default_axes(A, vects))
-function AxisArray{T,N}(A::AbstractArray{T,N}, axs::NTuple{N,Axis})
+function AxisArray(A::D, axs::Ax) where {T,N,D<:AbstractArray{T,N},Ax<:NTuple{N,Axis}}
     checksizes(axs, _size(A)) || throw(ArgumentError("the length of each axis must match the corresponding size of data"))
     checknames(axisnames(axs...)...)
-    AxisArray{T,N,typeof(A),typeof(axs)}(A, axs)
+    AxisArray{T,N,D,Ax}(A, axs)
 end
 
 # Simple non-type-stable constructors to specify names as symbols
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
 AxisArray(A::AbstractArray, names::Symbol...)         = (inds = indices(A); AxisArray(A, ntuple(i->Axis{names[i]}(inds[i]), length(names))))
-function AxisArray{T,N}(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple{N,Number}, offsets::NTuple{N,Number}=map(zero, steps))
+function AxisArray(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple{N,Number}, offsets::NTuple{N,Number}=map(zero, steps)) where {T,N}
     axs = ntuple(i->Axis{names[i]}(range(offsets[i], steps[i], size(A,i))), N)
     AxisArray(A, axs...)
 end
 
 # Traits
 immutable HasAxes{B} end
-HasAxes{A<:AxisArray}(::Type{A}) = HasAxes{true}()
-HasAxes{A<:AbstractArray}(::Type{A}) = HasAxes{false}()
-HasAxes(A::AbstractArray) = HasAxes(typeof(A))
+HasAxes(::Type{<:AxisArray}) = HasAxes{true}()
+HasAxes(::Type{<:AbstractArray}) = HasAxes{false}()
+HasAxes(::A) where A<:AbstractArray = HasAxes(A)
 
 # Axis definitions
 """
@@ -225,14 +225,13 @@ Given an AxisArray and an Axis, return the integer dimension of
 the Axis within the array.
 """
 axisdim(A::AxisArray, ax::Axis) = axisdim(A, typeof(ax))
-@generated function axisdim{T<:Axis}(A::AxisArray, ax::Type{T})
-    dim = axisdim(A, T)
+@generated function axisdim(A::AxisArray, ax::Type{Ax}) where Ax<:Axis
+    dim = axisdim(A, Ax)
     :($dim)
 end
 # The actual computation is done in the type domain, which is a little tricky
 # due to type invariance.
-axisdim{T,N,D,Ax,name,S}(A::Type{AxisArray{T,N,D,Ax}}, ::Type{Axis{name,S}}) = axisdim(A, Axis{name})
-function axisdim{T,N,D,Ax,name}(::Type{AxisArray{T,N,D,Ax}}, ::Type{Axis{name}})
+function axisdim(::Type{AxisArray{T,N,D,Ax}}, ::Type{<:Axis{name,S} where S}) where {T,N,D,Ax,name}
     isa(name, Int) && return name <= N ? name : error("axis $name greater than array dimensionality $N")
     names = axisnames(Ax)
     idx = findfirst(names, name)
@@ -243,23 +242,23 @@ end
 # Base definitions that aren't provided by AbstractArray
 @inline Base.size(A::AxisArray) = size(A.data)
 @inline Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
-@inline Base.size{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = size(A.data, axisdim(A, Ax))
+@inline Base.size(A::AxisArray, ::Type{Ax}) where {Ax<:Axis} = size(A.data, axisdim(A, Ax))
 @inline Base.indices(A::AxisArray) = indices(A.data)
 @inline Base.indices(A::AxisArray, Ax::Axis) = indices(A.data, axisdim(A, Ax))
-@inline Base.indices{Ax<:Axis}(A::AxisArray, ::Type{Ax}) = indices(A.data, axisdim(A, Ax))
-Base.convert{T,N}(::Type{Array{T,N}}, A::AxisArray{T,N}) = convert(Array{T,N}, A.data)
+@inline Base.indices(A::AxisArray, ::Type{Ax}) where {Ax<:Axis} = indices(A.data, axisdim(A, Ax))
+Base.convert(::Type{Array{T,N}}, A::AxisArray{T,N}) where {T,N} = convert(Array{T,N}, A.data)
 Base.parent(A::AxisArray) = A.data
 # Similar is tricky. If we're just changing the element type, it can stay as an
 # AxisArray. But if we're changing dimensions, there's no way it can know how
 # to keep track of the axes, so just punt and return a regular old Array.
 # TODO: would it feel more consistent to return an AxisArray without any axes?
-Base.similar{S}(A::AxisArray, ::Type{S})       = (d = similar(A.data, S); AxisArray(d, A.axes))
-Base.similar{S,N}(A::AxisArray, ::Type{S}, dims::Dims{N}) = similar(A.data, S, dims)
+Base.similar(A::AxisArray, ::Type{S}) where {S} = (d = similar(A.data, S); AxisArray(d, A.axes))
+Base.similar(A::AxisArray, ::Type{S}, dims::Dims{N}) where {S,N} = similar(A.data, S, dims)
 # If, however, we pass Axis objects containing the new axis for that dimension,
 # we can return a similar AxisArray with an appropriately modified size
-Base.similar{T}(A::AxisArray{T}, ax1::Axis, axs::Axis...) = similar(A, T, (ax1, axs...))
-Base.similar{S}(A::AxisArray, ::Type{S}, ax1::Axis, axs::Axis...) = similar(A, S, (ax1, axs...))
-@generated function Base.similar{T,S,N}(A::AxisArray{T,N}, ::Type{S}, axs::Tuple{Axis,Vararg{Axis}})
+Base.similar(A::AxisArray{T}, ax1::Axis, axs::Axis...) where {T} = similar(A, T, (ax1, axs...))
+Base.similar(A::AxisArray, ::Type{S}, ax1::Axis, axs::Axis...) where {S} = similar(A, S, (ax1, axs...))
+@generated function Base.similar(A::AxisArray{T,N}, ::Type{S}, axs::Tuple{Axis,Vararg{Axis}}) where {T,S,N}
     inds = Expr(:tuple)
     ax = Expr(:tuple)
     for d=1:N
@@ -290,21 +289,21 @@ end
 Base.reduced_indices(A::AxisArray, region)  = reduced_indices(axes(A), region)
 Base.reduced_indices0(A::AxisArray, region) = reduced_indices0(axes(A), region)
 
-reduced_indices{N}(axs::Tuple{Vararg{Axis,N}}, ::Tuple{})  = axs
-reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, ::Tuple{}) = axs
-reduced_indices{N}(axs::Tuple{Vararg{Axis,N}}, region::Integer) =
+reduced_indices(axs::Tuple{Vararg{Axis}}, ::Tuple{})  = axs
+reduced_indices0(axs::Tuple{Vararg{Axis}}, ::Tuple{}) = axs
+reduced_indices(axs::Tuple{Vararg{Axis}}, region::Integer) =
     reduced_indices(axs, (region,))
-reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, region::Integer) =
+reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Integer) =
     reduced_indices0(axs, (region,))
 
-reduced_indices{N}(axs::Tuple{Vararg{Axis,N}}, region::Dims) =
+reduced_indices(axs::Tuple{Vararg{Axis,N}}, region::Dims) where {N} =
     map((ax,d)->d∈region ? reduced_axis(ax) : ax, axs, ntuple(identity, Val{N}))
-reduced_indices0{N}(axs::Tuple{Vararg{Axis,N}}, region::Dims) =
+reduced_indices0(axs::Tuple{Vararg{Axis,N}}, region::Dims) where {N} =
     map((ax,d)->d∈region ? reduced_axis0(ax) : ax, axs, ntuple(identity, Val{N}))
 
-@inline reduced_indices{Ax<:Axis}(axs::Tuple{Vararg{Axis}}, region::Type{Ax}) =
+@inline reduced_indices(axs::Tuple{Vararg{Axis}}, region::Type{<:Axis}) =
     _reduced_indices(reduced_axis, (), region, axs...)
-@inline reduced_indices0{Ax<:Axis}(axs::Tuple{Vararg{Axis}}, region::Type{Ax}) =
+@inline reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Type{<:Axis}) =
     _reduced_indices(reduced_axis0, (), region, axs...)
 @inline reduced_indices(axs::Tuple{Vararg{Axis}}, region::Axis) =
     _reduced_indices(reduced_axis, (), region, axs...)
@@ -320,13 +319,13 @@ reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Tuple) =
 reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Tuple{Vararg{Axis}}) =
     reduced_indices0(reduced_indices0(axs, region[1]), tail(region))
 
-@pure samesym{n1,n2}(::Type{Axis{n1}}, ::Type{Axis{n2}}) = Val{n1==n2}()
-samesym{n1,n2,T1,T2}(::Type{Axis{n1,T1}}, ::Type{Axis{n2,T2}}) = samesym(Axis{n1},Axis{n2})
-samesym{n1,n2}(::Type{Axis{n1}}, ::Axis{n2}) = samesym(Axis{n1}, Axis{n2})
-samesym{n1,n2}(::Axis{n1}, ::Type{Axis{n2}}) = samesym(Axis{n1}, Axis{n2})
-samesym{n1,n2}(::Axis{n1}, ::Axis{n2}) = samesym(Axis{n1}, Axis{n2})
+@pure samesym(::Type{Axis{n1}}, ::Type{Axis{n2}}) where {n1,n2} = Val{n1==n2}()
+samesym(::Type{<:Axis{n1}}, ::Type{<:Axis{n2}}) where {n1,n2} = samesym(Axis{n1},Axis{n2})
+samesym(::Type{Axis{n1}}, ::Axis{n2}) where {n1,n2} = samesym(Axis{n1}, Axis{n2})
+samesym(::Axis{n1}, ::Type{Axis{n2}}) where {n1,n2} = samesym(Axis{n1}, Axis{n2})
+samesym(::Axis{n1}, ::Axis{n2}) where {n1,n2} = samesym(Axis{n1}, Axis{n2})
 
-@inline _reduced_indices{Ax<:Axis}(f, out, chosen::Type{Ax}, ax::Axis, axs...) =
+@inline _reduced_indices(f, out, chosen::Type{<:Axis}, ax::Axis, axs...) =
     __reduced_indices(f, out, samesym(chosen, ax), chosen, ax, axs)
 @inline _reduced_indices(f, out, chosen::Axis, ax::Axis, axs...) =
     __reduced_indices(f, out, samesym(chosen, ax), chosen, ax, axs)
@@ -346,23 +345,22 @@ function Base.permutedims(A::AxisArray, perm)
     AxisArray(permutedims(A.data, p), axes(A)[[p...]])
 end
 
-Base.transpose{T}(A::AxisArray{T,2})  = AxisArray(transpose(A.data), A.axes[2], A.axes[1])
-Base.ctranspose{T}(A::AxisArray{T,2}) = AxisArray(ctranspose(A.data), A.axes[2], A.axes[1])
-Base.transpose{T}(A::AxisArray{T,1})  = AxisArray(transpose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
-Base.ctranspose{T}(A::AxisArray{T,1}) = AxisArray(ctranspose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
+Base.transpose(A::AxisArray{T,2}) where {T}  = AxisArray(transpose(A.data), A.axes[2], A.axes[1])
+Base.ctranspose(A::AxisArray{T,2}) where {T} = AxisArray(ctranspose(A.data), A.axes[2], A.axes[1])
+Base.transpose(A::AxisArray{T,1}) where {T}  = AxisArray(transpose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
+Base.ctranspose(A::AxisArray{T,1}) where {T} = AxisArray(ctranspose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
 
-Base.map!{F}(f::F, A::AxisArray) = (map!(f, A.data); A)
+Base.map!(f::F, A::AxisArray) where {F} = (map!(f, A.data); A)
 Base.map(f, A::AxisArray) = AxisArray(map(f, A.data), A.axes...)
 
-function Base.map!{F,T,N,D,Ax<:Tuple{Vararg{Axis}}}(f::F, dest::AxisArray{T,N,D,Ax},
-                                                  As::AxisArray{T,N,D,Ax}...)
+function Base.map!(f::F, dest::AxisArray{T,N,D,Ax}, As::AxisArray{T,N,D,Ax}...) where {F,T,N,D,Ax<:Tuple{Vararg{Axis}}}
     matchingdims((dest, As...)) || error("All axes must be identically-valued")
     data = map(a -> a.data, As)
     map!(f, dest.data, data...)
     return dest
 end
 
-function Base.map{T,N,D,Ax<:Tuple{Vararg{Axis}}}(f, As::AxisArray{T,N,D,Ax}...)
+function Base.map(f, As::AxisArray{T,N,D,Ax}...) where {T,N,D,Ax<:Tuple{Vararg{Axis}}}
     matchingdims(As) || error("All axes must be identically-valued")
     data = map(a -> a.data, As)
     return AxisArray(map(f, data...), As[1].axes...)
@@ -410,15 +408,14 @@ function Base.squeeze(A::AxisArray, dims::Dims)
     AxisArray(squeeze(A.data, dims), axes(A)[keepdims])
 end
 # This version is type-stable
-function Base.squeeze{Ax<:Axis}(A::AxisArray, ::Type{Ax})
+function Base.squeeze(A::AxisArray, ::Type{Ax}) where {Ax<:Axis}
     dim = axisdim(A, Ax)
     AxisArray(squeeze(A.data, dim), dropax(Ax, axes(A)...))
 end
 
 @inline dropax(ax, ax1, axs...) = (ax1, dropax(ax, axs...)...)
-@inline dropax{name}(ax::Axis{name}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
-@inline dropax{name}(ax::Type{Axis{name}}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
-@inline dropax{name,T}(ax::Type{Axis{name,T}}, ax1::Axis{name}, axs...) = dropax(ax, axs...)
+@inline dropax(ax::Axis{name}, ax1::Axis{name}, axs...) where {name} = dropax(ax, axs...)
+@inline dropax(ax::Type{<:Axis{name}}, ax1::Axis{name}, axs...) where {name} = dropax(ax, axs...)
 dropax(ax) = ()
 
 
@@ -434,7 +431,7 @@ function summaryio(io::IO, A::AxisArray)
     end
     print(io, "And data, a ", summary(A.data))
 end
-_summary{T,N}(io, A::AxisArray{T,N}) = println(io, "$N-dimensional AxisArray{$T,$N,...} with axes:")
+_summary(io, A::AxisArray{T,N}) where {T,N} = println(io, "$N-dimensional AxisArray{$T,$N,...} with axes:")
 
 function Base.summary(A::AxisArray)
     io = IOBuffer()
@@ -451,18 +448,15 @@ end
 
 Returns the axis names of an AxisArray or list of Axises as a tuple of Symbols.
 """
-axisnames{T,N,D,Ax}(::AxisArray{T,N,D,Ax})       = _axisnames(Ax)
-axisnames{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = _axisnames(Ax)
-axisnames{Ax<:Tuple{Vararg{Axis}}}(::Type{Ax})   = _axisnames(Ax)
+axisnames(::AxisArray{T,N,D,Ax}) where {T,N,D,Ax}       = _axisnames(Ax)
+axisnames(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = _axisnames(Ax)
+axisnames(::Type{Ax}) where {Ax<:Tuple{Vararg{Axis}}}   = _axisnames(Ax)
 @pure _axisnames(Ax) = axisnames(Ax.parameters...)
 axisnames() = ()
-@inline axisnames{name  }(::Axis{name},         B::Axis...) = tuple(name, axisnames(B...)...)
-@inline axisnames{name  }(::Type{Axis{name}},   B::Type...) = tuple(name, axisnames(B...)...)
-@inline axisnames{name,T}(::Type{Axis{name,T}}, B::Type...) = tuple(name, axisnames(B...)...)
+@inline axisnames(::Axis{name},         B::Axis...) where {name} = tuple(name, axisnames(B...)...)
+@inline axisnames(::Type{<:Axis{name}}, B::Type...) where {name} = tuple(name, axisnames(B...)...)
 
-axisname{name,T}(::Type{Axis{name,T}}) = name
-axisname{name  }(::Type{Axis{name  }}) = name
-axisname(ax::Axis) = axisname(typeof(ax))
+axisname(::Union{Type{<:Axis{name}},Axis{name}}) where {name} = name
 
 """
     axisvalues(A::AxisArray)           -> (AbstractVector...)
@@ -490,7 +484,7 @@ default axes, i.e., those that would be produced by `AxisArray(A)`.
 axes(A::AxisArray) = A.axes
 axes(A::AxisArray, dim::Int) = A.axes[dim]
 axes(A::AxisArray, ax::Axis) = axes(A, typeof(ax))
-@generated function axes{T<:Axis}(A::AxisArray, ax::Type{T})
+@generated function axes(A::AxisArray, ax::Type{T}) where T<:Axis
     dim = axisdim(A, T)
     :(A.axes[$dim])
 end
@@ -503,8 +497,8 @@ axes(A::AbstractArray, dim::Int) = default_axes(A)[dim]
 
 Returns the axis parameters for an AxisArray.
 """
-axisparams{T,N,D,Ax}(::AxisArray{T,N,D,Ax}) = (Ax.parameters...)
-axisparams{T,N,D,Ax}(::Type{AxisArray{T,N,D,Ax}}) = (Ax.parameters...)
+axisparams(::AxisArray{T,N,D,Ax}) where {T,N,D,Ax} = (Ax.parameters...)
+axisparams(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = (Ax.parameters...)
 
 ### Axis traits ###
 abstract type AxisTrait end
@@ -530,13 +524,13 @@ methods of this function. Here is the example of adding a custom Dimensional axi
 AxisArrays.axistrait(::Type{MyCustomAxis}) = AxisArrays.Dimensional
 ```
 """
-axistrait{T}(::T) = axistrait(T)
-axistrait{T}(::Type{T}) = Unsupported
-axistrait{name, T}(::Type{Axis{name, T}}) = axistrait(T)
-axistrait{T<:AbstractVector}(::Type{T}) = _axistrait_el(eltype(T))
-_axistrait_el{T<:Union{Number, Dates.AbstractTime}}(::Type{T}) = Dimensional
-_axistrait_el{T<:Union{Symbol, AbstractString}}(::Type{T}) = Categorical
-_axistrait_el{T}(::Type{T}) = Unsupported
+axistrait(::T) where {T} = axistrait(T)
+axistrait(::Type{T}) where {T} = Unsupported
+axistrait(::Type{Axis{name,T}}) where {name,T} = axistrait(T)
+axistrait(::Type{T}) where {T<:AbstractVector} = _axistrait_el(eltype(T))
+_axistrait_el(::Type{<:Union{Number, Dates.AbstractTime}}) = Dimensional
+_axistrait_el(::Type{<:Union{Symbol, AbstractString}}) = Categorical
+_axistrait_el(::Type{T}) where {T} = Unsupported
 
 checkaxis(ax::Axis) = checkaxis(ax.val)
 checkaxis(ax) = checkaxis(axistrait(ax), ax)
