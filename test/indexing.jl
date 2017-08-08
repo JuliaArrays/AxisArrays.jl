@@ -107,7 +107,7 @@ v = AxisArray(collect(.1:.1:10.0), .1:.1:10.0)
 # create a number type from which we build a StepRange but which is
 # not an Int.
 module IL  # put in a module so this file can be re-run
-immutable IntLike <: Number
+struct IntLike <: Number
     val::Int
 end
 Base.one(x::IntLike) = IntLike(0)

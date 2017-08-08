@@ -11,7 +11,7 @@ parametric type.
 ### Type parameters
 
 ```julia
-immutable Axis{name,T}
+struct Axis{name,T}
 ```
 * `name` : the name of the axis, a Symbol
 * `T` : the type of the axis
@@ -42,7 +42,7 @@ A[Axis{2}(2:5)] # grabs the second through 5th columns
 ```
 
 """
-immutable Axis{name,T}
+struct Axis{name,T}
     val::T
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
@@ -75,7 +75,7 @@ dimension. Other advanced indexing along axis values are also provided.
 The AxisArray contains several type parameters:
 
 ```julia
-immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
+struct AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
 ```
 * `T` : the elemental type of the AbstractArray
 * `N` : the number of dimensions
@@ -143,7 +143,7 @@ A[ClosedInterval(0.,.3), [:a, :c]]   # select an interval and two columns
 ```
 
 """
-immutable AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
+struct AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     data::D  # D <:AbstractArray, enforced in constructor to avoid dispatch bugs (https://github.com/JuliaLang/julia/issues/6383)
     axes::Ax # Ax<:NTuple{N, Axis}, but with specialized Axis{...} types
     (::Type{AxisArray{T,N,D,Ax}})(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
@@ -211,7 +211,7 @@ function AxisArray(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple
 end
 
 # Traits
-immutable HasAxes{B} end
+struct HasAxes{B} end
 HasAxes(::Type{<:AxisArray}) = HasAxes{true}()
 HasAxes(::Type{<:AbstractArray}) = HasAxes{false}()
 HasAxes(::A) where A<:AbstractArray = HasAxes(A)
@@ -502,9 +502,9 @@ axisparams(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = (Ax.parameters...)
 
 ### Axis traits ###
 abstract type AxisTrait end
-immutable Dimensional <: AxisTrait end
-immutable Categorical <: AxisTrait end
-immutable Unsupported <: AxisTrait end
+struct Dimensional <: AxisTrait end
+struct Categorical <: AxisTrait end
+struct Unsupported <: AxisTrait end
 
 """
     axistrait(ax::Axis) -> Type{<:AxisTrait}

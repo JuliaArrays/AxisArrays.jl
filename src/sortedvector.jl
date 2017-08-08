@@ -49,7 +49,7 @@ A[ClosedInterval((:a,:x),(:b,:x)), :]
 ```
 
 """
-immutable SortedVector{T} <: AbstractVector{T}
+struct SortedVector{T} <: AbstractVector{T}
     data::AbstractVector{T}
 end
 

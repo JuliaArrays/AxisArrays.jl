@@ -55,7 +55,7 @@ end
 
 # And, finally, we have an Array-of-Structs to Struct-of-Arrays transform for
 # the common case where the interval is constant over many offsets:
-immutable RepeatedInterval{T,S,A} <: AbstractVector{T}
+struct RepeatedInterval{T,S,A} <: AbstractVector{T}
     window::ClosedInterval{S}
     offsets::A # A <: AbstractVector
 end
@@ -71,14 +71,14 @@ Base.getindex(r::RepeatedInterval, i::Int) = r.window + r.offsets[i]
 
 # As a special extension to intervals, we allow specifying Intervals about a
 # particular index, which is resolved by an axis upon indexing.
-immutable IntervalAtIndex{T}
+struct IntervalAtIndex{T}
     window::ClosedInterval{T}
     index::Int
 end
 atindex(window::ClosedInterval, index::Integer) = IntervalAtIndex(window, index)
 
 # And similarly, an AoS -> SoA transform:
-immutable RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{IntervalAtIndex{T}}
+struct RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{IntervalAtIndex{T}}
     window::ClosedInterval{T}
     indexes::A # A <: AbstractVector{Int}
 end

@@ -39,7 +39,7 @@ A[(:a,:x), :]
 A[(:a,:x,:x), :]
 ```
 """
-immutable CategoricalVector{T, A<:AbstractVector{T}} <: AbstractVector{T}
+struct CategoricalVector{T, A<:AbstractVector{T}} <: AbstractVector{T}
     data::A
 end
 

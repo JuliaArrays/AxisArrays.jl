@@ -2,7 +2,7 @@ const Idx = Union{Real,Colon,AbstractArray{Int}}
 
 using Base: ViewIndex, @propagate_inbounds, tail
 
-immutable Value{T}
+struct Value{T}
     val::T
     tol::T
 end
