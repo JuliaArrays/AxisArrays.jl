@@ -145,6 +145,18 @@ A = @inferred(AxisArray(reshape(1:24, 2,3,4),
               Axis{:y}(1//10:1//10:3//10),
               Axis{:z}(["a", "b", "c", "d"])))
 
+# recursive constructor
+@test A === @inferred AxisArray(A)
+@test axisnames(AxisArray(A, Axis{:yoyo}(1:length(A[Axis{:x}])))) == (:yoyo, :y, :z)
+@test AxisArray(A, Axis{:yoyo}(1:length(A[Axis{:x}]))).data === A.data
+@test AxisArray(A, (Axis{:yoyo}(1:length(A[Axis{:x}])),)).data === A.data
+@test axisnames(AxisArray(A, :something, :in, :the)) == (:something, :in, :the)
+@test AxisArray(A, :way, :you, :move).data === A.data
+@test axisnames(AxisArray(A, (:c, :a, :b), (2, 3, 4))) == (:c, :a, :b)
+@test AxisArray(A, (:c, :a, :b), (2, 3, 4)).data === A.data
+@inferred AxisArray(A, Axis{:yoyo}(1:length(A[Axis{:x}])))
+@inferred AxisArray(A, (Axis{:yoyo}(1:length(A[Axis{:x}])),))
+
 # Test axisdim
 @test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == 1
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2

@@ -216,6 +216,12 @@ function AxisArray{T,N}(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::N
     AxisArray(A, axs...)
 end
 
+AxisArray(A::AxisArray) = A
+AxisArray(A::AxisArray, ax::Vararg{Axis, N}) where N =
+    AxisArray(A.data, ax..., last(Base.IteratorsMD.split(axes(A), Val{N}))...)
+AxisArray(A::AxisArray, ax::NTuple{N, Axis}) where N =
+    AxisArray(A.data, ax..., last(Base.IteratorsMD.split(axes(A), Val{N}))...)
+
 # Traits
 immutable HasAxes{B} end
 HasAxes{A<:AxisArray}(::Type{A}) = HasAxes{true}()
