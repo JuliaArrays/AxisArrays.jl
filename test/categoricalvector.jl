@@ -13,8 +13,11 @@ A = AxisArray(data[idx,:], AxisArrays.CategoricalVector(v[idx]), [:a, :b])
 v = AxisArrays.CategoricalVector(collect([1; 8; 10:15]))
 @test AxisArrays.axistrait(axes(A)[1]) <: AxisArrays.Categorical
 A = AxisArray(reshape(1:16, 8, 2), v, [:a, :b])
+
 @test A[Axis{:row}(AxisArrays.CategoricalVector([15]))] == AxisArray(reshape(A.data[8, :], 1, 2), AxisArrays.CategoricalVector([15]), [:a, :b])
 @test A[Axis{:row}(AxisArrays.CategoricalVector([15])), 1] == AxisArray([A.data[8, 1]], AxisArrays.CategoricalVector([15]))
+@test A[atvalue(15), :] == AxisArray(A.data[8, :], [:a, :b])
+@test A[atvalue(15), 1] == 8
 @test AxisArrays.axistrait(axes(A)[1]) <: AxisArrays.Categorical
 
 # TODO: maybe make this work? Would require removing or modifying Base.getindex(A::AxisArray, idxs::Idx...)
