@@ -214,6 +214,16 @@ A = AxisArray(OffsetArrays.OffsetArray([1 2; 3 4], 0:1, 1:2),
 @test_throws ArgumentError A[1.0f0]
 @test_throws ArgumentError A[:,6.1]
 
+# Indexing with `atvalue` on Categorical axes
+A = AxisArray([1 2; 3 4], Axis{:x}([:a, :b]), Axis{:y}(["c", "d"]))
+@test @inferred(A[atvalue(:a)]) == @inferred(A[atvalue(:a), :]) == [1,2]
+@test @inferred(A[atvalue(:b)]) == @inferred(A[atvalue(:b), :]) == [3,4]
+@test_throws ArgumentError A[atvalue(:c)]
+@test @inferred(A[atvalue(:a), atvalue("c")]) == 1
+@test @inferred(A[:, atvalue("c")]) == [1,3]
+@test @inferred(A[Axis{:x}(atvalue(:b))]) == [3,4]
+@test @inferred(A[Axis{:y}(atvalue("d"))]) == [2,4]
+
 # Test using dates
 using Base.Dates: Day, Month
 A = AxisArray(1:365, Date(2017,1,1):Date(2017,12,31))

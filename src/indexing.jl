@@ -2,12 +2,22 @@ const Idx = Union{Real,Colon,AbstractArray{Int}}
 
 using Base: ViewIndex, @propagate_inbounds, tail
 
-struct Value{T}
+abstract type Value{T} end
+
+struct TolValue{T} <: Value{T}
     val::T
     tol::T
 end
-Value(x, tol=Base.rtoldefault(typeof(x))*abs(x)) = Value(promote(x,tol)...)
-atvalue(x; rtol=Base.rtoldefault(typeof(x)), atol=zero(x)) = Value(x, atol+rtol*abs(x))
+
+TolValue(x, tol=Base.rtoldefault(typeof(x))*abs(x)) = TolValue(promote(x,tol)...)
+
+struct ExactValue{T} <: Value{T}
+    val::T
+end
+
+atvalue(x::Number; rtol=Base.rtoldefault(typeof(x)), atol=zero(x)) = TolValue(x, atol+rtol*abs(x))
+atvalue(x) = ExactValue(x)
+
 const Values = AbstractArray{<:Value}
 
 # For throwing a BoundsError with a Value index, we need to define the following
@@ -17,8 +27,9 @@ Base.next(x::Value, state) = (x, true)
 Base.done(x::Value, state) = state
 
 # How to show Value objects (e.g. in a BoundsError)
-Base.show(io::IO, v::Value) =
-    print(io, string("Value(", v.val, ", tol=", v.tol, ")"))
+Base.show(io::IO, v::TolValue) =
+    print(io, string("TolValue(", v.val, ", tol=", v.tol, ")"))
+Base.show(io::IO, v::ExactValue) = print(io, string("ExactValue(", v.val, ")"))
 
 # Defer IndexStyle to the wrapped array
 Base.IndexStyle(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = IndexStyle(D)
@@ -168,7 +179,7 @@ function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx)
     idxs[1]
 end
 # Dimensional axes may always be indexed by value if in a Value type wrapper.
-function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Value)
+function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::TolValue)
     idxs = searchsorted(ax, ClosedInterval(idx.val,idx.val))
     length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
     if length(idxs) == 1
@@ -176,6 +187,15 @@ function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Value)
     else # it's zero
         last(idxs) > 0 && abs(ax[last(idxs)] - idx.val) < idx.tol && return last(idxs)
         first(idxs) <= length(ax) && abs(ax[first(idxs)] - idx.val) < idx.tol && return first(idxs)
+        throw(BoundsError(ax, idx))
+    end
+end
+function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::ExactValue)
+    idxs = searchsorted(ax, ClosedInterval(idx.val,idx.val))
+    length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
+    if length(idxs) == 1
+        idxs[1]
+    else # it's zero
         throw(BoundsError(ax, idx))
     end
 end
