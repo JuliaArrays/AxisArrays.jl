@@ -18,8 +18,8 @@
 # could be considered as <: Number themselves. We do this in general for any
 # supported Scalar:
 const Scalar = Union{Number, Dates.AbstractTime}
-Base.promote_rule{T<:Scalar}(::Type{ClosedInterval{T}}, ::Type{T}) = ClosedInterval{T}
-Base.promote_rule{T,S<:Scalar}(::Type{ClosedInterval{T}}, ::Type{S}) = ClosedInterval{promote_type(T,S)}
+Base.promote_rule(::Type{ClosedInterval{T}}, ::Type{T}) where {T<:Scalar} = ClosedInterval{T}
+Base.promote_rule(::Type{ClosedInterval{T}}, ::Type{S}) where {T,S<:Scalar} = ClosedInterval{promote_type(T,S)}
 
 import Base: isless, <=, >=, ==, +, -, *, /, ^, //
 # TODO: Is this a total ordering? (antisymmetric, transitive, total)?
@@ -55,11 +55,12 @@ end
 
 # And, finally, we have an Array-of-Structs to Struct-of-Arrays transform for
 # the common case where the interval is constant over many offsets:
-immutable RepeatedInterval{T,S,A} <: AbstractVector{T}
+struct RepeatedInterval{T,S,A} <: AbstractVector{T}
     window::ClosedInterval{S}
     offsets::A # A <: AbstractVector
 end
-RepeatedInterval{S,A<:AbstractVector}(window::ClosedInterval{S}, offsets::A) = RepeatedInterval{promote_type(ClosedInterval{S}, eltype(A)), S, A}(window, offsets)
+RepeatedInterval(window::ClosedInterval{S}, offsets::A) where {S,A<:AbstractVector} =
+    RepeatedInterval{promote_type(ClosedInterval{S}, eltype(A)), S, A}(window, offsets)
 Base.size(r::RepeatedInterval) = size(r.offsets)
 Base.IndexStyle(::Type{<:RepeatedInterval}) = IndexLinear()
 Base.getindex(r::RepeatedInterval, i::Int) = r.window + r.offsets[i]
@@ -70,14 +71,14 @@ Base.getindex(r::RepeatedInterval, i::Int) = r.window + r.offsets[i]
 
 # As a special extension to intervals, we allow specifying Intervals about a
 # particular index, which is resolved by an axis upon indexing.
-immutable IntervalAtIndex{T}
+struct IntervalAtIndex{T}
     window::ClosedInterval{T}
     index::Int
 end
 atindex(window::ClosedInterval, index::Integer) = IntervalAtIndex(window, index)
 
 # And similarly, an AoS -> SoA transform:
-immutable RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{IntervalAtIndex{T}}
+struct RepeatedIntervalAtIndexes{T,A<:AbstractVector{Int}} <: AbstractVector{IntervalAtIndex{T}}
     window::ClosedInterval{T}
     indexes::A # A <: AbstractVector{Int}
 end
