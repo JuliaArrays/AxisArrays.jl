@@ -210,6 +210,12 @@ function AxisArray(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple
     AxisArray(A, axs...)
 end
 
+AxisArray(A::AxisArray) = A
+AxisArray(A::AxisArray, ax::Vararg{Axis, N}) where N =
+    AxisArray(A.data, ax..., last(Base.IteratorsMD.split(axes(A), Val{N}))...)
+AxisArray(A::AxisArray, ax::NTuple{N, Axis}) where N =
+    AxisArray(A.data, ax..., last(Base.IteratorsMD.split(axes(A), Val{N}))...)
+
 # Traits
 struct HasAxes{B} end
 HasAxes(::Type{<:AxisArray}) = HasAxes{true}()
