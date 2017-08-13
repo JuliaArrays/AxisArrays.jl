@@ -302,6 +302,31 @@ function Base.convert(I::Type{AxisArray{TT, N, AA, AAs}},
     AxisArray(permutedims(convert(AA, array), perm), axes(array)[perm])
 end
 
+function Base.copy!(dest::AxisArray{TT, N, AA, As},
+                    source::AxisArray{T, N, A, As}) where {TT, N, AA, T, A, As}
+    copy!(dest.data, source.data)
+    dest
+end
+
+""" Copies data from one AxisArray to another.
+
+The axes should be the same (name and length) to a permutation. Alternatively, the sizes of
+the two arrays should match.
+"""
+Base.copy!(dest::AxisArray{TT, N, AA, AAs},
+           source::AxisArray{T, N, A, As}) where {TT, N, AA, AAs, T, A, As} = begin
+    perm = map(x -> findfirst(y -> y == x, axes(source)), axes(dest))
+    if any(perm .== 0)
+        size(source) == size(dest) || throw(ArgumentError("Neither axes nor sizes match"))
+        copy!(dest.data, source.data)
+    else
+        all([size(source, u) for u in perm] .== size(dest)) ||
+            throw(ArgumentError("Neither axes nor sizes match"))
+        permutedims!(dest.data, source.data, perm)
+    end
+    dest
+end
+
 # These methods allow us to preserve the AxisArray under reductions
 # Note that we only extend the following two methods, and then have it
 # dispatch to package-local `reduced_indices` and `reduced_indices0`

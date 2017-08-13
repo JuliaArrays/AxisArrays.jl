@@ -95,6 +95,19 @@ Aperm = AxisArray(zeros(Int16, size(A)[perm]), axes(A)[perm])
 @test axes(convert(typeof(Aperm), A)) == axes(A)[perm]
 @test all(convert(typeof(Aperm), A).data .== permutedims(A.data, perm))
 
+# copies two arrays
+A = AxisArray(reshape(1:24, 2, 3, 4), :a, :b, :c)
+B = AxisArray(zeros(Int16, 2, 3, 4), :a, :b, :c)
+@test @inferred(copy!(B, A)) === B
+@test all(copy!(B, A).data .== A.data)
+B = AxisArray(zeros(Int16, 3, 2, 4), :b, :a, :c)
+@test @inferred(copy!(B, A)) === B
+@test all(copy!(B, A).data .== permutedims(A.data, (2, 1, 3)))
+B = AxisArray(zeros(Int16, 2, 3, 4))
+@test @inferred(copy!(B, A)) === B
+@test all(copy!(B, A).data .== A.data)
+
+
 # make sure array types match
 Anomatch = AxisArray(zeros(Int16, size(A)), Base.front(axes(A)))
 @test_throws ArgumentError convert(typeof(Anomatch), A)
