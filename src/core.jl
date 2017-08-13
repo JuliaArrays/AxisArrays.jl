@@ -288,6 +288,20 @@ Base.similar(A::AxisArray, ::Type{S}, ax1::Axis, axs::Axis...) where {S} = simil
     end
 end
 
+Base.convert(::Type{AxisArray{T, N, A, As}},
+             array::AxisArray{T, N, A, As}) where {T, N, A, As} = array
+Base.convert(::Type{AxisArray{TT, N, AA, As}},
+             array::AxisArray{T, N, A, As}) where {TT, N, AA, As, T, A} =
+    AxisArray(convert(AA, array), axes(array))
+function Base.convert(I::Type{AxisArray{TT, N, AA, AAs}},
+                      array::AxisArray{T, N, A, As}
+                     )::AxisArray{TT, N, AA, AAs} where {TT, N, AA, AAs, T, A, As}
+    perm = map(x -> findfirst(y -> typeof(y) <: x, axes(array)),
+               I.parameters[end].parameters)
+    any(perm .== 0) && throw(ArgumentError("Axes do not match"))
+    AxisArray(permutedims(convert(AA, array), perm), axes(array)[perm])
+end
+
 # These methods allow us to preserve the AxisArray under reductions
 # Note that we only extend the following two methods, and then have it
 # dispatch to package-local `reduced_indices` and `reduced_indices0`

@@ -77,6 +77,30 @@ H = similar(A, Float64, 1,1,1)
 # Size
 @test size(A, 1) == size(A, Axis{1}) == size(A, Axis{:row}) == size(A, Axis{:row}())
 
+# Convert between arrays with similar axes
+# first the no-op kind
+A = AxisArray(reshape(1:24, 2, 3, 4), :a, :b, :c)
+@test @inferred(convert(typeof(A), A)) === A
+
+# then change the underlying array type, retaining the axes
+Adense = AxisArray(zeros(Int16, size(A)), axes(A))
+@test typeof(@inferred(convert(typeof(Adense), A))) == typeof(Adense)
+@test axes(convert(typeof(Adense), A)) == axes(A)
+@test all(convert(typeof(Adense), A).data .== A.data)
+
+# finally add a permutation
+perm = [2, 1, 3]
+Aperm = AxisArray(zeros(Int16, size(A)[perm]), axes(A)[perm])
+@test typeof(@inferred(convert(typeof(Aperm), A))) == typeof(Aperm)
+@test axes(convert(typeof(Aperm), A)) == axes(A)[perm]
+@test all(convert(typeof(Aperm), A).data .== permutedims(A.data, perm))
+
+# make sure array types match
+Anomatch = AxisArray(zeros(Int16, size(A)), Base.front(axes(A)))
+@test_throws ArgumentError convert(typeof(Anomatch), A)
+Anomatch = AxisArray(zeros(Int16, size(A)), Axis{:a}((:a, :b)), axes(A)[2:end]...)
+@test_throws ArgumentError convert(typeof(Anomatch), A)
+
 ## Test constructors
 # No axis or time args
 A = AxisArray(1:3)
