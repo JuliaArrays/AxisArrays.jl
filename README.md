@@ -116,6 +116,18 @@ And data, a 1-element Array{Float64,1}:
  6.14454
 ```
 
+You can even index by multiple values by broadcasting `atvalue` over an array:
+
+```julia
+julia> A[atvalue.([2.5e-5s, 75.0µs])]
+2-dimensional AxisArray{Float64,2,...} with axes:
+    :time, Quantity{Float64, Dimensions:{𝐓}, Units:{s}}[2.5e-5 s, 7.5e-5 s]
+    :chan, Symbol[:c1, :c2]
+And data, a 2×2 Array{Float64,2}:
+ 6.14454  12.2891
+ 1.37825   2.75649
+```
+
 Sometimes, though, what we're really interested in is a window of time about a
 specific index. One of the operations above (looking for values in the window from 40µs
 to 220µs) might be more clearly expressed as a symmetrical window about a
