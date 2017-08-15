@@ -37,6 +37,10 @@ This internal function determines the new set of axes that are constructed upon
 indexing with I.
 """
 reaxis(A::AxisArray, I::Idx...) = _reaxis(make_axes_match(axes(A), I), I)
+function reaxis(A::AxisArray, I::AbstractArray{Bool})
+    vecI = vec(I)
+    _reaxis(make_axes_match(axes(A), (vecI,)), (vecI,))
+end
 # Ensure the number of axes matches the number of indexing dimensions
 @inline make_axes_match(axs, idxs) = _make_axes_match((), axs, Base.index_ndims(idxs...))
 # Move the axes into newaxes, until we run out of both simultaneously
@@ -94,6 +98,12 @@ using Base.AbstractCartesianIndex
 
 # Setindex is so much simpler. Just assign it to the data:
 @propagate_inbounds Base.setindex!(A::AxisArray, v, idxs::Idx...) = (A.data[idxs...] = v)
+
+# Logical indexing
+@propagate_inbounds function Base.getindex(A::AxisArray, idx::AbstractArray{Bool})
+    AxisArray(A.data[idx], reaxis(A, idx))
+end
+@propagate_inbounds Base.setindex!(A::AxisArray, v, idx::AbstractArray{Bool}) = (A.data[idx] = v)
 
 ### Fancier indexing capabilities provided only by AxisArrays ###
 @propagate_inbounds Base.getindex(A::AxisArray, idxs...) = A[to_index(A,idxs...)...]

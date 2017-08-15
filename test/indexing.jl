@@ -48,6 +48,19 @@ B = B2[1:2,:]
 @test B.axes[1].val == A.axes[1].val[1:2]
 @test B.axes[2].val == 1:Base.trailingsize(A,2)
 
+# Logical indexing
+all_inds = collect(1:length(A))
+odd_inds = collect(1:2:length(A))
+@test @inferred(A[trues(A)]) == A[:] == A[all_inds]
+@test axes(A[trues(A)]) == axes(A[all_inds])
+@test @inferred(A[isodd.(A)]) == A[1:2:length(A)] == A[odd_inds]
+@test axes(A[isodd.(A)]) == axes(A[odd_inds])
+@test @inferred(A[vec(trues(A))]) == A[:] == A[all_inds]
+@test axes(A[vec(trues(A))]) == axes(A[all_inds])
+@test @inferred(A[vec(isodd.(A))]) == A[1:2:length(A)] == A[odd_inds]
+@test axes(A[vec(isodd.(A))]) == axes(A[odd_inds])
+
+
 B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 
 # Test indexing by Intervals
