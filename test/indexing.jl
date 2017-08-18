@@ -196,6 +196,11 @@ A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
 @test @inferred(A[Axis{:x}(atvalue(2.0, atol=5))]) == [1,2]
 @test_throws BoundsError A[Axis{:x}(atvalue(4.00000001, rtol=0))]
 
+# Indexing with ExactValue on Dimensional axes
+A = AxisArray([2.0,4.0,6.1], Axis{:x}([-10,1,3]))
+@test @inferred(A[AxisArrays.ExactValue(1)]) == @inferred(A[atvalue(1)]) == 4.0
+@test_throws BoundsError A[AxisArrays.ExactValue(2)]
+
 # Indexing by array of values
 A = AxisArray([1 2 3 4; 5 6 7 8; 9 10 11 12], -1:1, [5.1, 5.4, 5.7, 5.8])
 @test @inferred(A[atvalue(-1), atvalue.([5.1, 5.7])]) == [1, 3]
