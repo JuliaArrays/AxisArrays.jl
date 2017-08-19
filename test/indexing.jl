@@ -196,6 +196,11 @@ A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
 @test @inferred(A[Axis{:x}(atvalue(2.0, atol=5))]) == [1,2]
 @test_throws BoundsError A[Axis{:x}(atvalue(4.00000001, rtol=0))]
 
+# Indexing with ExactValue on Dimensional axes
+A = AxisArray([2.0,4.0,6.1], Axis{:x}([-10,1,3]))
+@test @inferred(A[AxisArrays.ExactValue(1)]) == @inferred(A[atvalue(1)]) == 4.0
+@test_throws BoundsError A[AxisArrays.ExactValue(2)]
+
 # Indexing by array of values
 A = AxisArray([1 2 3 4; 5 6 7 8; 9 10 11 12], -1:1, [5.1, 5.4, 5.7, 5.8])
 @test @inferred(A[atvalue(-1), atvalue.([5.1, 5.7])]) == [1, 3]
@@ -213,6 +218,16 @@ A = AxisArray(OffsetArrays.OffsetArray([1 2; 3 4], 0:1, 1:2),
 @test_throws ArgumentError A[BigFloat(1.0)]
 @test_throws ArgumentError A[1.0f0]
 @test_throws ArgumentError A[:,6.1]
+
+# Indexing with `atvalue` on Categorical axes
+A = AxisArray([1 2; 3 4], Axis{:x}([:a, :b]), Axis{:y}(["c", "d"]))
+@test @inferred(A[atvalue(:a)]) == @inferred(A[atvalue(:a), :]) == [1,2]
+@test @inferred(A[atvalue(:b)]) == @inferred(A[atvalue(:b), :]) == [3,4]
+@test_throws ArgumentError A[atvalue(:c)]
+@test @inferred(A[atvalue(:a), atvalue("c")]) == 1
+@test @inferred(A[:, atvalue("c")]) == [1,3]
+@test @inferred(A[Axis{:x}(atvalue(:b))]) == [3,4]
+@test @inferred(A[Axis{:y}(atvalue("d"))]) == [2,4]
 
 # Test using dates
 using Base.Dates: Day, Month
