@@ -278,17 +278,50 @@ for C in arrays
             @test C2 == reshape([1,2,3], 3, 1)
             @test C12 == reshape([1], 1, 1)
         end
-        C1t = @inferred(op(C, Axis{:y}))
-        @test C1t == C1
-        C2t = @inferred(op(C, Axis{:x}))
-        @test C2t == C2
-        C12t = @inferred(op(C, (Axis{:y},Axis{:x})))
-        @test C12t == C12
-        C1t = @inferred(op(C, Axis{:y}()))
-        @test C1t == C1
-        C2t = @inferred(op(C, Axis{:x}()))
-        @test C2t == C2
-        C12t = @inferred(op(C, (Axis{:y}(),Axis{:x}())))
-        @test C12t == C12
+        @test @inferred(op(C, Axis{:y})) == C1
+        @test @inferred(op(C, Axis{:x})) == C2
+        @test @inferred(op(C, (Axis{:y},Axis{:x}))) == C12
+        @test @inferred(op(C, Axis{:y}())) == C1
+        @test @inferred(op(C, Axis{:x}())) == C2
+        @test @inferred(op(C, (Axis{:y}(),Axis{:x}()))) == C12
     end
+end
+
+function typeof_noaxis(::AxisArray{T,N,D}) where {T,N,D}
+    AxisArray{T,N,D}
+end
+
+# uninferrable
+C = AxisArray(collect(reshape(1:15,3,5)), Axis{:y}([:a,:b,:c]), Axis{:x}(["a","b","c","d","e"]))
+for op in functions  # together, cover both reduced_indices and reduced_indices0
+    axv = axisvalues(C)
+    C1 = op(C, 1)
+    @test typeof_noaxis(C1) == typeof_noaxis(C)
+    @test axisnames(C1) == (:y,:x)
+    @test axisvalues(C1) === (Base.OneTo(1), axv[2])
+    C2 = op(C, 2)
+    @test typeof_noaxis(C2) == typeof_noaxis(C)
+    @test axisnames(C2) == (:y,:x)
+    @test axisvalues(C2) === (axv[1], Base.OneTo(1))
+    C12 = op(C, (1,2))
+    @test typeof_noaxis(C12) == typeof_noaxis(C)
+    @test axisnames(C12) == (:y,:x)
+    @test axisvalues(C12) === (Base.OneTo(1), Base.OneTo(1))
+    if op == sum
+        @test C1 == [6 15 24 33 42]
+        @test C2 == reshape([35,40,45], 3, 1)
+        @test C12 == reshape([120], 1, 1)
+    else
+        @test C1 == [1 4 7 10 13]
+        @test C2 == reshape([1,2,3], 3, 1)
+        @test C12 == reshape([1], 1, 1)
+    end
+    @test @inferred(op(C, Axis{:y})) == C1
+    @test @inferred(op(C, Axis{:x})) == C2
+    # Unfortunately the type of (Axis{:y},Axis{:x}) is Tuple{UnionAll,UnionAll} so methods will not specialize
+    @test_broken @inferred(op(C, (Axis{:y},Axis{:x}))) == C12
+    @test op(C, (Axis{:y},Axis{:x})) == C12
+    @test @inferred(op(C, Axis{:y}())) == C1
+    @test @inferred(op(C, Axis{:x}())) == C2
+    @test @inferred(op(C, (Axis{:y}(),Axis{:x}()))) == C12
 end

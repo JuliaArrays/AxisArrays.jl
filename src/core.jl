@@ -342,8 +342,11 @@ _reduced_indices(f, out, chosen) = out
 @inline __reduced_indices(f, out, ::Val{false}, chosen, ax, axs) =
     _reduced_indices(f, (out..., ax), chosen, axs...)
 
-reduced_axis(ax) = ax(oftype(ax.val, Base.OneTo(1)))
-reduced_axis0(ax) = ax(oftype(ax.val, length(ax.val) == 0 ? Base.OneTo(0) : Base.OneTo(1)))
+reduced_axis( ax::Axis{name,<:AbstractArray{T}}) where {name,T<:Number} = ax(oftype(ax.val, Base.OneTo(1)))
+reduced_axis0(ax::Axis{name,<:AbstractArray{T}}) where {name,T<:Number} = ax(oftype(ax.val, length(ax.val) == 0 ? Base.OneTo(0) : Base.OneTo(1)))
+
+reduced_axis( ax) = ax(Base.OneTo(1))
+reduced_axis0(ax) = ax(length(ax.val) == 0 ? Base.OneTo(0) : Base.OneTo(1))
 
 
 function Base.permutedims(A::AxisArray, perm)
