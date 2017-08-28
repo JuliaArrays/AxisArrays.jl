@@ -539,7 +539,7 @@ axistrait(::Type{Axis{name,T}}) where {name,T} = axistrait(T)
 axistrait(::Type{T}) where {T<:AbstractVector} = _axistrait_el(eltype(T))
 _axistrait_el(::Type{<:Union{Number, Dates.AbstractTime}}) = Dimensional
 _axistrait_el(::Type{<:Union{Symbol, AbstractString}}) = Categorical
-_axistrait_el(::Type{T}) where {T} = Unsupported
+_axistrait_el(::Type{T}) where {T} = Categorical
 
 checkaxis(ax::Axis) = checkaxis(ax.val)
 checkaxis(ax) = checkaxis(axistrait(ax), ax)

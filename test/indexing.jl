@@ -242,6 +242,16 @@ A = AxisArray([1 2; 3 4], Axis{:x}([:a, :b]), Axis{:y}(["c", "d"]))
 @test @inferred(A[Axis{:x}(atvalue(:b))]) == [3,4]
 @test @inferred(A[Axis{:y}(atvalue("d"))]) == [2,4]
 
+# Index by mystery types categorically
+struct Foo
+    x
+end
+A = AxisArray(1:10, Axis{:x}(map(Foo, 1:10)))
+@test A[map(Foo, 3:6)] == collect(3:6)
+@test_throws ArgumentError A[map(Foo, 3:11)]
+@test A[Foo(4)] == 4
+@test_throws ArgumentError A[Foo(0)]
+
 # Test using dates
 using Base.Dates: Day, Month
 A = AxisArray(1:365, Date(2017,1,1):Date(2017,12,31))
