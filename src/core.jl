@@ -296,10 +296,10 @@ Base.convert(::Type{AxisArray{TT, N, AA, As}},
 function Base.convert(I::Type{AxisArray{TT, N, AA, AAs}},
                       array::AxisArray{T, N, A, As}
                      )::AxisArray{TT, N, AA, AAs} where {TT, N, AA, AAs, T, A, As}
-    perm = map(x -> findfirst(y -> typeof(y) <: x, axes(array)),
-               I.parameters[end].parameters)
+    perm = indexin(collect(axisnames(I)), collect(axisnames(array)))
     any(perm .== 0) && throw(ArgumentError("Axes do not match"))
-    AxisArray(permutedims(convert(AA, array), perm), axes(array)[perm])
+    data = permutedims(convert(AA, array.data), perm)
+    AxisArray(data, convert.(collect(AAs.parameters), axes(array)[perm])...)
 end
 
 function Base.copy!(dest::AxisArray{TT, N, AA, As},
@@ -313,9 +313,9 @@ end
 The axes should be the same (name and length) to a permutation. Alternatively, the sizes of
 the two arrays should match.
 """
-Base.copy!(dest::AxisArray{TT, N, AA, AAs},
-           source::AxisArray{T, N, A, As}) where {TT, N, AA, AAs, T, A, As} = begin
-    perm = map(x -> findfirst(y -> y == x, axes(source)), axes(dest))
+function Base.copy!(dest::AxisArray{TT, N, AA, AAs},
+                    source::AxisArray{T, N, A, As}) where {TT, N, AA, AAs, T, A, As}
+    perm = indexin(collect(axisnames(dest)), collect(axisnames(source)))
     if any(perm .== 0)
         size(source) == size(dest) || throw(ArgumentError("Neither axes nor sizes match"))
         copy!(dest.data, source.data)
