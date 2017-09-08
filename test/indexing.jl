@@ -193,6 +193,13 @@ acc = zeros(Int, 4, 1, 2)
 Base.mapreducedim!(x->x>5, +, acc, A3)
 @test acc == reshape([1 3; 2 3; 2 3; 2 3], 4, 1, 2)
 
+# Value axistraits
+@testset for typ in (IL.IntLike, Complex{Float32}, DateTime, String, Symbol, Int)
+    @test AxisArrays.axistrait(Axis{:foo, Vector{AxisArrays.ExactValue{typ}}}) ===
+        AxisArrays.axistrait(Axis{:foo, Vector{AxisArrays.TolValue{typ}}}) ===
+        AxisArrays.axistrait(Axis{:bar, Vector{typ}})
+end
+
 # Indexing by value using `atvalue`
 A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
 @test @inferred(A[atvalue(1.0)]) == @inferred(A[atvalue(1.0), :]) == [1,2]
