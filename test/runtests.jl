@@ -1,4 +1,5 @@
 using AxisArrays
+using Base.Dates
 using Base.Test
 import IterTools
 

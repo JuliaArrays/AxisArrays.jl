@@ -180,6 +180,23 @@ axy = @inferred(A[Axis{:y}])
 @test axy.val == 1:5
 @test_throws ArgumentError A[Axis{:z}]
 
+# indexing by value (implicitly) in a dimensional axis
+some_dates = DateTime(2016, 1, 2, 0):Hour(1):DateTime(2016, 1, 2, 2)
+A1 = AxisArray(reshape(1:6, 2, 3), Axis{:x}(1:2), Axis{:y}(some_dates))
+A2 = AxisArray(reshape(1:6, 2, 3), Axis{:x}(1:2), Axis{:y}(collect(some_dates)))
+for A in (A1, A2)
+    @test A[:, DateTime(2016, 1, 2, 1)] == [3; 4]
+    @test A[:, DateTime(2016, 1, 2, 1) .. DateTime(2016, 1, 2, 2)] == [3 5; 4 6]
+    @test_throws BoundsError A[:, DateTime(2016, 1, 2, 3)]
+    @test_throws BoundsError A[:, DateTime(2016, 1, 1, 23)]
+    try
+        A[:, DateTime(2016, 1, 2, 3)]
+        @test "unreachable" === false
+    catch err
+        @test err == BoundsError(A.axes[2].val, DateTime(2016, 1, 2, 3))
+    end
+end
+
 # Test for the expected exception type given repeated axes
 A = AxisArray(rand(2,2), :x, :y)
 @test_throws ArgumentError A[Axis{:x}(1), Axis{:x}(1)]
