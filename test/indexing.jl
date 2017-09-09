@@ -210,6 +210,13 @@ acc = zeros(Int, 4, 1, 2)
 Base.mapreducedim!(x->x>5, +, acc, A3)
 @test acc == reshape([1 3; 2 3; 2 3; 2 3], 4, 1, 2)
 
+# Value axistraits
+@testset for typ in (IL.IntLike, Complex{Float32}, DateTime, String, Symbol, Int)
+    @test AxisArrays.axistrait(Axis{:foo, Vector{AxisArrays.ExactValue{typ}}}) ===
+        AxisArrays.axistrait(Axis{:foo, Vector{AxisArrays.TolValue{typ}}}) ===
+        AxisArrays.axistrait(Axis{:bar, Vector{typ}})
+end
+
 # Indexing by value using `atvalue`
 A = AxisArray([1 2; 3 4], Axis{:x}([1.0,4.0]), Axis{:y}([2.0,6.1]))
 @test @inferred(A[atvalue(1.0)]) == @inferred(A[atvalue(1.0), :]) == [1,2]
@@ -258,6 +265,16 @@ A = AxisArray([1 2; 3 4], Axis{:x}([:a, :b]), Axis{:y}(["c", "d"]))
 @test @inferred(A[:, atvalue("c")]) == [1,3]
 @test @inferred(A[Axis{:x}(atvalue(:b))]) == [3,4]
 @test @inferred(A[Axis{:y}(atvalue("d"))]) == [2,4]
+
+# Index by mystery types categorically
+struct Foo
+    x
+end
+A = AxisArray(1:10, Axis{:x}(map(Foo, 1:10)))
+@test A[map(Foo, 3:6)] == collect(3:6)
+@test_throws ArgumentError A[map(Foo, 3:11)]
+@test A[Foo(4)] == 4
+@test_throws ArgumentError A[Foo(0)]
 
 # Test using dates
 using Base.Dates: Day, Month

@@ -26,6 +26,9 @@ Base.start(::Value) = false
 Base.next(x::Value, state) = (x, true)
 Base.done(x::Value, state) = state
 
+# Values have the indexing trait of their wrapped type
+_axistrait_el(::Type{<:Value{T}}) where {T} = _axistrait_el(T)
+
 # How to show Value objects (e.g. in a BoundsError)
 Base.show(io::IO, v::TolValue) =
     print(io, string("TolValue(", v.val, ", tol=", v.tol, ")"))
