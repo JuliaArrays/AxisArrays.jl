@@ -46,7 +46,7 @@ struct Axis{name,T}
     val::T
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
-(::Type{Axis{name}})(I::T=()) where {name,T} = Axis{name,T}(I)
+Axis{name}(I::T=()) where {name,T} = Axis{name,T}(I)
 Base.:(==)(A::Axis{name}, B::Axis{name}) where {name} = A.val == B.val
 Base.hash(A::Axis{name}, hx::UInt) where {name} = hash(A.val, hash(name, hx))
 axistype(::Axis{name,T}) where {name,T} = T
@@ -146,7 +146,7 @@ A[ClosedInterval(0.,.3), [:a, :c]]   # select an interval and two columns
 struct AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     data::D  # D <:AbstractArray, enforced in constructor to avoid dispatch bugs (https://github.com/JuliaLang/julia/issues/6383)
     axes::Ax # Ax<:NTuple{N, Axis}, but with specialized Axis{...} types
-    (::Type{AxisArray{T,N,D,Ax}})(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
+    AxisArray{T,N,D,Ax}(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
 end
 
 # Helper functions: Default axis names (if not provided)
