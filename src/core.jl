@@ -297,7 +297,7 @@ function Base.convert(I::Type{AxisArray{TT, N, AA, AAs}},
                       array::AxisArray{T, N, A, As}
                      )::AxisArray{TT, N, AA, AAs} where {TT, N, AA, AAs, T, A, As}
     perm = indexin(collect(axisnames(I)), collect(axisnames(array)))
-    any(perm .== 0) && throw(ArgumentError("Axes do not match"))
+    any(iszero(x) for x in perm) && throw(ArgumentError("Axes do not match"))
     data = permutedims(convert(AA, array.data), perm)
     AxisArray(data, convert.(collect(AAs.parameters), axes(array)[perm])...)
 end

@@ -86,14 +86,14 @@ A = AxisArray(reshape(1:24, 2, 3, 4), :a, :b, :c)
 Adense = AxisArray(zeros(Int16, size(A)), axes(A))
 @test typeof(@inferred(convert(typeof(Adense), A))) == typeof(Adense)
 @test axes(convert(typeof(Adense), A)) == axes(A)
-@test all(convert(typeof(Adense), A).data .== A.data)
+@test convert(typeof(Adense), A).data == A.data
 
 # then add a permutation
 perm = [2, 1, 3]
 Aperm = AxisArray(zeros(Int16, size(A)[perm]), axes(A)[perm])
 @test typeof(@inferred(convert(typeof(Aperm), A))) == typeof(Aperm)
 @test axes(convert(typeof(Aperm), A)) == axes(A)[perm]
-@test all(convert(typeof(Aperm), A).data .== permutedims(A.data, perm))
+@test convert(typeof(Aperm), A).data == permutedims(A.data, perm)
 
 # then change the axis indexing as well as the order
 A = AxisArray(reshape(1:24, 2, 3, 4), :a, :b, :c)
@@ -101,19 +101,19 @@ B = AxisArray(zeros(Int16, size(A)), Axis{:c}(1:2), Axis{:a}(-1:1), Axis{:b}(1:4
 perm = [3, 1, 2]
 @test typeof(@inferred(convert(typeof(B), A))) == typeof(B)
 @test axisnames(convert(typeof(B), A)) == axisnames(A)[perm]
-@test all(convert(typeof(B), A).data .== permutedims(A.data, perm))
+@test convert(typeof(B), A).data == permutedims(A.data, perm)
 
 # copies two arrays
 A = AxisArray(reshape(1:24, 2, 3, 4), :a, :b, :c)
 B = AxisArray(zeros(Int16, 2, 3, 4), :a, :b, :c)
 @test @inferred(copy!(B, A)) === B
-@test all(copy!(B, A).data .== A.data)
+@test copy!(B, A).data == A.data
 B = AxisArray(zeros(Int16, 3, 2, 4), :b, :a, :c)
 @test @inferred(copy!(B, A)) === B
-@test all(copy!(B, A).data .== permutedims(A.data, (2, 1, 3)))
+@test copy!(B, A).data == permutedims(A.data, (2, 1, 3))
 B = AxisArray(zeros(Int16, 3, 2, 4), Axis{:b}(2:4), Axis{:a}(2:3), Axis{:c}(-1:2))
 @test @inferred(copy!(B, A)) === B
-@test all(copy!(B, A).data .== permutedims(A.data, (2, 1, 3)))
+@test copy!(B, A).data == permutedims(A.data, (2, 1, 3))
 B = AxisArray(zeros(Int16, 2, 3, 4))
 @test_throws ArgumentError copy!(B, A)
 @test_throws ArgumentError copy!(B, A, false)
