@@ -308,20 +308,27 @@ function Base.copy!(dest::AxisArray{TT, N, AA, As},
     dest
 end
 
-""" Copies data from one AxisArray to another.
+"""
+    copy!(dest::AxisArray, source::AxisArray, ignore_axes::Bool=false) -> AxisArray
 
-The axes should be the same (name and length) to a permutation. Alternatively, the sizes of
-the two arrays should match.
+Copies data from one AxisArray to another. If `ignore_axes` is `false` (default), then all
+axis names should match, though they may be permutated. If `ignore_axes` is `true`, then the
+function copies the underlying arrays, using the behaviour standard for the types of the
+underlying arrays.
 """
 function Base.copy!(dest::AxisArray{TT, N, AA, AAs},
-                    source::AxisArray{T, N, A, As}) where {TT, N, AA, AAs, T, A, As}
-    perm = indexin(collect(axisnames(dest)), collect(axisnames(source)))
-    if any(perm .== 0)
-        size(source) == size(dest) || throw(ArgumentError("Neither axes nor sizes match"))
+                    source::AxisArray{T, N, A, As},
+                    ignore_axes::Bool=false) where {TT, N, AA, AAs, T, A, As}
+    if ignore_axes
         copy!(dest.data, source.data)
     else
-        all([size(source, u) for u in perm] .== size(dest)) ||
-            throw(ArgumentError("Neither axes nor sizes match"))
+        perm = indexin(collect(axisnames(dest)), collect(axisnames(source)))
+        any(iszero(x) for x in perm) &&
+                throw(ArgumentError("""
+                    Axes of source and destination do not match.
+                    Use copy!(A, B, false) if you want to ignore axis information.
+                    """))
+
         permutedims!(dest.data, source.data, perm)
     end
     dest

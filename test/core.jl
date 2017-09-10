@@ -115,8 +115,10 @@ B = AxisArray(zeros(Int16, 3, 2, 4), Axis{:b}(2:4), Axis{:a}(2:3), Axis{:c}(-1:2
 @test @inferred(copy!(B, A)) === B
 @test all(copy!(B, A).data .== permutedims(A.data, (2, 1, 3)))
 B = AxisArray(zeros(Int16, 2, 3, 4))
-@test @inferred(copy!(B, A)) === B
-@test all(copy!(B, A).data .== A.data)
+@test_throws ArgumentError copy!(B, A)
+@test_throws ArgumentError copy!(B, A, false)
+@test @inferred(copy!(B, A, true)) === B
+@test copy!(B, A, true).data == A.data
 
 
 # make sure array types match
