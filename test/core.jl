@@ -108,12 +108,23 @@ A = AxisArray(reshape(1:24, 2, 3, 4), :a, :b, :c)
 B = AxisArray(zeros(Int16, 2, 3, 4), :a, :b, :c)
 @test @inferred(copy!(B, A)) === B
 @test copy!(B, A).data == A.data
+
 B = AxisArray(zeros(Int16, 3, 2, 4), :b, :a, :c)
 @test @inferred(copy!(B, A)) === B
 @test copy!(B, A).data == permutedims(A.data, (2, 1, 3))
+
 B = AxisArray(zeros(Int16, 3, 2, 4), Axis{:b}(2:4), Axis{:a}(2:3), Axis{:c}(-1:2))
 @test @inferred(copy!(B, A)) === B
 @test copy!(B, A).data == permutedims(A.data, (2, 1, 3))
+
+B = zeros(A)
+Bindices = (Axis{:a}(atvalue(1)), Axis{:c}(2:3), Axis{:b}(1:2))
+Aindices = (Axis{:b}(1:2), Axis{:a}(atvalue(2)), Axis{:c}(1:2))
+@inferred(copy!(B, Bindices, A, Aindices))
+@test B[Bindices...] == A[Aindices...] # checks the bits that were copied
+fill!(view(B, Bindices...), 0) # This and next line check the bits that were not copied
+@test iszero(B)
+
 B = AxisArray(zeros(Int16, 2, 3, 4))
 @test_throws ArgumentError copy!(B, A)
 @test_throws ArgumentError copy!(B, A, false)

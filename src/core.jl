@@ -334,6 +334,16 @@ function Base.copy!(dest::AxisArray{TT, N, AA, AAs},
     dest
 end
 
+"""
+    copy!(dest::AxisArray, daxes::Tuple, src::AxisArray, saxes::Tuple, ignore_axes=false)
+
+Copies a block from one array to a block of another. The tuples identifying the blocks can
+be anything that `view` accepts. Hence it may include axis information.
+"""
+Base.copy!(dest::AxisArray, daxes::Tuple{Axis, Vararg{Axis}},
+           src::AxisArray, saxes::Tuple{Axis, Vararg{Axis}}) =
+    copy!(view(dest, daxes...), view(src, saxes...))
+
 # These methods allow us to preserve the AxisArray under reductions
 # Note that we only extend the following two methods, and then have it
 # dispatch to package-local `reduced_indices` and `reduced_indices0`
