@@ -7,7 +7,7 @@ import Base.Iterators: repeated
 using RangeArrays, IntervalSets
 using IterTools
 
-export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse
+export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse, @v
 
 # From IntervalSets:
 export ClosedInterval, ..
