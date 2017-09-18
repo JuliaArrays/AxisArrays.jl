@@ -14,13 +14,13 @@ Collaboration is welcome! This is still a work-in-progress. See [the roadmap](ht
 
 ```julia
 julia> Pkg.add("AxisArrays")
-       using AxisArrays, Unitful
-       import Unitful: s, ms, µs
+julia> using AxisArrays, Unitful
+julia> import Unitful: s, ms, µs
 
 julia> rng = MersenneTwister(123) # Seed a random number generator for repeatable examples
-       fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
-       y = randn(rng, 60*fs+1)*3
-       for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50,
+julia> fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
+julia> y = randn(rng, 60*fs+1)*3
+julia> for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50,
                   sin.(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
            i = rand(rng, round(Int,.001fs):1fs)
            while i+length(spk)-1 < length(y)
