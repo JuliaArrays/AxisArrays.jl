@@ -51,12 +51,13 @@ julia> for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50
 
 ```jldoctest
 julia> A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
+
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time, 0.0 s:2.5e-5 s:60.0 s
     :chan, Symbol[:c1, :c2]
 And data, a 2400001×2 Array{Float64,2}:
   3.5708     7.14161
-  6.14454   12.2891  
+  6.14454   12.2891
   3.42795    6.85591
   1.37825    2.75649
  -1.19004   -2.38007
@@ -65,7 +66,7 @@ And data, a 2400001×2 Array{Float64,2}:
  -0.226449  -0.452898
   0.821446   1.64289
  -0.582687  -1.16537
-  ⋮                  
+  ⋮
  -3.50593   -7.01187
   2.26783    4.53565
  -0.16902   -0.33804
@@ -73,8 +74,9 @@ And data, a 2400001×2 Array{Float64,2}:
   0.226457   0.452914
   0.560809   1.12162
   4.67663    9.35326
- -2.41005   -4.8201  
+ -2.41005   -4.8201
  -3.71612   -7.43224
+
 ```
 
 AxisArrays behave like regular arrays, but they additionally use the axis
@@ -98,6 +100,7 @@ And data, a 5-element Array{Float64,1}:
   6.85591
   2.75649
  -2.38007
+
 ```
 
 We can also index by the *values* of each axis using an `Interval` type that
@@ -114,12 +117,13 @@ And data, a 7-element Array{Float64,1}:
   1.37825
  -1.19004
  -1.99414
-  2.9429  
+  2.9429
  -0.226449
   0.821446
 
 julia> axes(ans, 1)
 AxisArrays.Axis{:time,StepRangeLen{Quantity{Float64, Dimensions:{𝐓}, Units:{s}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}}}}(5.0e-5 s:2.5e-5 s:0.0002 s)
+
 ```
 
 You can also index by a single value on an axis using `atvalue`. This will drop
@@ -135,6 +139,7 @@ julia> A[2.5e-5s..2.5e-5s, :c1]
     :time, 2.5e-5 s:2.5e-5 s:2.5e-5 s
 And data, a 1-element Array{Float64,1}:
  6.14454
+
 ```
 
 You can even index by multiple values by broadcasting `atvalue` over an array:
@@ -147,6 +152,7 @@ julia> A[atvalue.([2.5e-5s, 75.0µs])]
 And data, a 2×2 Array{Float64,2}:
  6.14454  12.2891
  1.37825   2.75649
+
 ```
 
 Sometimes, though, what we're really interested in is a window of time about a
@@ -158,15 +164,16 @@ we use the `atindex` function:
 ```jldoctest
 julia> A[atindex(-90µs .. 90µs, 5), :c2]
 1-dimensional AxisArray{Float64,1,...} with axes:
-    :time_sub, -7.5e-5 s:2.5e-5 s:7.500000000000002e-5 s
+    :time_sub, -7.5e-5 s:2.5e-5 s:7.5e-5 s
 And data, a 7-element Array{Float64,1}:
+ 12.2891
   6.85591
   2.75649
  -2.38007
  -3.98828
   5.88581
  -0.452898
-  1.64289
+
 ```
 
 Note that the returned AxisArray has its time axis shifted to represent the
@@ -182,26 +189,27 @@ julia> spks = A[atindex(-200µs .. 800µs, idxs), :c1]
     :time_sub, -0.0002 s:2.5e-5 s:0.0008 s
     :time_rep, Quantity{Float64, Dimensions:{𝐓}, Units:{s}}[0.162 s, 0.20045 s, 0.28495 s, 0.530325 s, 0.821725 s, 1.0453 s, 1.11967 s, 1.1523 s, 1.22085 s, 1.6253 s  …  57.0094 s, 57.5818 s, 57.8716 s, 57.8806 s, 58.4353 s, 58.7041 s, 59.1015 s, 59.1783 s, 59.425 s, 59.5657 s]
 And data, a 41×247 Array{Float64,2}:
-   0.672063    7.25649      0.633375  …    1.54583     5.81194    -4.706
+  -1.82238     2.3315      -1.56147   …    4.33751     4.77713    -1.81713
+   0.672063    7.25649      0.633375       1.54583     5.81194    -4.706
   -1.65182     2.57487      0.477408       3.09505     3.52478     4.13037
    4.46035     2.11313      4.78372        1.23385     7.2525      3.57485
    5.25651    -2.19785      3.05933        0.965021    6.78414     5.94854
-   7.8537      0.345008     0.960533       0.812989    0.336715    0.303909
-   0.466816    0.643649    -3.67087   …    3.92978    -3.1242      0.789722
+   7.8537      0.345008     0.960533  …    0.812989    0.336715    0.303909
+   0.466816    0.643649    -3.67087        3.92978    -3.1242      0.789722
   -6.0445    -13.2441      -4.60716        0.265144   -4.50987    -8.84897
   -9.21703   -13.2254     -14.4409        -8.6664    -13.3457    -11.6213
  -16.1809    -22.7037     -25.023        -15.9376    -28.0817    -16.996
- -23.2671    -31.2021     -25.3787       -24.4914    -32.2599    -26.1118
    ⋮                                  ⋱                ⋮
+   1.72728     4.77428    -10.3922        -2.08555     1.19198    -1.94365
   -0.301629    0.0683982   -4.36574        1.92362    -5.12333    -3.4431
    4.7182      1.18615      4.40717       -4.51757    -8.64314     0.0800021
-  -2.43775    -0.151882    -1.40817       -3.38555    -2.23418     0.728549
-   3.2482     -0.60967      0.471288  …    2.53395     0.468817   -3.65905
+  -2.43775    -0.151882    -1.40817   …   -3.38555    -2.23418     0.728549
+   3.2482     -0.60967      0.471288       2.53395     0.468817   -3.65905
   -4.26967     2.24747     -3.13758        1.74967     4.5052     -0.145357
   -0.752487    1.69446     -1.20491        1.71429     1.81936     0.290158
    4.64348    -3.94187     -1.59213        7.15428    -0.539748    4.82309
-   1.09652    -2.66999      0.521931      -3.80528     1.70421     3.40583
-  -0.94341     2.60785     -3.34291   …    1.10584     4.31118     3.6404
+   1.09652    -2.66999      0.521931  …   -3.80528     1.70421     3.40583
+
 ```
 
 By indexing with a repeated interval, we have *added* a dimension to the
