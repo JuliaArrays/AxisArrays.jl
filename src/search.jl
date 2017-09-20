@@ -16,7 +16,7 @@ function searchsortednearest(vec::AbstractVector, x)
     return idx
 end
 # Base only specializes searching ranges by Numbers; so optimize for Intervals
-function Base.searchsorted(a::Range, I::ClosedInterval)
+function Base.searchsorted(a::AbstractVector, I::ClosedInterval)
     searchsortedfirst(a, I.left):searchsortedlast(a, I.right)
 end
 

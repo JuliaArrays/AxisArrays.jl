@@ -108,6 +108,12 @@ A = AxisArray(reshape(1:32, 2, 2, 2, 2, 2), .1:.1:.2, .1:.1:.2, .1:.1:.2, [:a, :
 @test A[ClosedInterval(.15, .25), ClosedInterval(.05, .15), ClosedInterval(.15, .25), :a] == A.data[2:2, 1:1, 2:2, 1, :]
 @test A[Axis{:dim_5}(2)] == A.data[:, :, :, :, 2]
 
+# allow SortedVector to force Dimensional behaviour when comparison is possible
+A = AxisArray([1,3,2], Axis{:a}(SortedVector(["one", "three", "two"])))
+@test A["three"] == 3
+@test A["three".."three"] == A["thra".."thro"] == AxisArray([3], Axis{:a}(SortedVector(["three"])))
+@test A["a".."z"] == A
+
 # Test vectors
 v = AxisArray(collect(.1:.1:10.0), .1:.1:10.0)
 @test v[Colon()] == v
