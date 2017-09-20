@@ -46,24 +46,20 @@
 
       <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
 	<ul class="current">
+	  
           
-            <li>
-    <li class="toctree-l1 ">
-        <a class="" href="..">Home</a>
-        
-    </li>
-<li>
+            <li class="toctree-l1">
+		
+    <a class="" href="..">Home</a>
+	    </li>
           
-            <li>
-    <li class="toctree-l1 current">
-        <a class="current" href="./">Reference</a>
-        
-            <ul>
+            <li class="toctree-l1 current">
+		
+    <a class="current" href="./">Reference</a>
+    <ul class="subnav">
             
-            </ul>
-        
-    </li>
-<li>
+    </ul>
+	    </li>
           
         </ul>
       </div>
@@ -104,7 +100,7 @@
 <strong><code>AxisArrays.Axis</code></strong> &mdash; <em>Type</em>.</p>
 <p>Type-stable axis-specific indexing and identification with a parametric type.</p>
 <p><strong>Type parameters</strong></p>
-<pre><code class="julia">immutable Axis{name,T}
+<pre><code class="julia">struct Axis{name,T}
 </code></pre>
 
 <ul>
@@ -129,13 +125,13 @@ A[Axis{:row}(2)] # grabs the second row
 A[Axis{2}(2:5)] # grabs the second through 5th columns
 </code></pre>
 
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/core.jl#L13-L50' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L7-L44' class='documenter-source'>source</a><br></p>
 <p><a id='AxisArrays.AxisArray' href='#AxisArrays.AxisArray'>#</a>
 <strong><code>AxisArrays.AxisArray</code></strong> &mdash; <em>Type</em>.</p>
 <p>An AxisArray is an AbstractArray that wraps another AbstractArray and adds axis names and values to each array dimension. AxisArrays can be indexed by using the named axes as an alternative to positional indexing by dimension. Other advanced indexing along axis values are also provided.</p>
 <p><strong>Type parameters</strong></p>
 <p>The AxisArray contains several type parameters:</p>
-<pre><code class="julia">immutable AxisArray{T,N,D,Ax} &lt;: AbstractArray{T,N}
+<pre><code class="julia">struct AxisArray{T,N,D,Ax} &lt;: AbstractArray{T,N}
 </code></pre>
 
 <ul>
@@ -164,11 +160,8 @@ AxisArray(A::AbstractArray, (names...,), (steps...,), [(offsets...,)])
 <li>Categorical axis – These are vectors of labels, normally Symbols or strings. Elements or slices can be indexed by elements or vectors of elements.</li>
 <li>Dimensional axis – These are sorted vectors or iterators that can be indexed by <code>ClosedInterval()</code>. These are commonly used for sequences of times or date-times. For regular sample rates, ranges can be used.</li>
 </ul>
-<p>User-defined axis types can be added along with custom indexing behaviors. To add add a custom type as a Categorical or Dimensional axis, add a trait using <code>AxisArrays.axistrait</code>. Here is the example of adding a custom Dimensional axis:</p>
-<pre><code class="julia">AxisArrays.axistrait(v::MyCustomAxis) = AxisArrays.Dimensional
-</code></pre>
-
-<p>For more advanced indexing, you can define custom methods for <code>AxisArrays.axisindexes</code>.</p>
+<p>User-defined axis types can be added along with custom indexing behaviors. To add add a custom type as a Categorical or Dimensional axis, add a trait using <a href="./#AxisArrays.axistrait-Union{Tuple{T}, Tuple{T}} where T"><code>AxisArrays.axistrait</code></a>.</p>
+<p>For more advanced indexing, you can define custom methods for <a href="./#AxisArrays.axisindexes-Tuple{Any,Any}"><code>AxisArrays.axisindexes</code></a>.</p>
 <p><strong>Examples</strong></p>
 <p>Here is an example with a Dimensional axis representing a time sequence along rows (it's a FloatRange) and a Categorical axis of Symbols for column headers.</p>
 <pre><code class="julia">A = AxisArray(reshape(1:15, 5, 3), Axis{:time}(.1:.1:0.5), Axis{:col}([:a, :b, :c]))
@@ -177,7 +170,7 @@ A[Axis{:time}(ClosedInterval(.2,.4))] # restrict the AxisArray along the time ax
 A[ClosedInterval(0.,.3), [:a, :c]]   # select an interval and two columns
 </code></pre>
 
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/core.jl#L73-L157' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L67-L145' class='documenter-source'>source</a><br></p>
 <p><a id='AxisArrays.SortedVector' href='#AxisArrays.SortedVector'>#</a>
 <strong><code>AxisArrays.SortedVector</code></strong> &mdash; <em>Type</em>.</p>
 <p>A SortedVector is an AbstractVector where the underlying data is ordered (monotonically increasing).</p>
@@ -212,7 +205,7 @@ A[ClosedInterval(:a,:b), :]
 A[ClosedInterval((:a,:x),(:b,:x)), :]
 </code></pre>
 
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/sortedvector.jl#L4-L51' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/sortedvector.jl#L4-L51' class='documenter-source'>source</a><br></p>
 <p><a id='AxisArrays.axes-Tuple{AxisArrays.AxisArray}' href='#AxisArrays.axes-Tuple{AxisArrays.AxisArray}'>#</a>
 <strong><code>AxisArrays.axes</code></strong> &mdash; <em>Method</em>.</p>
 <pre><code>axes(A::AxisArray) -&gt; (Axis...)
@@ -222,7 +215,7 @@ axes(A::AxisArray, dim::Int) -&gt; Axis
 
 <p>Returns the tuple of axis vectors for an AxisArray. If an specific <code>Axis</code> is specified, then only that axis vector is returned.  Note that when extracting a single axis vector, <code>axes(A, Axis{1})</code>) is type-stable and will perform better than <code>axes(A)[1]</code>.</p>
 <p>For an AbstractArray without <code>Axis</code> information, <code>axes</code> returns the default axes, i.e., those that would be produced by <code>AxisArray(A)</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/core.jl#L400-L412' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L480-L492' class='documenter-source'>source</a><br></p>
 <p><a id='AxisArrays.axisdim-Tuple{AxisArrays.AxisArray,AxisArrays.Axis}' href='#AxisArrays.axisdim-Tuple{AxisArrays.AxisArray,AxisArrays.Axis}'>#</a>
 <strong><code>AxisArrays.axisdim</code></strong> &mdash; <em>Method</em>.</p>
 <pre><code>axisdim(::AxisArray, ::Axis) -&gt; Int
@@ -230,8 +223,8 @@ axisdim(::AxisArray, ::Type{Axis}) -&gt; Int
 </code></pre>
 
 <p>Given an AxisArray and an Axis, return the integer dimension of the Axis within the array.</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/core.jl#L218-L224' class='documenter-source'>source</a><br></p>
-<p><a id='AxisArrays.axisnames-Tuple{AxisArrays.AxisArray{T,N,D,Ax}}' href='#AxisArrays.axisnames-Tuple{AxisArrays.AxisArray{T,N,D,Ax}}'>#</a>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L226-L232' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.axisnames-Union{Tuple{AxisArrays.AxisArray{T,N,D,Ax}}, Tuple{Ax}, Tuple{D}, Tuple{N}, Tuple{T}} where Ax where D where N where T' href='#AxisArrays.axisnames-Union{Tuple{AxisArrays.AxisArray{T,N,D,Ax}}, Tuple{Ax}, Tuple{D}, Tuple{N}, Tuple{T}} where Ax where D where N where T'>#</a>
 <strong><code>AxisArrays.axisnames</code></strong> &mdash; <em>Method</em>.</p>
 <pre><code>axisnames(A::AxisArray)           -&gt; (Symbol...)
 axisnames(::Type{AxisArray{...}}) -&gt; (Symbol...)
@@ -240,7 +233,7 @@ axisnames(::Type{Axis{...}}...)   -&gt; (Symbol...)
 </code></pre>
 
 <p>Returns the axis names of an AxisArray or list of Axises as a tuple of Symbols.</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/core.jl#L369-L376' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L452-L459' class='documenter-source'>source</a><br></p>
 <p><a id='AxisArrays.axisvalues-Tuple{AxisArrays.AxisArray}' href='#AxisArrays.axisvalues-Tuple{AxisArrays.AxisArray}'>#</a>
 <strong><code>AxisArrays.axisvalues</code></strong> &mdash; <em>Method</em>.</p>
 <pre><code>axisvalues(A::AxisArray)           -&gt; (AbstractVector...)
@@ -248,29 +241,177 @@ axisvalues(ax::Axis...)            -&gt; (AbstractVector...)
 </code></pre>
 
 <p>Returns the axis values of an AxisArray or list of Axises as a tuple of vectors.</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/core.jl#L390-L395' class='documenter-source'>source</a><br></p>
-<p><a id='AxisArrays.permutation-Tuple{Tuple{Symbol,Vararg{Symbol,N}},Tuple{Symbol,Vararg{Symbol,N}}}' href='#AxisArrays.permutation-Tuple{Tuple{Symbol,Vararg{Symbol,N}},Tuple{Symbol,Vararg{Symbol,N}}}'>#</a>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L470-L475' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.collapse-Union{Tuple{AN}, Tuple{LType}, Tuple{NewArrayType}, Tuple{N}, Tuple{Type{Val{N}},Type{NewArrayType},Tuple{Vararg{LType,AN}},Vararg{AxisArrays.AxisArray,AN}}} where NewArrayType<:AbstractArray where LType where AN where N' href='#AxisArrays.collapse-Union{Tuple{AN}, Tuple{LType}, Tuple{NewArrayType}, Tuple{N}, Tuple{Type{Val{N}},Type{NewArrayType},Tuple{Vararg{LType,AN}},Vararg{AxisArrays.AxisArray,AN}}} where NewArrayType<:AbstractArray where LType where AN where N'>#</a>
+<strong><code>AxisArrays.collapse</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code>collapse(::Type{Val{N}}, As::AxisArray...) -&gt; AxisArray
+collapse(::Type{Val{N}}, labels::Tuple, As::AxisArray...) -&gt; AxisArray
+collapse(::Type{Val{N}}, ::Type{NewArrayType}, As::AxisArray...) -&gt; AxisArray
+collapse(::Type{Val{N}}, ::Type{NewArrayType}, labels::Tuple, As::AxisArray...) -&gt; AxisArray
+</code></pre>
+
+<p>Collapses <code>AxisArray</code>s with <code>N</code> equal leading axes into a single <code>AxisArray</code>. All additional axes in any of the arrays are collapsed into a single additional axis of type <code>Axis{:collapsed, CategoricalVector{Tuple}}</code>.</p>
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>::Type{Val{N}}</code>: the greatest common dimension to share between all input                   arrays. The remaining axes are collapsed. All <code>N</code> axes must be common                   to each input array, at the same dimension. Values from <code>0</code> up to the                   minimum number of dimensions across all input arrays are allowed.</li>
+<li><code>labels::Tuple</code>: (optional) an index for each array in <code>As</code> used as the leading element in                  the index tuples in the <code>:collapsed</code> axis. Defaults to <code>1:length(As)</code>.</li>
+<li><code>::Type{NewArrayType&lt;:AbstractArray{_, N+1}}</code>: (optional) the desired underlying array                                                type for the returned <code>AxisArray</code>.</li>
+<li><code>As::AxisArray...</code>: <code>AxisArray</code>s to be collapsed together.</li>
+</ul>
+<p><strong>Examples</strong></p>
+<pre><code>julia&gt; price_data = AxisArray(rand(10), Axis{:time}(Date(2016,01,01):Day(1):Date(2016,01,10)))
+1-dimensional AxisArray{Float64,1,...} with axes:
+    :time, 2016-01-01:1 day:2016-01-10
+And data, a 10-element Array{Float64,1}:
+ 0.885014
+ 0.418562
+ 0.609344
+ 0.72221
+ 0.43656
+ 0.840304
+ 0.455337
+ 0.65954
+ 0.393801
+ 0.260207
+
+julia&gt; size_data = AxisArray(rand(10,2), Axis{:time}(Date(2016,01,01):Day(1):Date(2016,01,10)), Axis{:measure}([:area, :volume]))
+2-dimensional AxisArray{Float64,2,...} with axes:
+    :time, 2016-01-01:1 day:2016-01-10
+    :measure, Symbol[:area, :volume]
+And data, a 10×2 Array{Float64,2}:
+ 0.159434     0.456992
+ 0.344521     0.374623
+ 0.522077     0.313256
+ 0.994697     0.320953
+ 0.95104      0.900526
+ 0.921854     0.729311
+ 0.000922581  0.148822
+ 0.449128     0.761714
+ 0.650277     0.135061
+ 0.688773     0.513845
+
+julia&gt; collapsed = collapse(Val{1}, (:price, :size), price_data, size_data)
+2-dimensional AxisArray{Float64,2,...} with axes:
+    :time, 2016-01-01:1 day:2016-01-10
+    :collapsed, Tuple{Symbol,Vararg{Symbol,N} where N}[(:price,), (:size, :area), (:size, :volume)]
+And data, a 10×3 Array{Float64,2}:
+ 0.885014  0.159434     0.456992
+ 0.418562  0.344521     0.374623
+ 0.609344  0.522077     0.313256
+ 0.72221   0.994697     0.320953
+ 0.43656   0.95104      0.900526
+ 0.840304  0.921854     0.729311
+ 0.455337  0.000922581  0.148822
+ 0.65954   0.449128     0.761714
+ 0.393801  0.650277     0.135061
+ 0.260207  0.688773     0.513845
+
+julia&gt; collapsed[Axis{:collapsed}(:size)] == size_data
+true
+</code></pre>
+
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/combine.jl#L194-L270' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.CategoricalVector' href='#AxisArrays.CategoricalVector'>#</a>
+<strong><code>AxisArrays.CategoricalVector</code></strong> &mdash; <em>Type</em>.</p>
+<p>A CategoricalVector is an AbstractVector which is treated as a categorical axis regardless of the element type. Duplicate values are not allowed but are not filtered out.</p>
+<p>A CategoricalVector axis can be indexed with an ClosedInterval, with a value, or with a vector of values. Use of a CategoricalVector{Tuple} axis allows indexing similar to the hierarchical index of the Python Pandas package or the R data.table package.</p>
+<p>In general, indexing into a CategoricalVector will be much slower than the corresponding SortedVector or another sorted axis type, as linear search is required.</p>
+<p><strong>Constructors</strong></p>
+<pre><code class="julia">CategoricalVector(x::AbstractVector)
+</code></pre>
+
+<p><strong>Arguments</strong></p>
+<ul>
+<li><code>x::AbstractVector</code> : the wrapped vector</li>
+</ul>
+<p><strong>Examples</strong></p>
+<pre><code class="julia">v = CategoricalVector(collect([1; 8; 10:15]))
+A = AxisArray(reshape(1:16, 8, 2), v, [:a, :b])
+A[Axis{:row}(1), :]
+A[Axis{:row}(10), :]
+A[Axis{:row}([1, 10]), :]
+
+## Hierarchical index example with three key levels
+
+data = reshape(1.:40., 20, 2)
+v = collect(zip([:a, :b, :c][rand(1:3,20)], [:x,:y][rand(1:2,20)], [:x,:y][rand(1:2,20)]))
+A = AxisArray(data, CategoricalVector(v), [:a, :b])
+A[:b, :]
+A[[:a,:c], :]
+A[(:a,:x), :]
+A[(:a,:x,:x), :]
+</code></pre>
+
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/categoricalvector.jl#L1-L41' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.axisindexes-Tuple{Any,Any}' href='#AxisArrays.axisindexes-Tuple{Any,Any}'>#</a>
+<strong><code>AxisArrays.axisindexes</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code>axisindexes(ax::Axis, axis_idx) -&gt; array_idx
+axisindexes(::Type{&lt;:AxisTrait}, axis_values, axis_idx) -&gt; array_idx
+</code></pre>
+
+<p>Translate an index into an axis into an index into the underlying array. Users can add additional indexing behaviours for custom axes or custom indices by adding methods to this function.</p>
+<p><strong>Examples</strong></p>
+<p>Add a method for indexing into an <code>Axis{name, SortedSet}</code>:</p>
+<pre><code class="julia">AxisArrays.axisindexes(::Type{Categorical}, ax::SortedSet, idx::AbstractVector) = findin(collect(ax), idx)
+</code></pre>
+
+<p>Add a method for indexing into a <code>Categorical</code> axis with a <code>SortedSet</code>:</p>
+<pre><code class="julia">AxisArrays.axisindexes(::Type{Categorical}, ax::AbstractVector, idx::SortedSet) = findin(ax, idx)
+</code></pre>
+
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/indexing.jl#L159-L180' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.axisparams-Union{Tuple{AxisArrays.AxisArray{T,N,D,Ax}}, Tuple{Ax}, Tuple{D}, Tuple{N}, Tuple{T}} where Ax where D where N where T' href='#AxisArrays.axisparams-Union{Tuple{AxisArrays.AxisArray{T,N,D,Ax}}, Tuple{Ax}, Tuple{D}, Tuple{N}, Tuple{T}} where Ax where D where N where T'>#</a>
+<strong><code>AxisArrays.axisparams</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code>axisparams(::AxisArray) -&gt; Vararg{::Type{Axis}}
+axisparams(::Type{AxisArray}) -&gt; Vararg{::Type{Axis}}
+</code></pre>
+
+<p>Returns the axis parameters for an AxisArray.</p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L503-L508' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.axistrait-Union{Tuple{T}, Tuple{T}} where T' href='#AxisArrays.axistrait-Union{Tuple{T}, Tuple{T}} where T'>#</a>
+<strong><code>AxisArrays.axistrait</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code>axistrait(ax::Axis) -&gt; Type{&lt;:AxisTrait}
+axistrait{T}(::Type{T}) -&gt; Type{&lt;:AxisTrait}
+</code></pre>
+
+<p>Returns the indexing type of an <code>Axis</code>, any subtype of <code>AxisTrait</code>. The default is <code>Unsupported</code>, meaning there is no special indexing behaviour for this axis and indexes into this axis are passed directly to the underlying array.</p>
+<p>Two main types of axes supported by default are <code>Categorical</code> and <code>Dimensional</code>; see <a href="..#Indexing-1">Indexing</a> for more information on these types.</p>
+<p>User-defined axis types can be added along with custom indexing behaviors by defining new methods of this function. Here is the example of adding a custom Dimensional axis:</p>
+<pre><code class="julia">AxisArrays.axistrait(::Type{MyCustomAxis}) = AxisArrays.Dimensional
+</code></pre>
+
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L518-L535' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.default_axes' href='#AxisArrays.default_axes'>#</a>
+<strong><code>AxisArrays.default_axes</code></strong> &mdash; <em>Function</em>.</p>
+<pre><code>default_axes(A::AbstractArray)
+default_axes(A::AbstractArray, axs)
+</code></pre>
+
+<p>Return a tuple of Axis objects that appropriately index into the array A.</p>
+<p>The optional second argument can take a tuple of vectors or axes, which will be wrapped with the appropriate axis name, and it will ensure no axis goes beyond the dimensionality of the array A.</p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L160-L169' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.permutation-Tuple{Tuple{Symbol,Vararg{Symbol,N} where N},Tuple{Symbol,Vararg{Symbol,N} where N}}' href='#AxisArrays.permutation-Tuple{Tuple{Symbol,Vararg{Symbol,N} where N},Tuple{Symbol,Vararg{Symbol,N} where N}}'>#</a>
 <strong><code>AxisArrays.permutation</code></strong> &mdash; <em>Method</em>.</p>
 <pre><code>permutation(to, from) -&gt; p
 </code></pre>
 
 <p>Calculate the permutation of labels in <code>from</code> to produce the order in <code>to</code>. Any entries in <code>to</code> that are missing in <code>from</code> will receive an index of 0. Any entries in <code>from</code> that are missing in <code>to</code> will have their indices appended to the end of the permutation. Consequently, the length of <code>p</code> is equal to the longer of <code>to</code> and <code>from</code>.</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/core.jl#L296-L304' class='documenter-source'>source</a><br></p>
-<p><a id='AxisArrays.searchsortednearest-Tuple{AbstractArray{T,1},Any}' href='#AxisArrays.searchsortednearest-Tuple{AbstractArray{T,1},Any}'>#</a>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/core.jl#L380-L388' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.reaxis-Tuple{AxisArrays.AxisArray,Vararg{Union{AbstractArray{Int64,N} where N, Colon, Real},N} where N}' href='#AxisArrays.reaxis-Tuple{AxisArrays.AxisArray,Vararg{Union{AbstractArray{Int64,N} where N, Colon, Real},N} where N}'>#</a>
+<strong><code>AxisArrays.reaxis</code></strong> &mdash; <em>Method</em>.</p>
+<pre><code>reaxis(A::AxisArray, I...)
+</code></pre>
+
+<p>This internal function determines the new set of axes that are constructed upon indexing with I.</p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/indexing.jl#L47-L52' class='documenter-source'>source</a><br></p>
+<p><a id='AxisArrays.searchsortednearest-Tuple{AbstractArray{T,1} where T,Any}' href='#AxisArrays.searchsortednearest-Tuple{AbstractArray{T,1} where T,Any}'>#</a>
 <strong><code>AxisArrays.searchsortednearest</code></strong> &mdash; <em>Method</em>.</p>
 <pre><code>searchsortednearest(vec::AbstractVector, x)
 </code></pre>
 
 <p>Like <code>searchsortedfirst</code> or <code>searchsortedlast</code>, this returns the the index of the element in the sorted vector <code>vec</code> whose value is closest to <code>x</code>, rounding up. If there are multiple elements that are equally close to <code>x</code>, this will return the first index if <code>x</code> is less than or equal to those in the vector or the last index if <code>x</code> is greater.</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/search.jl#L2-L10' class='documenter-source'>source</a><br></p>
-<p><a id='AxisArrays.unsafe_searchsorted-Tuple{Range,IntervalSets.ClosedInterval}' href='#AxisArrays.unsafe_searchsorted-Tuple{Range,IntervalSets.ClosedInterval}'>#</a>
-<strong><code>AxisArrays.unsafe_searchsorted</code></strong> &mdash; <em>Method</em>.</p>
-<pre><code>unsafe_searchsorted(a::Range, I::ClosedInterval)
-</code></pre>
-
-<p>Return the indices of the range that fall within an interval without checking bounds, possibly extrapolating outside the range if needed.</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/search.jl#L25-L30' class='documenter-source'>source</a><br></p>
-<p><a id='Base.join-Tuple{Vararg{AxisArrays.AxisArray{T,N,D,Ax},N}}' href='#Base.join-Tuple{Vararg{AxisArrays.AxisArray{T,N,D,Ax},N}}'>#</a>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/search.jl#L2-L10' class='documenter-source'>source</a><br></p>
+<p><a id='Base.join-Union{Tuple{Ax}, Tuple{D}, Tuple{N}, Tuple{T}, Tuple{Vararg{AxisArrays.AxisArray{T,N,D,Ax},N} where N}} where Ax where D where N where T' href='#Base.join-Union{Tuple{Ax}, Tuple{D}, Tuple{N}, Tuple{T}, Tuple{Vararg{AxisArrays.AxisArray{T,N,D,Ax},N} where N}} where Ax where D where N where T'>#</a>
 <strong><code>Base.join</code></strong> &mdash; <em>Method</em>.</p>
 <pre><code>join(As::AxisArray...)
 </code></pre>
@@ -278,14 +419,14 @@ axisvalues(ax::Axis...)            -&gt; (AbstractVector...)
 <p>Combines AxisArrays with matching axis names into a single AxisArray. Unlike <code>merge</code>, the inputs are joined along a newly created axis (optionally specified with the <code>newaxis</code> keyword argument).  The <code>method</code> keyword argument can be used to specify the join type:</p>
 <p><code>:inner</code> - keep only those array values at axis values common to all AxisArrays to be joined <code>:left</code> - keep only those array values at axis values present in the first AxisArray passed <code>:right</code> - keep only those array values at axis values present in the last AxisArray passed <code>:outer</code> (default) - keep all array values: create an AxisArray spanning all of the input axis values</p>
 <p>If an array value in the output array is not defined in any of the input arrays (i.e. in the case of a left, right, or outer join), it takes the value of the optional <code>fillvalue</code> keyword argument (default zero).</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/combine.jl#L92-L103' class='documenter-source'>source</a><br></p>
-<p><a id='Base.merge-Tuple{Vararg{AxisArrays.AxisArray{T,N,D,Ax},N}}' href='#Base.merge-Tuple{Vararg{AxisArrays.AxisArray{T,N,D,Ax},N}}'>#</a>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/combine.jl#L112-L123' class='documenter-source'>source</a><br></p>
+<p><a id='Base.merge-Union{Tuple{Ax}, Tuple{D}, Tuple{N}, Tuple{T}, Tuple{Vararg{AxisArrays.AxisArray{T,N,D,Ax},N} where N}} where Ax where D where N where T' href='#Base.merge-Union{Tuple{Ax}, Tuple{D}, Tuple{N}, Tuple{T}, Tuple{Vararg{AxisArrays.AxisArray{T,N,D,Ax},N} where N}} where Ax where D where N where T'>#</a>
 <strong><code>Base.merge</code></strong> &mdash; <em>Method</em>.</p>
 <pre><code>merge(As::AxisArray...)
 </code></pre>
 
 <p>Combines AxisArrays with matching axis names into a single AxisArray spanning all of the axis values of the inputs. If a coordinate is defined in more than ones of the inputs, it takes its value from last input in which it appears. If a coordinate in the output array is not defined in any of the input arrays, it takes the value of the optional <code>fillvalue</code> keyword argument (default zero).</p>
-<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/65263db10d7ca11610179d5c808a92536158f819/src/combine.jl#L70-L74' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/JuliaArrays/AxisArrays.jl/tree/999472449fc755e8c11f006a1707502a926741ee/src/combine.jl#L92-L96' class='documenter-source'>source</a><br></p>
               
             </div>
           </div>
@@ -319,7 +460,7 @@ axisvalues(ax::Axis...)            -&gt; (AbstractVector...)
   <div class="rst-versions" role="note" style="cursor: pointer">
     <span class="rst-current-version" data-toggle="rst-current-version">
       
-          <a href="https://github.com/JuliaArrays/AxisArrays.jl" class="icon icon-github" style="float: left; color: #fcfcfc"> GitHub</a>
+          <a href="https://github.com/JuliaArrays/AxisArrays.jl" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
       
       
         <span><a href=".." style="color: #fcfcfc;">&laquo; Previous</a></span>
