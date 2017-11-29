@@ -506,8 +506,8 @@ axes(A::AbstractArray, dim::Int) = default_axes(A)[dim]
 
 Returns the axis parameters for an AxisArray.
 """
-axisparams(::AxisArray{T,N,D,Ax}) where {T,N,D,Ax} = (Ax.parameters...)
-axisparams(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = (Ax.parameters...)
+axisparams(::AxisArray{T,N,D,Ax}) where {T,N,D,Ax} = (Ax.parameters...,)
+axisparams(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = (Ax.parameters...,)
 
 ### Axis traits ###
 abstract type AxisTrait end
