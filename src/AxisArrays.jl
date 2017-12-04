@@ -6,6 +6,9 @@ using Base: tail
 import Base.Iterators: repeated
 using RangeArrays, IntervalSets
 using IterTools
+using Compat
+using Compat.Dates
+using Compat: AbstractRange
 
 export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse
 
