@@ -22,5 +22,8 @@ include("indexing.jl")
 include("sortedvector.jl")
 include("categoricalvector.jl")
 include("combine.jl")
+@static if VERSION >= v"0.7.0-DEV.2638"
+    include("broadcast.jl")
+end
 
 end
