@@ -1,4 +1,6 @@
 Base.BroadcastStyle(::Type{<:AxisArray}) = Broadcast.ArrayStyle{AxisArray}()
+Base.BroadcastStyle(::Type{<:Adjoint{T, <:AxisArray{T}}}) where T =
+    Broadcast.ArrayStyle{AxisArray}()
 
 # Hijack broadcasting after determining style
 function Base.broadcast(f, ::Broadcast.ArrayStyle{AxisArray}, ::Nothing, ::Nothing, As...)
@@ -11,7 +13,6 @@ function Base.broadcast(f, ::Broadcast.ArrayStyle{AxisArray}, ::Nothing, ::Nothi
     # Obtain the underlying data and find the result indices if we were to
     # broadcast all arrays without axis info.
     Bs = data(As)
-    indicesBs = Broadcast.combine_indices(Bs...)
 
     # Broadcast using the underlying data
     broadcasted = broadcast(f, Bs...)
@@ -39,13 +40,22 @@ end
 
 # Compares the value indices and axis names (note: AxisArrays.axes, not Base.axes)
 Broadcast.broadcast_indices(::Broadcast.ArrayStyle{AxisArray}, A) = axes(A)
+Broadcast.broadcast_indices(::Broadcast.ArrayStyle{AxisArray}, A::Adjoint{T,S}) where
+    {T, S<:AxisArray{T,1}} = (Axis{:row}(Base.OneTo(1)), axes(A.parent)[1])
+Broadcast.broadcast_indices(::Broadcast.ArrayStyle{AxisArray}, A::Adjoint{T,S}) where
+    {T, S<:AxisArray{T,2}} = tupswap(axes(A.parent))
 
 # Helper functions
-# Given a tuple `A`, return a tuple containing only the AxisArrays in `A`
+# Given a tuple `A`, return a tuple containing only the AxisArrays (or their adjoints) in `A`
 axarrs(A::Tuple{AxisArray, Vararg}) = (A[1], axarrs(Base.tail(A))...)
+axarrs(A::Tuple{Adjoint{T, <:AxisArray} where T, Vararg}) = (A[1], axarrs(Base.tail(A))...)
 axarrs(A::Tuple{Any, Vararg}) = axarrs(Base.tail(A))
 axarrs(A::Tuple{}) = ()
 
 data(A::Tuple{AxisArray,Vararg}) = (A[1].data, data(Base.tail(A))...)
+data(A::Tuple{Adjoint{T, <:AxisArray} where T, Vararg}) =
+    (adjoint(A[1].parent.data), data(Base.tail(A))...)
 data(A::Tuple{Any,Vararg}) = (A[1], data(Base.tail(A))...)
 data(A::Tuple{}) = ()
+
+tupswap(A::Tuple{Any,Any}) = (A[2],A[1])
