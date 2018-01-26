@@ -222,6 +222,24 @@ HasAxes(::Type{<:AxisArray}) = HasAxes{true}()
 HasAxes(::Type{<:AbstractArray}) = HasAxes{false}()
 HasAxes(::A) where A<:AbstractArray = HasAxes(A)
 
+"""
+    axisnames(A::AxisArray)           -> (Symbol...)
+    axisnames(::Type{AxisArray{...}}) -> (Symbol...)
+    axisnames(ax::Axis...)            -> (Symbol...)
+    axisnames(::Type{Axis{...}}...)   -> (Symbol...)
+
+Returns the axis names of an AxisArray or list of Axises as a tuple of Symbols.
+"""
+axisnames(::AxisArray{T,N,D,Ax}) where {T,N,D,Ax}       = _axisnames(Ax)
+axisnames(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = _axisnames(Ax)
+axisnames(::Type{Ax}) where {Ax<:Tuple{Vararg{Axis}}}   = _axisnames(Ax)
+@pure _axisnames(Ax) = axisnames(Ax.parameters...)
+axisnames() = ()
+@inline axisnames(::Axis{name},         B::Axis...) where {name} = tuple(name, axisnames(B...)...)
+@inline axisnames(::Type{<:Axis{name}}, B::Type...) where {name} = tuple(name, axisnames(B...)...)
+
+axisname(::Union{Type{<:Axis{name}},Axis{name}}) where {name} = name
+
 # Axis definitions
 """
     axisdim(::AxisArray, ::Axis) -> Int
@@ -449,24 +467,6 @@ function Base.summary(A::AxisArray)
 end
 
 # Custom methods specific to AxisArrays
-"""
-    axisnames(A::AxisArray)           -> (Symbol...)
-    axisnames(::Type{AxisArray{...}}) -> (Symbol...)
-    axisnames(ax::Axis...)            -> (Symbol...)
-    axisnames(::Type{Axis{...}}...)   -> (Symbol...)
-
-Returns the axis names of an AxisArray or list of Axises as a tuple of Symbols.
-"""
-axisnames(::AxisArray{T,N,D,Ax}) where {T,N,D,Ax}       = _axisnames(Ax)
-axisnames(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = _axisnames(Ax)
-axisnames(::Type{Ax}) where {Ax<:Tuple{Vararg{Axis}}}   = _axisnames(Ax)
-@pure _axisnames(Ax) = axisnames(Ax.parameters...)
-axisnames() = ()
-@inline axisnames(::Axis{name},         B::Axis...) where {name} = tuple(name, axisnames(B...)...)
-@inline axisnames(::Type{<:Axis{name}}, B::Type...) where {name} = tuple(name, axisnames(B...)...)
-
-axisname(::Union{Type{<:Axis{name}},Axis{name}}) where {name} = name
-
 """
     axisvalues(A::AxisArray)           -> (AbstractVector...)
     axisvalues(ax::Axis...)            -> (AbstractVector...)
