@@ -258,8 +258,8 @@ end
 function axisdim(::Type{AxisArray{T,N,D,Ax}}, ::Type{<:Axis{name,S} where S}) where {T,N,D,Ax,name}
     isa(name, Int) && return name <= N ? name : error("axis $name greater than array dimensionality $N")
     names = axisnames(Ax)
-    idx = findfirst(names, name)
-    idx == 0 && error("axis $name not found in array axes $names")
+    idx = Compat.findfirst(isequal(name), names)
+    idx === nothing && error("axis $name not found in array axes $names")
     idx
 end
 
