@@ -223,7 +223,7 @@ behaviors.
 ```julia
 B = AxisArray(randn(100,100,100), :x, :y, :z)
 Itotal = sumz = 0.0
-for iter in eachindex(B)  # traverses in storage order for cache efficiency
+for iter in CartesianRange(indices(B))  # traverses in storage order for cache efficiency
     I = B[iter]  # intensity in a single voxel
     Itotal += I
     sumz += I * iter[axisdim(B, Axis{:z})]  # axisdim "looks up" the z dimension
