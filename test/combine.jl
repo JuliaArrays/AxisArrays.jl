@@ -32,6 +32,7 @@ ABdata = zeros(6,6,2)
 ABdata[1:4,1:4,:] = Adata
 ABdata[3:6,3:6,:] = Bdata
 @test merge(A,B) == AxisArray(ABdata, Axis{:X}([1,2,3,4,5,6]), Axis{:Y}([10.,20,30,40,50,60]), Axis{:Z}([:First, :Second]))
+@test_throws ErrorException AxisArrays.axismerge(:notouter, Axis{:X}([1,2,3,4]), Axis{:X}([1,2,3,4]))
 
 AC = AxisArray(cat(3, Adata, Cdata), :X, :Y, :Z)
 B2 = AxisArray(Bdata, :X, :Y, :Z)

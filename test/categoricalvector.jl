@@ -11,6 +11,9 @@ A = AxisArray(data[idx,:], AxisArrays.CategoricalVector(v[idx]), [:a, :b])
 @test AxisArrays.axistrait(axes(A)[1]) <: AxisArrays.Categorical
 
 v = AxisArrays.CategoricalVector(collect([1; 8; 10:15]))
+@test size(v) == (8,)
+@test size(v, 1) == 8
+@test size(v, 2) == 1
 @test AxisArrays.axistrait(axes(A)[1]) <: AxisArrays.Categorical
 A = AxisArray(reshape(1:16, 8, 2), v, [:a, :b])
 
