@@ -11,6 +11,7 @@ A = AxisArray(reshape(1:16, 8, 2), v, [:a, :b])
 # test StepRange indexing
 @test v[1:2:8] == [1.0; 10.0; 12.0; 14.0]
 
+@test AxisArrays.checkaxis(v) == nothing
 # Test SortedVector with a hierarchical index (indexed using Tuples)
 srand(1234)
 data = reshape(1.:40., 20, 2)
