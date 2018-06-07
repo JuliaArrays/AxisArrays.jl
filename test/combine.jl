@@ -53,6 +53,8 @@ ABdata[3:6,3:6,:,2] = Bdata
 A1 = AxisArray(A1data, Axis{:X}(1:2), Axis{:Y}(1:2))
 A2 = AxisArray(reshape(A2data, size(A2data)..., 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:Z}([:foo]))
 
+@test_throws ArgumentError collapse(Val{1}, A1, AxisArray(A1data, Axis{:L}(1:4), Axis{:M}(1:5)))
+
 @test @inferred(collapse(Val{2}, A1, A2)) == AxisArray(cat(3, A1data, A2data), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:collapsed}(AxisArrays.CategoricalVector([(1,), (2, :foo)])))
 @test @inferred(collapse(Val{2}, A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:collapsed}(AxisArrays.CategoricalVector([(1,)])))
 @test @inferred(collapse(Val{2}, A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:collapsed}(AxisArrays.CategoricalVector([(1,)])))

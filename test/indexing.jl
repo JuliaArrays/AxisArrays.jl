@@ -59,7 +59,11 @@ odd_inds = collect(1:2:length(A))
 @test axes(A[vec(trues(A))]) == axes(A[all_inds])
 @test @inferred(A[vec(isodd.(A))]) == A[1:2:length(A)] == A[odd_inds]
 @test axes(A[vec(isodd.(A))]) == axes(A[odd_inds])
-
+# setindex! for logical indices
+AA = copy(A)
+AA[vec(isodd.(A))] = 0.
+@test AA[odd_inds] == zeros(odd_inds)
+@test AA[2:2:length(AA)] == A[2:2:length(AA)]
 
 B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 
