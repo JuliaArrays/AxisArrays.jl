@@ -143,10 +143,10 @@ A[ClosedInterval(0.,.3), [:a, :c]]   # select an interval and two columns
 ```
 
 """
-struct AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
+struct AxisArray{T,N,D<:AbstractArray{T,N},Ax<:NTuple{N,Axis}} <: AbstractArray{T,N}
     data::D  # D <:AbstractArray, enforced in constructor to avoid dispatch bugs (https://github.com/JuliaLang/julia/issues/6383)
     axes::Ax # Ax<:NTuple{N, Axis}, but with specialized Axis{...} types
-    AxisArray{T,N,D,Ax}(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
+    AxisArray{T,N,D,Ax}(data::AbstractArray{T,N}, axs::NTuple{N,Axis}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
 end
 
 # Helper functions: Default axis names (if not provided)
@@ -320,9 +320,9 @@ reduced_indices(axs::Tuple{Vararg{Axis}}, region::Integer) =
 reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Integer) =
     reduced_indices0(axs, (region,))
 
-reduced_indices(axs::Tuple{Vararg{Axis,N}}, region::Dims) where {N} =
+reduced_indices(axs::NTuple{N,Axis}, region::Dims) where {N} =
     map((ax,d)->d∈region ? reduced_axis(ax) : ax, axs, ntuple(identity, Val{N}))
-reduced_indices0(axs::Tuple{Vararg{Axis,N}}, region::Dims) where {N} =
+reduced_indices0(axs::NTuple{N,Axis}, region::Dims) where {N} =
     map((ax,d)->d∈region ? reduced_axis0(ax) : ax, axs, ntuple(identity, Val{N}))
 
 @inline reduced_indices(axs::Tuple{Vararg{Axis}}, region::Type{<:Axis}) =
@@ -378,16 +378,16 @@ Base.transpose(A::AxisArray{T,1}) where {T}  = AxisArray(transpose(A.data), Axis
 Base.ctranspose(A::AxisArray{T,1}) where {T} = AxisArray(ctranspose(A.data), Axis{:transpose}(Base.OneTo(1)), A.axes[1])
 
 Base.map!(f::F, A::AxisArray) where {F} = (map!(f, A.data); A)
-Base.map(f, A::AxisArray) = AxisArray(map(f, A.data), A.axes...)
+Base.map(f, A::AxisArray{T,N,D,Ax}) where {T,N,D,Ax} = AxisArray(map(f, A.data), A.axes...)
 
-function Base.map!(f::F, dest::AxisArray{T,N,D,Ax}, As::AxisArray{T,N,D,Ax}...) where {F,T,N,D,Ax<:Tuple{Vararg{Axis}}}
+function Base.map!(f::F, dest::AxisArray{T,N,D,Ax}, As::AxisArray{T,N,D,Ax}...) where {F,T,N,D,Ax}
     matchingdims((dest, As...)) || error("All axes must be identically-valued")
     data = map(a -> a.data, As)
     map!(f, dest.data, data...)
     return dest
 end
 
-function Base.map(f, As::AxisArray{T,N,D,Ax}...) where {T,N,D,Ax<:Tuple{Vararg{Axis}}}
+function Base.map(f, As::AxisArray{T,N,D,Ax}...) where {T,N,D,Ax}
     matchingdims(As) || error("All axes must be identically-valued")
     data = map(a -> a.data, As)
     return AxisArray(map(f, data...), As[1].axes...)
