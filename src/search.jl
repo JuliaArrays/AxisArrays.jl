@@ -26,8 +26,7 @@ searching into ranges beyond their bounds. The `@inbounds` macro is not
 sufficient since it can be turned off by `--check-bounds=yes`.
 """
 module Extrapolated
-using ..ClosedInterval
-using Compat: AbstractRange
+using IntervalSets: ClosedInterval
 
 function searchsortednearest(vec::AbstractRange, x)
     idx = searchsortedfirst(vec, x) # Returns the first idx | vec[idx] >= x

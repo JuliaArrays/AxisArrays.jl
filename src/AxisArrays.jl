@@ -1,4 +1,4 @@
-__precompile__()
+VERSION < v"0.7.0-beta2.199" && __precompile__()
 
 module AxisArrays
 
@@ -7,8 +7,9 @@ import Base.Iterators: repeated
 using RangeArrays, IntervalSets
 using IterTools
 using Compat
-using Compat.Dates
-using Compat: AbstractRange
+using Dates
+
+function axes end
 
 export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse
 

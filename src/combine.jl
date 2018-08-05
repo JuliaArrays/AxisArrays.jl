@@ -9,7 +9,7 @@ function equalvalued(X::NTuple)
     return allequal
 end #equalvalued
 
-sizes(As::T...) where {T<:AxisArray} = tuple(zip(map(a -> map(length, indices(a)), As)...)...)
+sizes(As::T...) where {T<:AxisArray} = tuple(zip(map(a -> map(length, Base.axes(a)), As)...)...)
 matchingdims(As::NTuple{N,T}) where {N,T<:AxisArray} = all(equalvalued, sizes(As...))
 matchingdimsexcept(As::NTuple{N,T}, n::Int) where {N,T<:AxisArray} = all(equalvalued, sizes(As...)[[1:n-1; n+1:end]])
 
@@ -150,12 +150,12 @@ function _collapse_axes(array_names, array_axes)
     end))
 end
 
-function _splitall(::Type{Val{N}}, As...) where N
-    tuple((Base.IteratorsMD.split(A, Val{N}) for A in As)...)
+function _splitall(::Val{N}, As...) where N
+    tuple((Base.IteratorsMD.split(A, Val(N)) for A in As)...)
 end
 
-function _reshapeall(::Type{Val{N}}, As...) where N
-    tuple((reshape(A, Val{N}) for A in As)...)
+function _reshapeall(::Val{N}, As...) where N
+    tuple((reshape(A, Val(N)) for A in As)...)
 end
 
 function _check_common_axes(common_axis_tuple)
@@ -174,28 +174,28 @@ function _collapsed_axis_eltype(LType, trailing_axes)
     return typejoin(eltypes...)
 end
 
-function collapse(::Type{Val{N}}, As::Vararg{AxisArray, AN}) where {N, AN}
-    collapse(Val{N}, ntuple(identity, Val{AN}), As...)
+function collapse(::Val{N}, As::Vararg{AxisArray, AN}) where {N, AN}
+    collapse(Val(N), ntuple(identity, Val(AN)), As...)
 end
 
-function collapse(::Type{Val{N}}, ::Type{NewArrayType}, As::Vararg{AxisArray, AN}) where {N, AN, NewArrayType<:AbstractArray}
-    collapse(Val{N}, NewArrayType, ntuple(identity, Val{AN}), As...)
+function collapse(::Val{N}, ::Type{NewArrayType}, As::Vararg{AxisArray, AN}) where {N, AN, NewArrayType<:AbstractArray}
+    collapse(Val(N), NewArrayType, ntuple(identity, Val(AN)), As...)
 end
 
-@generated function collapse(::Type{Val{N}}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN}) where {N, AN, LType}
+@generated function collapse(::Val{N}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN}) where {N, AN, LType}
     collapsed_dim_int = Int(N) + 1
     new_eltype = Base.promote_eltype(As...)
 
     quote
-        collapse(Val{N}, Array{$new_eltype, $collapsed_dim_int}, labels, As...)
+        collapse(Val(N), Array{$new_eltype, $collapsed_dim_int}, labels, As...)
     end
 end
 
 """
-    collapse(::Type{Val{N}}, As::AxisArray...) -> AxisArray
-    collapse(::Type{Val{N}}, labels::Tuple, As::AxisArray...) -> AxisArray
-    collapse(::Type{Val{N}}, ::Type{NewArrayType}, As::AxisArray...) -> AxisArray
-    collapse(::Type{Val{N}}, ::Type{NewArrayType}, labels::Tuple, As::AxisArray...) -> AxisArray
+    collapse(::Val{N}, As::AxisArray...) -> AxisArray
+    collapse(::Val{N}, labels::Tuple, As::AxisArray...) -> AxisArray
+    collapse(::Val{N}, ::Type{NewArrayType}, As::AxisArray...) -> AxisArray
+    collapse(::Val{N}, ::Type{NewArrayType}, labels::Tuple, As::AxisArray...) -> AxisArray
 
 Collapses `AxisArray`s with `N` equal leading axes into a single `AxisArray`.
 All additional axes in any of the arrays are collapsed into a single additional
@@ -203,7 +203,7 @@ axis of type `Axis{:collapsed, CategoricalVector{Tuple}}`.
 
 ### Arguments
 
-* `::Type{Val{N}}`: the greatest common dimension to share between all input
+* `::Val{N}`: the greatest common dimension to share between all input
                     arrays. The remaining axes are collapsed. All `N` axes must be common
                     to each input array, at the same dimension. Values from `0` up to the
                     minimum number of dimensions across all input arrays are allowed.
@@ -247,7 +247,7 @@ And data, a 10×2 Array{Float64,2}:
  0.650277     0.135061
  0.688773     0.513845
 
-julia> collapsed = collapse(Val{1}, (:price, :size), price_data, size_data)
+julia> collapsed = collapse(Val(1), (:price, :size), price_data, size_data)
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time, 2016-01-01:1 day:2016-01-10
     :collapsed, Tuple{Symbol,Vararg{Symbol,N} where N}[(:price,), (:size, :area), (:size, :volume)]
@@ -268,7 +268,7 @@ true
 ```
 
 """
-@generated function collapse(::Type{Val{N}},
+@generated function collapse(::Val{N},
                              ::Type{NewArrayType},
                              labels::NTuple{AN, LType},
                              As::Vararg{AxisArray, AN}) where {N, AN, LType, NewArrayType<:AbstractArray}
@@ -285,10 +285,10 @@ true
         ))
     end
 
-    collapsed_dim = Val{N + 1}
+    collapsed_dim = Val(N + 1)
     collapsed_dim_int = Int(N) + 1
 
-    common_axes, trailing_axes = zip(_splitall(Val{N}, axisparams.(As)...)...)
+    common_axes, trailing_axes = zip(_splitall(Val(N), axisparams.(As)...)...)
 
     foreach(_check_common_axes, zip(common_axes...))
 
@@ -300,7 +300,7 @@ true
     new_eltype = Base.promote_eltype(As...)
 
     quote
-        common_axes, trailing_axes = zip(_splitall(Val{N}, axes.(As)...)...)
+        common_axes, trailing_axes = zip(_splitall(Val(N), axes.(As)...)...)
 
         for common_axis_tuple in zip(common_axes...)
             if !isempty(common_axis_tuple)

@@ -22,9 +22,7 @@ const Values = AbstractArray{<:Value}
 
 # For throwing a BoundsError with a Value index, we need to define the following
 # (note that we could inherit them for free, were Value <: Number)
-Base.start(::Value) = false
-Base.next(x::Value, state) = (x, true)
-Base.done(x::Value, state) = state
+Base.iterate(x::Value, state = false) = state ? nothing : (x, true)
 
 # Values have the indexing trait of their wrapped type
 _axistrait_el(::Type{<:Value{T}}) where {T} = _axistrait_el(T)
@@ -88,7 +86,7 @@ const ScalarIndex = Union{Real, AbstractArray{<:Any, 0}}
 @generated function _new_axes(ax::Axis{name}, idx::AbstractArray{<:Any,N}) where {name,N}
     newaxes = Expr(:tuple)
     for i=1:N
-        push!(newaxes.args, :($(Axis{Symbol(name, "_", i)})(indices(idx, $i))))
+        push!(newaxes.args, :($(Axis{Symbol(name, "_", i)})(Base.axes(idx, $i))))
     end
     newaxes
 end
@@ -107,7 +105,7 @@ end
 end
 
 # To resolve ambiguities, we need several definitions
-using Base.AbstractCartesianIndex
+using Base: AbstractCartesianIndex
 @propagate_inbounds Base.view(A::AxisArray, idxs::Idx...) = AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
 
 # Setindex is so much simpler. Just assign it to the data:
@@ -147,10 +145,10 @@ end
     return :($meta; to_index(A, $(idxs...)))
 end
 
-function Base.reshape(A::AxisArray, ::Type{Val{N}}) where N
-    # axN, _ = Base.IteratorsMD.split(axes(A), Val{N})
-    # AxisArray(reshape(A.data, Val{N}), reaxis(A, Base.fill_to_length(axN, :, Val{N})...))
-    AxisArray(reshape(A.data, Val{N}), reaxis(A, ntuple(d->Colon(), Val{N})...))
+function Base.reshape(A::AxisArray, ::Val{N}) where N
+    # axN, _ = Base.IteratorsMD.split(axes(A), Val(N))
+    # AxisArray(reshape(A.data, Val(N)), reaxis(A, Base.fill_to_length(axN, :, Val(N))...))
+    AxisArray(reshape(A.data, Val(N)), reaxis(A, ntuple(d->Colon(), Val(N))...))
 end
 
 ### Indexing along values of the axes ###

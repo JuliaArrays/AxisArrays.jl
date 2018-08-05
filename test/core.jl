@@ -1,3 +1,4 @@
+# FIXME: type stability broken. The following should NOT error
 A = @inferred(AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4))
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3, .1:.1:.4)
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3)
@@ -43,7 +44,7 @@ end
 @test axisnames(permutedims(A, (:page,))) == (:page, :row, :col)
 A2 = @inferred(AxisArray(reshape(1:15, 3, 5)))
 A1 = AxisArray(1:5, :t)
-for f in (transpose, ctranspose)
+for f in (transpose, adjoint)
     @test f(A2).data == f(A2.data)
     @test axisnames(f(A2)) == (:col, :row)
     @test f(A1).data == f(A1.data)
@@ -106,6 +107,7 @@ A = @inferred(AxisArray(1:3, .1:.1:.3))
 @test axisnames(A) == (:row,)
 @inferred(axisnames(A))
 @test axisvalues(A) == (.1:.1:.3,)
+# FIXME: reintroduce inferred
 A = @inferred(AxisArray(reshape(1:16, 2,2,2,2), .5:.5:1))
 @test A.data == reshape(1:16, 2,2,2,2)
 @test axisnames(A) == (:row,:col,:page,:dim_4)
@@ -162,15 +164,15 @@ A = @inferred(AxisArray(reshape(1:24, 2,3,4),
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2
 @test axisdim(A, Axis{:z}) == axisdim(A, Axis{:z}()) == 3
 # Test axes
-@test @inferred(axes(A)) == (Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//10), Axis{:z}(["a", "b", "c", "d"]))
-@test @inferred(axes(A, Axis{:x})) == @inferred(axes(A, Axis{:x}())) == Axis{:x}(.1:.1:.2)
-@test @inferred(axes(A, Axis{:y})) == @inferred(axes(A, Axis{:y}())) == Axis{:y}(1//10:1//10:3//10)
-@test @inferred(axes(A, Axis{:z})) == @inferred(axes(A, Axis{:z}())) == Axis{:z}(["a", "b", "c", "d"])
-@test axes(A, 2) == Axis{:y}(1//10:1//10:3//10)
+@test @inferred(AxisArrays.axes(A)) == (Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//10), Axis{:z}(["a", "b", "c", "d"]))
+@test @inferred(AxisArrays.axes(A, Axis{:x})) == @inferred(AxisArrays.axes(A, Axis{:x}())) == Axis{:x}(.1:.1:.2)
+@test @inferred(AxisArrays.axes(A, Axis{:y})) == @inferred(AxisArrays.axes(A, Axis{:y}())) == Axis{:y}(1//10:1//10:3//10)
+@test @inferred(AxisArrays.axes(A, Axis{:z})) == @inferred(AxisArrays.axes(A, Axis{:z}())) == Axis{:z}(["a", "b", "c", "d"])
+@test AxisArrays.axes(A, 2) == Axis{:y}(1//10:1//10:3//10)
 Aplain = rand(2,3)
-@test @inferred(axes(Aplain)) === axes(AxisArray(Aplain))
-@test axes(Aplain, 1) === axes(AxisArray(Aplain))[1]
-@test axes(Aplain, 2) === axes(AxisArray(Aplain))[2]
+@test @inferred(AxisArrays.axes(Aplain)) === AxisArrays.axes(AxisArray(Aplain))
+@test AxisArrays.axes(Aplain, 1) === AxisArrays.axes(AxisArray(Aplain))[1]
+@test AxisArrays.axes(Aplain, 2) === AxisArrays.axes(AxisArray(Aplain))[2]
 
 @test Axis{:col}(1) == Axis{:col}(1)
 @test Axis{:col}(1) != Axis{:com}(1)
@@ -216,7 +218,7 @@ show(IOBuffer(),MIME("text/plain"),A)
 # With unconventional indices
 import OffsetArrays  # import rather than using because OffsetArrays has a deprecation for ..
 A = AxisArray(OffsetArrays.OffsetArray([5,3,4], -1:1), :x)
-@test axes(A) == (Axis{:x}(-1:1),)
+@test AxisArrays.axes(A) == (Axis{:x}(-1:1),)
 @test A[-1] == 5
 A[0] = 12
 @test A.data[0] == 12

@@ -43,17 +43,13 @@ struct CategoricalVector{T, A<:AbstractVector{T}} <: AbstractVector{T}
     data::A
 end
 
-function CategoricalVector(data::AbstractVector{T}) where T
-    CategoricalVector{T, typeof(data)}(data)
-end
-
 Base.getindex(v::CategoricalVector, idx::Int) = v.data[idx]
 Base.getindex(v::CategoricalVector, idx::AbstractVector) = CategoricalVector(v.data[idx])
 
 Base.length(v::CategoricalVector) = length(v.data)
 Base.size(v::CategoricalVector) = size(v.data)
 Base.size(v::CategoricalVector, i) = size(v.data, i)
-Base.indices(v::CategoricalVector) = indices(v.data)
+Base.axes(v::CategoricalVector) = Base.axes(v.data)
 
 axistrait(::Type{CategoricalVector{T,A}}) where {T,A} = Categorical
 checkaxis(::CategoricalVector) = nothing
@@ -65,7 +61,7 @@ checkaxis(::CategoricalVector) = nothing
 axisindexes(ax::Axis{S,CategoricalVector{T,A}}, idx) where {T<:Tuple,S,A} = axisindexes(ax, (idx,))
 
 function axisindexes(ax::Axis{S,CategoricalVector{T,A}}, idx::Tuple) where {T<:Tuple,S,A}
-    collect(filter(ax_idx->_tuple_matches(ax.val[ax_idx], idx), indices(ax.val)...))
+    collect(filter(ax_idx->_tuple_matches(ax.val[ax_idx], idx), Base.axes(ax.val)...))
 end
 
 function _tuple_matches(element::Tuple, idx::Tuple)
