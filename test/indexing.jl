@@ -43,7 +43,7 @@ info("partial linear indexing deprecation warning is expected")
 B = A[1:2,:]
 @test B.axes[1].val == A.axes[1].val[1:2]
 @test B.axes[2].val == 1:Base.trailingsize(A,2)
-B2 = reshape(A, Val{2})
+B2 = reshape(A, Val(2))
 B = B2[1:2,:]
 @test B.axes[1].val == A.axes[1].val[1:2]
 @test B.axes[2].val == 1:Base.trailingsize(A,2)
