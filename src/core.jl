@@ -4,6 +4,23 @@ using Base: @pure
 
 const Symbols = Tuple{Symbol,Vararg{Symbol}}
 
+# We absolutely need ntuple of small numbers (ndims) to inline, but it might not in Base. Do it here:
+@inline function ntuple(f::F, n::Integer) where F
+    t = n == 0  ? () :
+        n == 1  ? (f(1),) :
+        n == 2  ? (f(1), f(2)) :
+        n == 3  ? (f(1), f(2), f(3)) :
+        n == 4  ? (f(1), f(2), f(3), f(4)) :
+        n == 5  ? (f(1), f(2), f(3), f(4), f(5)) :
+        n == 6  ? (f(1), f(2), f(3), f(4), f(5), f(6)) :
+        n == 7  ? (f(1), f(2), f(3), f(4), f(5), f(6), f(7)) :
+        n == 8  ? (f(1), f(2), f(3), f(4), f(5), f(6), f(7), f(8)) :
+        n == 9  ? (f(1), f(2), f(3), f(4), f(5), f(6), f(7), f(8), f(9)) :
+        n == 10 ? (f(1), f(2), f(3), f(4), f(5), f(6), f(7), f(8), f(9), f(10)) :
+        Base._ntuple(f, n)
+    return t
+end
+
 """
 Type-stable axis-specific indexing and identification with a
 parametric type.
@@ -150,14 +167,15 @@ struct AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
 end
 
 # Helper functions: Default axis names (if not provided)
-@pure _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : Symbol(:dim_, i)
-@pure function _nextaxistype(M::Int)
-    Axis{_defaultdimname(M+1)}
-end
-#@generated function _nextaxistype(::Val{M}) where M
-#    name = _defaultdimname(M+1)
-#    :(Axis{$(Expr(:quote, name))})
-#end
+@inline _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : i == 4 ? :dim_4 : Symbol(:dim_, i)
+
+_merge(::Tuple{}, ::Tuple{}) = ()
+_merge(array_axes::Tuple{}, given_axes) = throw(ArgumentError("too many axes provided"))
+_merge(array_axes, given_axes::Tuple{}) = array_axes
+@inline _merge(array_axes, given_axes) = (given_axes[1], _merge(tail(array_axes), tail(given_axes))...)
+
+@inline _default_axis(ax, i) = Axis{_defaultdimname(i)}(ax)
+_default_axis(ax::Axis, i) = ax
 
 """
     default_axes(A::AbstractArray)
@@ -169,18 +187,10 @@ The optional second argument can take a tuple of vectors or axes, which will be
 wrapped with the appropriate axis name, and it will ensure no axis goes beyond
 the dimensionality of the array A.
 """
-@inline default_axes(A::AbstractArray, args=Base.axes(A)) = _default_axes(A, args, ())
-
-_default_axes(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::NTuple{N,Axis}) where {T,N} = throw(ArgumentError("too many axes provided"))
-_default_axes(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::NTuple{N,Axis}) where {T,N} = throw(ArgumentError("too many axes provided"))
-@inline _default_axes(A::AbstractArray{T,N}, args::Tuple{}, axs::NTuple{N,Axis}) where {T,N} =
-    axs
-@inline _default_axes(A::AbstractArray{T,N}, args::Tuple{}, axs::NTuple{M,Axis}) where {T,N,M} =
-    _default_axes(A, args, (axs..., _nextaxistype(M)(Base.axes(A, length(axs)+1))))
-@inline _default_axes(A::AbstractArray{T,N}, args::Tuple{Any, Vararg{Any}}, axs::NTuple{M,Axis}) where {T,N,M} =
-    _default_axes(A, Base.tail(args), (axs..., _nextaxistype(M)(args[1])))
-@inline _default_axes(A::AbstractArray{T,N}, args::Tuple{Axis, Vararg{Any}}, axs::NTuple{M,Axis}) where {T,N,M} =
-    _default_axes(A, Base.tail(args), (axs..., args[1]))
+@inline function default_axes(A::AbstractArray, given_axs=())
+    axs = _merge(Base.axes(A), given_axs)
+    ntuple(i->(Base.@_inline_meta; _default_axis(axs[i], i)), length(axs))
+end
 
 # Axis consistency checks — ensure sizes match and the names are unique
 @inline checksizes(axs, sz) =
