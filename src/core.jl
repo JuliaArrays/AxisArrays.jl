@@ -73,7 +73,8 @@ axistype(::Type{Axis{name,T}}) where {name,T} = T
 Base.getindex(A::Axis, i...) = A.val[i...]
 Base.eltype(::Type{Axis{name,T}}) where {name,T} = eltype(T)
 Base.size(A::Axis) = size(A.val)
-Base.endof(A::Axis) = length(A)
+Base.endof(A::Axis) = length(A) #TODO
+Base.lastindex(A::Axis) = length(A)
 Base.axes(A::Axis) = Base.axes(A.val)
 Base.axes(A::Axis, d) = Base.axes(A.val, d)
 Base.length(A::Axis) = length(A.val)
@@ -220,7 +221,7 @@ end
 AxisArray(A::AbstractArray) = AxisArray(A, ()) # Disambiguation
 AxisArray(A::AbstractArray, names::Symbol...)         = (inds = Base.axes(A); AxisArray(A, ntuple(i->Axis{names[i]}(inds[i]), length(names))))
 function AxisArray(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple{N,Number}, offsets::NTuple{N,Number}=map(zero, steps)) where {T,N}
-    axs = ntuple(i->Axis{names[i]}(range(offsets[i], steps[i], size(A,i))), N)
+    axs = ntuple(i->Axis{names[i]}(range(offsets[i], step=steps[i], length=size(A,i))), N)
     AxisArray(A, axs...)
 end
 
@@ -444,14 +445,16 @@ function permutation(to::Symbols, from::Symbols)
     ind
 end
 
-function Base.squeeze(A::AxisArray, dims::Dims)
+@inline Base.dropdims(A::AxisArray; dims) = _dropdims(A, dims)
+
+function _dropdims(A::AxisArray, dims)
     keepdims = setdiff(1:ndims(A), dims)
-    AxisArray(squeeze(A.data, dims), axes(A)[keepdims])
+    AxisArray(dropdims(A.data; dims=dims), axes(A)[keepdims])
 end
-# This version is type-stable
-function Base.squeeze(A::AxisArray, ::Type{Ax}) where {Ax<:Axis}
+# This version attempts to be type-stable
+function _dropdims(A::AxisArray, ::Type{Ax}) where {Ax<:Axis}
     dim = axisdim(A, Ax)
-    AxisArray(squeeze(A.data, dim), dropax(Ax, axes(A)...))
+    AxisArray(dropdims(A.data; dims=dim), dropax(Ax, axes(A)...))
 end
 
 @inline dropax(ax, ax1, axs...) = (ax1, dropax(ax, axs...)...)
