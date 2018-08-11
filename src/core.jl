@@ -252,7 +252,7 @@ end
 @inline Base.indices(A::AxisArray) = indices(A.data)
 @inline Base.indices(A::AxisArray, Ax::Axis) = indices(A.data, axisdim(A, Ax))
 @inline Base.indices(A::AxisArray, ::Type{Ax}) where {Ax<:Axis} = indices(A.data, axisdim(A, Ax))
-Base.convert(::Type{Array{T,N}}, A::AxisArray{T,N}) where {T,N} = convert(Array{T,N}, A.data)
+Base.(::Type{Array{T,N}}, A::AxisArray{T,N}) where {T,N} = convert(Array{T,N}, A.data)
 Base.parent(A::AxisArray) = A.data
 # Similar is tricky. If we're just changing the element type, it can stay as an
 # AxisArray. But if we're changing dimensions, there's no way it can know how
@@ -309,33 +309,29 @@ function Base.copy!(dest::AxisArray{TT, N, AA, As},
 end
 
 """
-    copy!(dest::AxisArray, source::AxisArray, ignore_axes::Bool=false) -> AxisArray
+    copy!(dest::AxisArray, source::AxisArray) -> AxisArray
 
-Copies data from one AxisArray to another. If `ignore_axes` is `false` (default), then all
-axis names should match, though they may be permutated. If `ignore_axes` is `true`, then the
-function copies the underlying arrays, using the behaviour standard for the types of the
-underlying arrays.
+Copies data from one AxisArray to another. All axis names should match, though they may
+be permutated. 
+
+To ignore axes, the use should call `copy!(dest.src, source.src)` instead, defaulting to
+the default `copy!` for the underlying array.
 """
 function Base.copy!(dest::AxisArray{TT, N, AA, AAs},
-                    source::AxisArray{T, N, A, As},
-                    ignore_axes::Bool=false) where {TT, N, AA, AAs, T, A, As}
-    if ignore_axes
-        copy!(dest.data, source.data)
-    else
-        perm = indexin(collect(axisnames(dest)), collect(axisnames(source)))
-        any(iszero(x) for x in perm) &&
-                throw(ArgumentError("""
-                    Axes of source and destination do not match.
-                    Use copy!(A, B, false) if you want to ignore axis information.
-                    """))
+                    source::AxisArray{T, N, A, As}) where {TT, N, AA, AAs, T, A, As}
+    perm = indexin(collect(axisnames(dest)), collect(axisnames(source)))
+    any(iszero(x) for x in perm) &&
+            throw(ArgumentError("""
+                  Axes of source and destination do not match.
+                  Use copy!(A.src, B.src) if you want to ignore axis information.
+                  """))
 
-        permutedims!(dest.data, source.data, perm)
-    end
+    permutedims!(dest.data, source.data, perm)
     dest
 end
 
 """
-    copy!(dest::AxisArray, daxes::Tuple, src::AxisArray, saxes::Tuple, ignore_axes=false)
+    copy!(dest::AxisArray, daxes::Tuple, src::AxisArray, saxes::Tuple)
 
 Copies a block from one array to a block of another. The tuples identifying the blocks can
 be anything that `view` accepts. Hence it may include axis information.
