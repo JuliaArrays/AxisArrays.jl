@@ -226,11 +226,11 @@ A = AxisArray(OffsetArrays.OffsetArray([5,3,4], -1:1), :x)
 @test A[-1] == 5
 A[0] = 12
 @test A.data[0] == 12
-@test indices(A) == (-1:1,)
-@test linearindices(A) == -1:1
+@test Base.axes(A) == Base.axes(A.data)
+@test LinearIndices(A) == LinearIndices(A.data)
 A = AxisArray(OffsetArrays.OffsetArray(rand(4,5), -1:2, 5:9), :x, :y)
-@test indices(A) == (-1:2, 5:9)
-@test linearindices(A) == 1:20
+@test Base.axes(A) == Base.axes(A.data)
+@test LinearIndices(A) == LinearIndices(A.data)
 
 @test AxisArrays.matchingdims((A, A))
 
@@ -261,17 +261,18 @@ B = @inferred(AxisArray(collect(reshape(1:15,3,5)), Axis{:y}(0.1:0.1:0.3), Axis{
 arrays = (A, B)
 functions = (sum, minimum)
 for C in arrays
+    local C
     for op in functions  # together, cover both reduced_indices and reduced_indices0
         axv = axisvalues(C)
-        C1 = @inferred(op(C, 1))
+        C1 = @inferred(op(C;dims=1))
         @test typeof(C1) == typeof(C)
         @test axisnames(C1) == (:y,:x)
         @test axisvalues(C1) === (oftype(axv[1], Base.OneTo(1)), axv[2])
-        C2 = op(C, 2)
+        C2 = op(C, dims=2)
         @test typeof(C2) == typeof(C)
         @test axisnames(C2) == (:y,:x)
         @test axisvalues(C2) === (axv[1], oftype(axv[2], Base.OneTo(1)))
-        C12 = @inferred(op(C, (1,2)))
+        C12 = @inferred(op(C, dims=(1,2)))
         @test typeof(C12) == typeof(C)
         @test axisnames(C12) == (:y,:x)
         @test axisvalues(C12) === (oftype(axv[1], Base.OneTo(1)), oftype(axv[2], Base.OneTo(1)))
@@ -284,12 +285,12 @@ for C in arrays
             @test C2 == reshape([1,2,3], 3, 1)
             @test C12 == reshape([1], 1, 1)
         end
-        @test @inferred(op(C, Axis{:y})) == C1
-        @test @inferred(op(C, Axis{:x})) == C2
-        @test @inferred(op(C, (Axis{:y},Axis{:x}))) == C12
-        @test @inferred(op(C, Axis{:y}())) == C1
-        @test @inferred(op(C, Axis{:x}())) == C2
-        @test @inferred(op(C, (Axis{:y}(),Axis{:x}()))) == C12
+        @test @inferred(op(C, dims=Axis{:y})) == C1
+        @test @inferred(op(C, dims=Axis{:x})) == C2
+        @test @inferred(op(C, dims=(Axis{:y},Axis{:x}))) == C12
+        @test @inferred(op(C, dims=Axis{:y}())) == C1
+        @test @inferred(op(C, dims=Axis{:x}())) == C2
+        @test @inferred(op(C, dims=(Axis{:y}(),Axis{:x}()))) == C12
     end
 end
 

@@ -81,6 +81,10 @@ Base.length(A::Axis) = length(A.val)
 (A::Axis{name})(i) where {name} = Axis{name}(i)
 Base.convert(::Type{Axis{name,T}}, ax::Axis{name,T}) where {name,T} = ax
 Base.convert(::Type{Axis{name,T}}, ax::Axis{name}) where {name,T} = Axis{name}(convert(T, ax.val))
+Base.iterate(a::Axis) = (a, nothing)
+Base.iterate(::Axis, ::Any) = nothing
+Base.iterate(::Type{T<:Axis}) = (T, nothing)
+Base.iterate(::Type{T<:Axis}, ::Any) = nothing
 
 """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
@@ -336,9 +340,9 @@ reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Integer) =
     reduced_indices0(axs, (region,))
 
 reduced_indices(axs::Tuple{Vararg{Axis,N}}, region::Dims) where {N} =
-    map((ax,d)->d∈region ? reduced_axis(ax) : ax, axs, ntuple(identity, Val(N)))
+    map((ax,d)->d∈region ? reduced_axis(ax) : ax, axs, ntuple(identity, N))
 reduced_indices0(axs::Tuple{Vararg{Axis,N}}, region::Dims) where {N} =
-    map((ax,d)->d∈region ? reduced_axis0(ax) : ax, axs, ntuple(identity, Val(N)))
+    map((ax,d)->d∈region ? reduced_axis0(ax) : ax, axs, ntuple(identity, N))
 
 @inline reduced_indices(axs::Tuple{Vararg{Axis}}, region::Type{<:Axis}) =
     _reduced_indices(reduced_axis, (), region, axs...)
