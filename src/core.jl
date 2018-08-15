@@ -83,8 +83,8 @@ Base.convert(::Type{Axis{name,T}}, ax::Axis{name,T}) where {name,T} = ax
 Base.convert(::Type{Axis{name,T}}, ax::Axis{name}) where {name,T} = Axis{name}(convert(T, ax.val))
 Base.iterate(a::Axis) = (a, nothing)
 Base.iterate(::Axis, ::Any) = nothing
-Base.iterate(::Type{T<:Axis}) = (T, nothing)
-Base.iterate(::Type{T<:Axis}, ::Any) = nothing
+Base.iterate(::Type{T}) where {T<:Axis} = (T, nothing)
+Base.iterate(::Type{T}, ::Any) where {T<:Axis} = nothing
 
 """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
