@@ -193,6 +193,15 @@ function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx)
         throw(BoundsError(ax, idx))
     end
 end
+function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Axis)
+    idxs = searchsorted(ax, idx.val)
+    length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
+    if length(idxs) == 1
+        idxs[1]
+    else
+        throw(BoundsError(ax, idx))
+    end
+end
 # Dimensional axes may always be indexed by value if in a Value type wrapper.
 function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::TolValue)
     idxs = searchsorted(ax, ClosedInterval(idx.val,idx.val))

@@ -324,13 +324,16 @@ Base.similar(A::AxisArray, ::Type{S}, ax1::Axis, axs::Axis...) where {S} = simil
         AxisArray(d, $ax)
     end
 end
-
+const AxisUnitRange{T,N,D<:AbstractUnitRange,Ax} = AxisArray{T,N,D,Ax}
+Base.similar(A::AxisArray{T}, ax1::AxisUnitRange, axs::AxisUnitRange...) where {T} = similar(A, T, (ax1, axs...))
+Base.similar(A::AxisArray, ::Type{S}, ax1::AxisUnitRange, axs::AxisUnitRange...) where {S} = similar(A, S, (ax1, axs...))
+Base.similar(A::AxisArray, ::Type{S}, axs::Tuple{AxisUnitRange,Vararg{AxisUnitRange}}) where {S} = similar(A, S, map(x->x.axes[1], axs))
 # These methods allow us to preserve the AxisArray under reductions
 # Note that we only extend the following two methods, and then have it
 # dispatch to package-local `reduced_indices` and `reduced_indices0`
 # methods. This avoids a whole slew of ambiguities.
-Base.reduced_indices(A::AxisArray, region)  = reduced_indices(axes(A), region)
-Base.reduced_indices0(A::AxisArray, region) = reduced_indices0(axes(A), region)
+Base.reduced_indices(A::AxisArray, region)  = map(ax->AxisArray(Base.axes(ax.val, 1), ax), reduced_indices(axes(A), region))
+Base.reduced_indices0(A::AxisArray, region) = map(ax->AxisArray(Base.axes(ax.val, 1), ax), reduced_indices0(axes(A), region))
 
 reduced_indices(axs::Tuple{Vararg{Axis}}, ::Tuple{})  = axs
 reduced_indices0(axs::Tuple{Vararg{Axis}}, ::Tuple{}) = axs
