@@ -61,10 +61,10 @@ end
 @inline _make_axes_match(newaxes, axs::Tuple{}, nidxs::Tuple{}) = newaxes
 # Drop trailing axes, replacing it with a default name for the linear span
 @inline _make_axes_match(newaxes, axs::Tuple, nidxs::Tuple{}) =
-    (maybefront(newaxes)..., _nextaxistype(newaxes)(Base.OneTo(length(newaxes[end]) * prod(map(length, axs)))))
+    (maybefront(newaxes)..., _default_axis(Base.OneTo(length(newaxes[end]) * prod(map(length, axs))), length(newaxes)))
 # Insert phony singleton trailing axes
 @inline _make_axes_match(newaxes, axs::Tuple{}, nidxs::Tuple) =
-    _make_axes_match((newaxes..., _nextaxistype(newaxes)(Base.OneTo(1))), (), tail(nidxs))
+    _make_axes_match((newaxes..., _default_axis(Base.OneTo(1), length(newaxes))), (), tail(nidxs))
 
 @inline maybefront(::Tuple{}) = ()
 @inline maybefront(t::Tuple) = Base.front(t)
