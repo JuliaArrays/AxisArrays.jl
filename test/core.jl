@@ -192,8 +192,8 @@ Aplain = rand(2,3)
 @test size(Axis{:row}(2:7)) === (6,)
 T = A[AxisArrays.Axis{:x}]
 @test T[end] == 0.2
-@test indices(Axis{:row}(2:7)) === (Base.OneTo(6),)
-@test indices(Axis{:row}(-1:1), 1) === Base.OneTo(3)
+@test Base.axes(Axis{:row}(2:7)) === (Base.OneTo(6),)
+@test Base.axes(Axis{:row}(-1:1), 1) === Base.OneTo(3)
 @test length(Axis{:col}(-1:2)) === 4
 @test AxisArrays.axisname(Axis{:foo}(1:2)) == :foo
 @test AxisArrays.axisname(Axis{:foo})      == :foo

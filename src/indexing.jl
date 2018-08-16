@@ -148,7 +148,7 @@ end
 function Base.reshape(A::AxisArray, ::Val{N}) where N
     # axN, _ = Base.IteratorsMD.split(axes(A), Val(N))
     # AxisArray(reshape(A.data, Val(N)), reaxis(A, Base.fill_to_length(axN, :, Val(N))...))
-    AxisArray(reshape(A.data, Val(N)), reaxis(A, ntuple(d->Colon(), Val(N))...))
+    AxisArray(reshape(A.data, Val(N)), reaxis(A, ntuple(d->Colon(), N)...))
 end
 
 ### Indexing along values of the axes ###

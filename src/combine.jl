@@ -175,11 +175,11 @@ function _collapsed_axis_eltype(LType, trailing_axes)
 end
 
 function collapse(::Val{N}, As::Vararg{AxisArray, AN}) where {N, AN}
-    collapse(Val(N), ntuple(identity, Val(AN)), As...)
+    collapse(Val(N), ntuple(identity, AN), As...)
 end
 
 function collapse(::Val{N}, ::Type{NewArrayType}, As::Vararg{AxisArray, AN}) where {N, AN, NewArrayType<:AbstractArray}
-    collapse(Val(N), NewArrayType, ntuple(identity, Val(AN)), As...)
+    collapse(Val(N), NewArrayType, ntuple(identity, AN), As...)
 end
 
 @generated function collapse(::Val{N}, labels::NTuple{AN, LType}, As::Vararg{AxisArray, AN}) where {N, AN, LType}
