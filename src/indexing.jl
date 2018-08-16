@@ -275,7 +275,7 @@ end
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::IntervalAtIndex) = searchsorted(ax, idx.window + ax[idx.index])
 function axisindexes(::Type{Dimensional}, ax::AbstractRange, idx::IntervalAtIndex)
     idxs, vals = relativewindow(ax, idx.window)
-    AxisArray(idxs + idx.index, Axis{:sub}(vals))
+    AxisArray(idxs .+ idx.index, Axis{:sub}(vals))
 end
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedIntervalAtIndexes) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::AbstractRange,
@@ -329,7 +329,7 @@ end
             push!(ex.args, :(findall(I[$i])))
             n += 1
         elseif I[i] <: Values
-            push!(ex.args, :(axisindexes.(A.axes[$i], I[$i])))
+            push!(ex.args, :(axisindexes.(Ref(A.axes[$i]), I[$i])))
             n += 1
         elseif I[i] <: CartesianIndex
             for j = 1:length(I[i])
