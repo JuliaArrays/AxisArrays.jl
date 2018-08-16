@@ -18,7 +18,7 @@ A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
 A[Axis{:time}(4)]
 A[Axis{:chan}(:c2), Axis{:time}(1:5)]
 ax = A[40µs .. 220µs, :c1]
-axes(ax, 1)
+AxisArrays.axes(ax, 1)
 A[atindex(-90µs .. 90µs, 5), :c2]
 idxs = find(diff(A[:,:c1] .< -15) .> 0)
 spks = A[atindex(-200µs .. 800µs, idxs), :c1]

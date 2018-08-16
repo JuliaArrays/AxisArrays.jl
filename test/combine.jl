@@ -55,11 +55,11 @@ A2 = AxisArray(reshape(A2data, size(A2data)..., 1), Axis{:X}(1:2), Axis{:Y}(1:2)
 
 @test @inferred(collapse(Val(2), A1, A2)) == AxisArray(cat(A1data, A2data, dims=3), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:collapsed}(AxisArrays.CategoricalVector([(1,), (2, :foo)])))
 @test @inferred(collapse(Val(2), A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:collapsed}(AxisArrays.CategoricalVector([(1,)])))
-@test @inferred(collapse(Val(2), A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:collapsed}(AxisArrays.CategoricalVector([(1,)])))
+@test @inferred(collapse(Val(2), A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), AxisArrays.axes(A1)..., Axis{:collapsed}(AxisArrays.CategoricalVector([(1,)])))
 
 @test @inferred(collapse(Val(2), (:A1, :A2), A1, A2)) == AxisArray(cat(A1data, A2data, dims=3), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:collapsed}(AxisArrays.CategoricalVector([(:A1,), (:A2, :foo)])))
 @test @inferred(collapse(Val(2), (:foo,), A1)) == AxisArray(reshape(A1, 2, 2, 1), Axis{:X}(1:2), Axis{:Y}(1:2), Axis{:collapsed}(AxisArrays.CategoricalVector([(:foo,)])))
-@test @inferred(collapse(Val(2), (:a,), A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), axes(A1)..., Axis{:collapsed}(AxisArrays.CategoricalVector([(:a,)])))
+@test @inferred(collapse(Val(2), (:a,), A1)) == AxisArray(reshape(A1.data, size(A1)..., 1), AxisArrays.axes(A1)..., Axis{:collapsed}(AxisArrays.CategoricalVector([(:a,)])))
 
 @test @inferred(collapse(Val(0), A1)) == AxisArray(vec(A1data), Axis{:collapsed}(AxisArrays.CategoricalVector(collect(Iterators.product((1,), axisvalues(A1)...)))))
 @test @inferred(collapse(Val(1), A1)) == AxisArray(A1data, Axis{:row}(1:2), Axis{:collapsed}(AxisArrays.CategoricalVector(collect(Iterators.product((1,), axisvalues(A1)[2])))))
