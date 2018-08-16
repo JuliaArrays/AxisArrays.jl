@@ -49,10 +49,15 @@ This internal function determines the new set of axes that are constructed upon
 indexing with I.
 """
 reaxis(A::AxisArray, I::Idx...) = _reaxis(make_axes_match(axes(A), I), I)
-function reaxis(A::AxisArray, I::AbstractArray{Bool})
-    vecI = vec(I)
-    _reaxis(make_axes_match(axes(A), (vecI,)), (vecI,))
-end
+# Linear indexing
+reaxis(A::AxisArray{<:Any,1}, I::AbstractArray{Int}) = _new_axes(A.axes[1], I)
+reaxis(A::AxisArray, I::AbstractArray{Int}) = default_axes(I)
+reaxis(A::AxisArray{<:Any,1}, I::Real) = ()
+reaxis(A::AxisArray, I::Real) = ()
+reaxis(A::AxisArray{<:Any,1}, I::Colon) = _new_axes(A.axes[1], I)
+reaxis(A::AxisArray, I::Colon) = default_axes(Base.OneTo(length(A)))
+reaxis(A::AxisArray{<:Any,1}, I::AbstractArray{Bool}) = _new_axes(A.axes[1], findall(I))
+reaxis(A::AxisArray, I::AbstractArray{Bool}) = default_axes(findall(I))
 
 # Ensure the number of axes matches the number of indexing dimensions
 @inline function make_axes_match(axs, idxs)
@@ -137,9 +142,8 @@ end
 end
 
 function Base.reshape(A::AxisArray, ::Val{N}) where N
-    # axN, _ = Base.IteratorsMD.split(axes(A), Val(N))
-    # AxisArray(reshape(A.data, Val(N)), reaxis(A, Base.fill_to_length(axN, :, Val(N))...))
-    AxisArray(reshape(A.data, Val(N)), reaxis(A, ntuple(d->Colon(), N)...))
+    axN, _ = Base.IteratorsMD.split(axes(A), Val(N))
+    AxisArray(reshape(A.data, Val(N)), Base.front(axN))
 end
 
 ### Indexing along values of the axes ###
@@ -294,7 +298,7 @@ function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::Value)
 end
 # Categorical axes may be indexed by a vector of their elements
 function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::AbstractVector)
-    res = findall(in(ax), idx)
+    res = findall(in(idx), ax)
     length(res) == length(idx) || throw(ArgumentError("index $(setdiff(idx,ax)) not found"))
     res
 end

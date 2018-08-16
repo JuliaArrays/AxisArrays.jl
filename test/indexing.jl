@@ -22,7 +22,7 @@ D[1,1,1,1,1] = 10
 
 # Test fallback methods
 @test A[[1 2; 3 4]] == @view(A[[1 2; 3 4]]) == A.data[[1 2; 3 4]]
-@test A[] == A.data[]
+VERSION >= v"1.0.0-rc" && @test_throws MethodError A[]
 
 # Test axis restrictions
 @test A[:,:,:].axes == A.axes
@@ -38,11 +38,6 @@ D[1,1,1,1,1] = 10
 
 # Linear indexing across multiple dimensions drops tracking of those dims
 @test A[:].axes[1].val == 1:length(A)
-# TODO: remove the next 4 lines when we no longer feel we need to test for this
-@info "partial linear indexing deprecation warning is expected"
-B = A[1:2,:]
-@test B.axes[1].val == A.axes[1].val[1:2]
-@test B.axes[2].val == 1:Base.trailingsize(A,2)
 B2 = reshape(A, Val(2))
 B = B2[1:2,:]
 @test B.axes[1].val == A.axes[1].val[1:2]
@@ -51,15 +46,14 @@ B = B2[1:2,:]
 # Logical indexing
 all_inds = collect(1:length(A))
 odd_inds = collect(1:2:length(A))
-@test @inferred(A[trues(A)]) == A[:] == A[all_inds]
-@test axes(A[trues(A)]) == axes(A[all_inds])
+@test @inferred(A[trues(size(A))]) == A[:] == A[all_inds]
+@test AxisArrays.axes(A[trues(size(A))]) == AxisArrays.axes(A[all_inds])
 @test @inferred(A[isodd.(A)]) == A[1:2:length(A)] == A[odd_inds]
-@test axes(A[isodd.(A)]) == axes(A[odd_inds])
-@test @inferred(A[vec(trues(A))]) == A[:] == A[all_inds]
-@test axes(A[vec(trues(A))]) == axes(A[all_inds])
+@test AxisArrays.axes(A[isodd.(A)]) == AxisArrays.axes(A[odd_inds])
+@test @inferred(A[vec(trues(size(A)))]) == A[:] == A[all_inds]
+@test AxisArrays.axes(A[vec(trues(size(A)))]) == AxisArrays.axes(A[all_inds])
 @test @inferred(A[vec(isodd.(A))]) == A[1:2:length(A)] == A[odd_inds]
-@test axes(A[vec(isodd.(A))]) == axes(A[odd_inds])
-
+@test AxisArrays.axes(A[vec(isodd.(A))]) == AxisArrays.axes(A[odd_inds])
 
 B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 
@@ -79,6 +73,7 @@ B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 @test B[:, :a] == @view(B[:, :a]) == B[:,1]
 @test B[:, :c] == @view(B[:, :c]) == B[:,3]
 @test B[:, [:a]] == @view(B[:, [:a]]) == B[:,[1]]
+@test B[:, [:c]] == @view(B[:, [:c]]) == B[:,[3]]
 @test B[:, [:a,:c]] == @view(B[:, [:a,:c]]) == B[:,[1,3]]
 
 @test B[Axis{:row}(ClosedInterval(0.15, 0.3))] == @view(B[Axis{:row}(ClosedInterval(0.15, 0.3))]) == B[2:3,:]
@@ -97,7 +92,7 @@ B = AxisArray(reshape(1:15, 5,3), 1.1:0.1:1.5, [:a, :b, :c])
 @test @view(B[ClosedInterval(1.2,  1.6), :]) == @view(B[ClosedInterval(1.2,  1.6)]) == B[2:end,:]
 
 A = AxisArray(reshape(1:256, 4,4,4,4), Axis{:d1}(.1:.1:.4), Axis{:d2}(1//10:1//10:4//10), Axis{:d3}(["1","2","3","4"]), Axis{:d4}([:a, :b, :c, :d]))
-ax1 = axes(A)[1]
+ax1 = AxisArrays.axes(A)[1]
 @test A[Axis{:d1}(2)] == A[ax1(2)]
 @test A.data[1:2,:,:,:] == A[Axis{:d1}(ClosedInterval(.1,.2))]       == A[ClosedInterval(.1,.2),:,:,:]       == A[ClosedInterval(.1,.2),:,:,:,1]       == A[ClosedInterval(.1,.2)]
 @test A.data[:,1:2,:,:] == A[Axis{:d2}(ClosedInterval(1//10,2//10))] == A[:,ClosedInterval(1//10,2//10),:,:] == A[:,ClosedInterval(1//10,2//10),:,:,1] == A[:,ClosedInterval(1//10,2//10)]
