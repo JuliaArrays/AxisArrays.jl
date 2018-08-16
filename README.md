@@ -154,7 +154,7 @@ very powerful behaviors. For example, let's threshold our data and find windows
 about those threshold crossings.
 
 ```julia
-julia> idxs = find(diff(A[:,:c1] .< -15) .> 0);
+julia> idxs = findall(diff(A[:,:c1] .< -15) .> 0);
 
 julia> spks = A[atindex(-200µs .. 800µs, idxs), :c1]
 2-dimensional AxisArray{Float64,2,...} with axes:

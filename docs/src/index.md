@@ -121,7 +121,7 @@ And data, a 7-element Array{Float64,1}:
  -0.226449
   0.821446
 
-julia> axes(ans, 1)
+julia> AxisArrays.axes(ans, 1)
 AxisArrays.Axis{:time,StepRangeLen{Quantity{Float64, Dimensions:{𝐓}, Units:{s}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}}}}(5.0e-5 s:2.5e-5 s:0.0002 s)
 
 ```
@@ -182,7 +182,7 @@ very powerful behaviors. For example, let's threshold our data and find windows
 about those threshold crossings.
 
 ```jldoctest
-julia> idxs = find(diff(A[:,:c1] .< -15) .> 0);
+julia> idxs = findall(diff(A[:,:c1] .< -15) .> 0);
 
 julia> spks = A[atindex(-200µs .. 800µs, idxs), :c1]
 2-dimensional AxisArray{Float64,2,...} with axes:
