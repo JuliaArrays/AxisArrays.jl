@@ -9,11 +9,14 @@ function equalvalued(X::NTuple)
     return allequal
 end #equalvalued
 
-sizes(As::T...) where {T<:AxisArray} = tuple(zip(map(a -> map(length, Base.axes(a)), As)...)...)
-matchingdims(As::NTuple{N,T}) where {N,T<:AxisArray} = all(equalvalued, sizes(As...))
-matchingdimsexcept(As::NTuple{N,T}, n::Int) where {N,T<:AxisArray} = all(equalvalued, sizes(As...)[[1:n-1; n+1:end]])
+sizes(As::AxisArray...) = tuple(zip(map(a -> map(length, Base.axes(a)), As)...)...)
+matchingdims(As::Tuple{Vararg{AxisArray}}) = all(equalvalued, sizes(As...))
+matchingdimsexcept(As::Tuple{Vararg{AxisArray}}, n::Int) = all(equalvalued, sizes(As...)[[1:n-1; n+1:end]])
 
-function Base.cat(n::Integer, As::AxisArray{T}...) where T
+Base.cat(As::AxisArray{T}...; dims) where {T} = _cat(dims, As...)
+_cat(::Val{n}, As...) where {n} = _cat(n, As...)
+
+@inline function _cat(n::Integer, As...)
     if n <= ndims(As[1])
         matchingdimsexcept(As, n) || error("All non-concatenated axes must be identically-valued")
         newaxis = Axis{axisnames(As[1])[n]}(vcat(map(A -> A.axes[n].val, As)...))
@@ -23,7 +26,7 @@ function Base.cat(n::Integer, As::AxisArray{T}...) where T
         matchingdims(As) || error("All axes must be identically-valued")
         return AxisArray(cat(map(A->A.data, As)..., dims=n), As[1].axes)
     end #if
-end #Base.cat
+end
 
 function axismerge(method::Symbol, axes::Axis{name,T}...) where {name,T}
 
@@ -122,7 +125,7 @@ Combines AxisArrays with matching axis names into a single AxisArray. Unlike `me
 If an array value in the output array is not defined in any of the input arrays (i.e. in the case of a left, right, or outer join), it takes the value of the optional `fillvalue` keyword argument (default zero).
 """
 function Base.join(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
-                   newaxis::Axis=_default_axis(1:length(As), ndims(As[1])),
+                   newaxis::Axis=_default_axis(1:length(As), ndims(As[1])+1),
                    method::Symbol=:outer) where {T,N,D,Ax}
 
     prejoin_resultaxes = map(as -> axismerge(method, as...), map(tuple, axes.(As)...))
