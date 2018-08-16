@@ -1,6 +1,7 @@
 using AxisArrays
 using Dates
 using Test
+using Random
 import IterTools
 
 @testset "AxisArrays" begin

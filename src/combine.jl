@@ -18,10 +18,10 @@ function Base.cat(n::Integer, As::AxisArray{T}...) where T
         matchingdimsexcept(As, n) || error("All non-concatenated axes must be identically-valued")
         newaxis = Axis{axisnames(As[1])[n]}(vcat(map(A -> A.axes[n].val, As)...))
         checkaxis(newaxis)
-        return AxisArray(cat(n, map(A->A.data, As)...), (As[1].axes[1:n-1]..., newaxis, As[1].axes[n+1:end]...))
+        return AxisArray(cat(map(A->A.data, As)..., dims=n), (As[1].axes[1:n-1]..., newaxis, As[1].axes[n+1:end]...))
     else
         matchingdims(As) || error("All axes must be identically-valued")
-        return AxisArray(cat(n, map(A->A.data, As)...), As[1].axes)
+        return AxisArray(cat(map(A->A.data, As)..., dims=n), As[1].axes)
     end #if
 end #Base.cat
 
@@ -141,7 +141,7 @@ function Base.join(As::AxisArray{T,N,D,Ax}...; fillvalue::T=zero(T),
 end #join
 
 function _collapse_array_axes(array_name, array_axes...)
-    ((array_name, (idx isa Tuple ? idx : (idx,))...) for idx in product((Ax.val for Ax in array_axes)...))
+    ((array_name, (idx isa Tuple ? idx : (idx,))...) for idx in Iterators.product((Ax.val for Ax in array_axes)...))
 end
 
 function _collapse_axes(array_names, array_axes)
@@ -316,7 +316,7 @@ true
             end
         end
 
-        array_data = cat($collapsed_dim, _reshapeall($collapsed_dim, As...)...)
+        array_data = cat(_reshapeall($collapsed_dim, As...)..., dims=$collapsed_dim)
 
         axis_array_type = AxisArray{
             $new_eltype,

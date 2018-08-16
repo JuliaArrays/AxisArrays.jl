@@ -1,5 +1,5 @@
 # Test CategoricalVector with a hierarchical index (indexed using Tuples)
-srand(1234)
+Random.seed!(1234)
 data = reshape(1.:40., 20, 2)
 v = collect(zip([:a, :b, :c][rand(1:3,20)], [:x,:y][rand(1:2,20)], [:x,:y][rand(1:2,20)]))
 idx = sortperm(v)

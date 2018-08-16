@@ -12,7 +12,7 @@ A = AxisArray(reshape(1:16, 8, 2), v, [:a, :b])
 @test v[1:2:8] == [1.0; 10.0; 12.0; 14.0]
 
 # Test SortedVector with a hierarchical index (indexed using Tuples)
-srand(1234)
+Random.seed!(1234)
 data = reshape(1.:40., 20, 2)
 v = collect(zip([:a, :b, :c][rand(1:3,20)], [:x,:y][rand(1:2,20)], [:x,:y][rand(1:2,20)]))
 idx = sortperm(v)

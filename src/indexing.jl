@@ -303,7 +303,7 @@ function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::Value)
 end
 # Categorical axes may be indexed by a vector of their elements
 function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::AbstractVector)
-    res = findin(ax, idx)
+    res = findall(in(ax), idx)
     length(res) == length(idx) || throw(ArgumentError("index $(setdiff(idx,ax)) not found"))
     res
 end
@@ -331,7 +331,7 @@ end
             push!(ex.args, :(I[$i]))
             n += 1
         elseif I[i] <: AbstractArray{Bool}
-            push!(ex.args, :(find(I[$i])))
+            push!(ex.args, :(findall(I[$i])))
             n += 1
         elseif I[i] <: Values
             push!(ex.args, :(axisindexes.(A.axes[$i], I[$i])))
