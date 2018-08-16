@@ -22,7 +22,7 @@ D[1,1,1,1,1] = 10
 
 # Test fallback methods
 @test A[[1 2; 3 4]] == @view(A[[1 2; 3 4]]) == A.data[[1 2; 3 4]]
-VERSION >= v"1.0.0-rc" && @test_throws MethodError A[]
+VERSION >= v"1.0.0-rc" && @test_throws BoundsError A[]
 
 # Test axis restrictions
 @test A[:,:,:].axes == A.axes
