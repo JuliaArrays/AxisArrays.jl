@@ -53,21 +53,12 @@ function reaxis(A::AxisArray, I::AbstractArray{Bool})
     vecI = vec(I)
     _reaxis(make_axes_match(axes(A), (vecI,)), (vecI,))
 end
-# Ensure the number of axes matches the number of indexing dimensions
-@inline make_axes_match(axs, idxs) = _make_axes_match((), axs, Base.index_ndims(idxs...))
-# Move the axes into newaxes, until we run out of both simultaneously
-@inline _make_axes_match(newaxes, axs::Tuple, nidxs::Tuple) =
-    _make_axes_match((newaxes..., axs[1]), tail(axs), tail(nidxs))
-@inline _make_axes_match(newaxes, axs::Tuple{}, nidxs::Tuple{}) = newaxes
-# Drop trailing axes, replacing it with a default name for the linear span
-@inline _make_axes_match(newaxes, axs::Tuple, nidxs::Tuple{}) =
-    (maybefront(newaxes)..., _default_axis(Base.OneTo(length(newaxes[end]) * prod(map(length, axs))), length(newaxes)))
-# Insert phony singleton trailing axes
-@inline _make_axes_match(newaxes, axs::Tuple{}, nidxs::Tuple) =
-    _make_axes_match((newaxes..., _default_axis(Base.OneTo(1), length(newaxes))), (), tail(nidxs))
 
-@inline maybefront(::Tuple{}) = ()
-@inline maybefront(t::Tuple) = Base.front(t)
+# Ensure the number of axes matches the number of indexing dimensions
+@inline function make_axes_match(axs, idxs)
+    nidxs = Base.index_ndims(idxs...)
+    ntuple(i->(Base.@_inline_meta; _default_axis(i > length(axs) ? Base.OneTo(1) : axs[i], i)), length(nidxs))
+end
 
 # Now we can reaxis without worrying about mismatched axes/indices
 @inline _reaxis(axs::Tuple{}, idxs::Tuple{}) = ()

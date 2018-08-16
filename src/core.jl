@@ -175,7 +175,7 @@ end
 @inline _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : i == 4 ? :dim_4 : Symbol(:dim_, i)
 
 _merge(::Tuple{}, ::Tuple{}) = ()
-_merge(array_axes::Tuple{}, given_axes) = throw(ArgumentError("too many axes provided"))
+_merge(array_axes::Tuple{}, given_axes) = given_axes
 _merge(array_axes, given_axes::Tuple{}) = array_axes
 @inline _merge(array_axes, given_axes) = (given_axes[1], _merge(tail(array_axes), tail(given_axes))...)
 
@@ -189,8 +189,7 @@ _default_axis(ax::Axis, i) = ax
 Return a tuple of Axis objects that appropriately index into the array A.
 
 The optional second argument can take a tuple of vectors or axes, which will be
-wrapped with the appropriate axis name, and it will ensure no axis goes beyond
-the dimensionality of the array A.
+wrapped with the appropriate axis name.
 """
 @inline function default_axes(A::AbstractArray, given_axs=())
     axs = _merge(Base.axes(A), given_axs)
@@ -215,6 +214,10 @@ checknames() = ()
 # The primary AxisArray constructors — specify an array to wrap and the axes
 AxisArray(A::AbstractArray, vects::Union{AbstractVector, Axis}...) = AxisArray(A, vects)
 AxisArray(A::AbstractArray, vects::Tuple{Vararg{Union{AbstractVector, Axis}}}) = AxisArray(A, default_axes(A, vects))
+function AxisArray(A::AbstractArray, vects::Tuple{Vararg{Axis}})
+    length(vects) > ndims(A) && throw(ArgumentError("too many axes ($(length(vects))) given for a $(ndims(A))-dimensional array"))
+    AxisArray(A, default_axes(A, vects))
+end
 function AxisArray(A::D, axs::Ax) where {T,N,D<:AbstractArray{T,N},Ax<:NTuple{N,Axis}}
     checksizes(axs, _size(A)) || throw(ArgumentError("the length of each axis must match the corresponding size of data"))
     checknames(axisnames(axs...)...)
