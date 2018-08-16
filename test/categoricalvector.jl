@@ -1,7 +1,10 @@
 # Test CategoricalVector with a hierarchical index (indexed using Tuples)
-Random.seed!(1234)
 data = reshape(1.:40., 20, 2)
-v = collect(zip([:a, :b, :c][rand(1:3,20)], [:x,:y][rand(1:2,20)], [:x,:y][rand(1:2,20)]))
+# v = collect(zip([:a, :b, :c][rand(1:3,20)], [:x,:y][rand(1:2,20)], [:x,:y][rand(1:2,20)]))
+v = [(:b, :x, :y), (:c, :y, :y), (:b, :x, :y), (:a, :y, :y), (:b, :y, :y),
+     (:c, :y, :y), (:b, :x, :x), (:c, :x, :y), (:c, :y, :y), (:a, :y, :y),
+     (:a, :y, :y), (:b, :x, :y), (:c, :x, :y), (:c, :y, :y), (:b, :x, :y),
+     (:a, :x, :x), (:c, :x, :x), (:c, :y, :y), (:b, :y, :x), (:b, :y, :y)]
 idx = sortperm(v)
 A = AxisArray(data[idx,:], AxisArrays.CategoricalVector(v[idx]), [:a, :b])
 @test A[:b, :] == A[5:12, :]
