@@ -1,10 +1,11 @@
 using AxisArrays
-using Base.Dates
-using Base.Test
+using Dates
+using Test
+using Random
 import IterTools
 
 @testset "AxisArrays" begin
-    @test isempty(detect_ambiguities(AxisArrays, Base, Core))
+    VERSION >= v"1.0.0-" && @test isempty(detect_ambiguities(AxisArrays, Base, Core))
 
     @testset "Core" begin
         include("core.jl")

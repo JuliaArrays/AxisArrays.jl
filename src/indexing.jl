@@ -22,9 +22,7 @@ const Values = AbstractArray{<:Value}
 
 # For throwing a BoundsError with a Value index, we need to define the following
 # (note that we could inherit them for free, were Value <: Number)
-Base.start(::Value) = false
-Base.next(x::Value, state) = (x, true)
-Base.done(x::Value, state) = state
+Base.iterate(x::Value, state = false) = state ? nothing : (x, true)
 
 # Values have the indexing trait of their wrapped type
 _axistrait_el(::Type{<:Value{T}}) where {T} = _axistrait_el(T)
@@ -51,25 +49,21 @@ This internal function determines the new set of axes that are constructed upon
 indexing with I.
 """
 reaxis(A::AxisArray, I::Idx...) = _reaxis(make_axes_match(axes(A), I), I)
-function reaxis(A::AxisArray, I::AbstractArray{Bool})
-    vecI = vec(I)
-    _reaxis(make_axes_match(axes(A), (vecI,)), (vecI,))
-end
-# Ensure the number of axes matches the number of indexing dimensions
-@inline make_axes_match(axs, idxs) = _make_axes_match((), axs, Base.index_ndims(idxs...))
-# Move the axes into newaxes, until we run out of both simultaneously
-@inline _make_axes_match(newaxes, axs::Tuple, nidxs::Tuple) =
-    _make_axes_match((newaxes..., axs[1]), tail(axs), tail(nidxs))
-@inline _make_axes_match(newaxes, axs::Tuple{}, nidxs::Tuple{}) = newaxes
-# Drop trailing axes, replacing it with a default name for the linear span
-@inline _make_axes_match(newaxes, axs::Tuple, nidxs::Tuple{}) =
-    (maybefront(newaxes)..., _nextaxistype(newaxes)(Base.OneTo(length(newaxes[end]) * prod(map(length, axs)))))
-# Insert phony singleton trailing axes
-@inline _make_axes_match(newaxes, axs::Tuple{}, nidxs::Tuple) =
-    _make_axes_match((newaxes..., _nextaxistype(newaxes)(Base.OneTo(1))), (), tail(nidxs))
+# Linear indexing
+reaxis(A::AxisArray{<:Any,1}, I::AbstractArray{Int}) = _new_axes(A.axes[1], I)
+reaxis(A::AxisArray, I::AbstractArray{Int}) = default_axes(I)
+reaxis(A::AxisArray{<:Any,1}, I::Real) = ()
+reaxis(A::AxisArray, I::Real) = ()
+reaxis(A::AxisArray{<:Any,1}, I::Colon) = _new_axes(A.axes[1], Base.axes(A, 1))
+reaxis(A::AxisArray, I::Colon) = default_axes(Base.OneTo(length(A)))
+reaxis(A::AxisArray{<:Any,1}, I::AbstractArray{Bool}) = _new_axes(A.axes[1], findall(I))
+reaxis(A::AxisArray, I::AbstractArray{Bool}) = default_axes(findall(I))
 
-@inline maybefront(::Tuple{}) = ()
-@inline maybefront(t::Tuple) = Base.front(t)
+# Ensure the number of axes matches the number of indexing dimensions
+@inline function make_axes_match(axs, idxs)
+    nidxs = Base.index_ndims(idxs...)
+    ntuple(i->(Base.@_inline_meta; _default_axis(i > length(axs) ? Base.OneTo(1) : axs[i], i)), length(nidxs))
+end
 
 # Now we can reaxis without worrying about mismatched axes/indices
 @inline _reaxis(axs::Tuple{}, idxs::Tuple{}) = ()
@@ -88,7 +82,7 @@ const ScalarIndex = Union{Real, AbstractArray{<:Any, 0}}
 @generated function _new_axes(ax::Axis{name}, idx::AbstractArray{<:Any,N}) where {name,N}
     newaxes = Expr(:tuple)
     for i=1:N
-        push!(newaxes.args, :($(Axis{Symbol(name, "_", i)})(indices(idx, $i))))
+        push!(newaxes.args, :($(Axis{Symbol(name, "_", i)})(Base.axes(idx, $i))))
     end
     newaxes
 end
@@ -107,7 +101,7 @@ end
 end
 
 # To resolve ambiguities, we need several definitions
-using Base.AbstractCartesianIndex
+using Base: AbstractCartesianIndex
 @propagate_inbounds Base.view(A::AxisArray, idxs::Idx...) = AxisArray(view(A.data, idxs...), reaxis(A, idxs...))
 
 # Setindex is so much simpler. Just assign it to the data:
@@ -147,10 +141,9 @@ end
     return :($meta; to_index(A, $(idxs...)))
 end
 
-function Base.reshape(A::AxisArray, ::Type{Val{N}}) where N
-    # axN, _ = Base.IteratorsMD.split(axes(A), Val{N})
-    # AxisArray(reshape(A.data, Val{N}), reaxis(A, Base.fill_to_length(axN, :, Val{N})...))
-    AxisArray(reshape(A.data, Val{N}), reaxis(A, ntuple(d->Colon(), Val{N})...))
+function Base.reshape(A::AxisArray, ::Val{N}) where N
+    axN, _ = Base.IteratorsMD.split(axes(A), Val(N))
+    AxisArray(reshape(A.data, Val(N)), Base.front(axN))
 end
 
 ### Indexing along values of the axes ###
@@ -188,6 +181,15 @@ axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Real) =
     throw(ArgumentError("invalid index: $idx. Use `atvalue` when indexing by value."))
 function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx)
     idxs = searchsorted(ax, ClosedInterval(idx,idx))
+    length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
+    if length(idxs) == 1
+        idxs[1]
+    else
+        throw(BoundsError(ax, idx))
+    end
+end
+function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Axis)
+    idxs = searchsorted(ax, idx.val)
     length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
     if length(idxs) == 1
         idxs[1]
@@ -273,7 +275,7 @@ end
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::IntervalAtIndex) = searchsorted(ax, idx.window + ax[idx.index])
 function axisindexes(::Type{Dimensional}, ax::AbstractRange, idx::IntervalAtIndex)
     idxs, vals = relativewindow(ax, idx.window)
-    AxisArray(idxs + idx.index, Axis{:sub}(vals))
+    AxisArray(idxs .+ idx.index, Axis{:sub}(vals))
 end
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::RepeatedIntervalAtIndexes) = error("repeated intervals might select a varying number of elements for non-range axes; use a repeated Range of indices instead")
 function axisindexes(::Type{Dimensional}, ax::AbstractRange,
@@ -296,7 +298,7 @@ function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::Value)
 end
 # Categorical axes may be indexed by a vector of their elements
 function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::AbstractVector)
-    res = findin(ax, idx)
+    res = findall(in(idx), ax)
     length(res) == length(idx) || throw(ArgumentError("index $(setdiff(idx,ax)) not found"))
     res
 end
@@ -324,10 +326,10 @@ end
             push!(ex.args, :(I[$i]))
             n += 1
         elseif I[i] <: AbstractArray{Bool}
-            push!(ex.args, :(find(I[$i])))
+            push!(ex.args, :(findall(I[$i])))
             n += 1
         elseif I[i] <: Values
-            push!(ex.args, :(axisindexes.(A.axes[$i], I[$i])))
+            push!(ex.args, :(axisindexes.(Ref(A.axes[$i]), I[$i])))
             n += 1
         elseif I[i] <: CartesianIndex
             for j = 1:length(I[i])

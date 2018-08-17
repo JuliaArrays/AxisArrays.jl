@@ -26,8 +26,7 @@ searching into ranges beyond their bounds. The `@inbounds` macro is not
 sufficient since it can be turned off by `--check-bounds=yes`.
 """
 module Extrapolated
-using ..ClosedInterval
-using Compat: AbstractRange
+using IntervalSets: ClosedInterval
 
 function searchsortednearest(vec::AbstractRange, x)
     idx = searchsortedfirst(vec, x) # Returns the first idx | vec[idx] >= x
@@ -54,7 +53,7 @@ end
 @inline function getindex(r::AbstractRange, s::AbstractRange{<:Integer})
     f = first(r)
     st = oftype(f, f + (first(s)-1)*step(r))
-    range(st, step(r)*step(s), length(s))
+    range(st, step=step(r)*step(s), length=length(s))
 end
 getindex(r::AbstractRange, I::Array) = [getindex(r, i) for i in I]
 @inline getindex(r::StepRangeLen, i::Integer) = Base.unsafe_getindex(r, i)

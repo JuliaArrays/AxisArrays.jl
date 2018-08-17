@@ -10,6 +10,31 @@ In contrast to similar approaches in [Images.jl](https://github.com/timholy/Imag
 
 Collaboration is welcome! This is still a work-in-progress. See [the roadmap](https://github.com/JuliaArrays/AxisArrays.jl/issues/7) for the project's current direction.
 
+### Notice regarding `axes`
+
+Since Julia version 0.7, the name `axes` is exported by default from `Base`
+with a meaning (and behavior) that is distinct from how AxisArrays has been
+using it. Since you cannot simultaneously be `using` the same name from the two
+different modules, Julia will issue a warning, and it'll error if you try to
+use `axes` without qualification:
+
+```julia
+julia> axes([])
+WARNING: both AxisArrays and Base export "axes"; uses of it in module Main must be qualified
+ERROR: UndefVarError: axes not defined
+```
+
+Packages that are upgrading to support 0.7+ and use AxisArrays should follow
+this upgrade path:
+
+* Replace all uses of the `axes` function with the fully-qualified `AxisArrays.axes`
+* Replace all uses of the deprecated `indices` function with the un-qualified `axes`
+* Immediately after `using AxisArrays`, add `const axes = Base.axes`
+
+In the future, AxisArrays will be looking for a new name for its functionality.
+This will allow you to use the idiomatic `Base` name and offers an easy upgrade
+path to whatever the new name will be.
+
 ## Example of currently-implemented behavior:
 
 ```julia
@@ -97,7 +122,7 @@ And data, a 7-element Array{Float64,1}:
  -0.226449
   0.821446
 
-julia> axes(ans, 1)
+julia> AxisArrays.axes(ans, 1)
 AxisArrays.Axis{:time,StepRangeLen{Quantity{Float64, Dimensions:{𝐓}, Units:{s}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}}}}(5.0e-5 s:2.5e-5 s:0.0002 s)
 ```
 
@@ -154,7 +179,7 @@ very powerful behaviors. For example, let's threshold our data and find windows
 about those threshold crossings.
 
 ```julia
-julia> idxs = find(diff(A[:,:c1] .< -15) .> 0);
+julia> idxs = findall(diff(A[:,:c1] .< -15) .> 0);
 
 julia> spks = A[atindex(-200µs .. 800µs, idxs), :c1]
 2-dimensional AxisArray{Float64,2,...} with axes:

@@ -22,7 +22,7 @@ D[1,1,1,1,1] = 10
 
 # Test fallback methods
 @test A[[1 2; 3 4]] == @view(A[[1 2; 3 4]]) == A.data[[1 2; 3 4]]
-@test A[] == A.data[]
+VERSION >= v"1.0.0-rc" && @test_throws BoundsError A[]
 
 # Test axis restrictions
 @test A[:,:,:].axes == A.axes
@@ -38,12 +38,7 @@ D[1,1,1,1,1] = 10
 
 # Linear indexing across multiple dimensions drops tracking of those dims
 @test A[:].axes[1].val == 1:length(A)
-# TODO: remove the next 4 lines when we no longer feel we need to test for this
-info("partial linear indexing deprecation warning is expected")
-B = A[1:2,:]
-@test B.axes[1].val == A.axes[1].val[1:2]
-@test B.axes[2].val == 1:Base.trailingsize(A,2)
-B2 = reshape(A, Val{2})
+B2 = reshape(A, Val(2))
 B = B2[1:2,:]
 @test B.axes[1].val == A.axes[1].val[1:2]
 @test B.axes[2].val == 1:Base.trailingsize(A,2)
@@ -51,15 +46,14 @@ B = B2[1:2,:]
 # Logical indexing
 all_inds = collect(1:length(A))
 odd_inds = collect(1:2:length(A))
-@test @inferred(A[trues(A)]) == A[:] == A[all_inds]
-@test axes(A[trues(A)]) == axes(A[all_inds])
+@test @inferred(A[trues(size(A))]) == A[:] == A[all_inds]
+@test AxisArrays.axes(A[trues(size(A))]) == AxisArrays.axes(A[all_inds])
 @test @inferred(A[isodd.(A)]) == A[1:2:length(A)] == A[odd_inds]
-@test axes(A[isodd.(A)]) == axes(A[odd_inds])
-@test @inferred(A[vec(trues(A))]) == A[:] == A[all_inds]
-@test axes(A[vec(trues(A))]) == axes(A[all_inds])
+@test AxisArrays.axes(A[isodd.(A)]) == AxisArrays.axes(A[odd_inds])
+@test @inferred(A[vec(trues(size(A)))]) == A[:] == A[all_inds]
+@test AxisArrays.axes(A[vec(trues(size(A)))]) == AxisArrays.axes(A[all_inds])
 @test @inferred(A[vec(isodd.(A))]) == A[1:2:length(A)] == A[odd_inds]
-@test axes(A[vec(isodd.(A))]) == axes(A[odd_inds])
-
+@test AxisArrays.axes(A[vec(isodd.(A))]) == AxisArrays.axes(A[odd_inds])
 
 B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 
@@ -79,6 +73,7 @@ B = AxisArray(reshape(1:15, 5,3), .1:.1:0.5, [:a, :b, :c])
 @test B[:, :a] == @view(B[:, :a]) == B[:,1]
 @test B[:, :c] == @view(B[:, :c]) == B[:,3]
 @test B[:, [:a]] == @view(B[:, [:a]]) == B[:,[1]]
+@test B[:, [:c]] == @view(B[:, [:c]]) == B[:,[3]]
 @test B[:, [:a,:c]] == @view(B[:, [:a,:c]]) == B[:,[1,3]]
 
 @test B[Axis{:row}(ClosedInterval(0.15, 0.3))] == @view(B[Axis{:row}(ClosedInterval(0.15, 0.3))]) == B[2:3,:]
@@ -97,7 +92,7 @@ B = AxisArray(reshape(1:15, 5,3), 1.1:0.1:1.5, [:a, :b, :c])
 @test @view(B[ClosedInterval(1.2,  1.6), :]) == @view(B[ClosedInterval(1.2,  1.6)]) == B[2:end,:]
 
 A = AxisArray(reshape(1:256, 4,4,4,4), Axis{:d1}(.1:.1:.4), Axis{:d2}(1//10:1//10:4//10), Axis{:d3}(["1","2","3","4"]), Axis{:d4}([:a, :b, :c, :d]))
-ax1 = axes(A)[1]
+ax1 = AxisArrays.axes(A)[1]
 @test A[Axis{:d1}(2)] == A[ax1(2)]
 @test A.data[1:2,:,:,:] == A[Axis{:d1}(ClosedInterval(.1,.2))]       == A[ClosedInterval(.1,.2),:,:,:]       == A[ClosedInterval(.1,.2),:,:,:,1]       == A[ClosedInterval(.1,.2)]
 @test A.data[:,1:2,:,:] == A[Axis{:d2}(ClosedInterval(1//10,2//10))] == A[:,ClosedInterval(1//10,2//10),:,:] == A[:,ClosedInterval(1//10,2//10),:,:,1] == A[:,ClosedInterval(1//10,2//10)]
@@ -123,6 +118,7 @@ module IL  # put in a module so this file can be re-run
 struct IntLike <: Number
     val::Int
 end
+IntLike(x::IntLike) = x
 Base.one(x::IntLike) = IntLike(0)
 Base.zero(x::IntLike) = IntLike(0)
 Base.isless(x::IntLike, y::IntLike) = isless(x.val, y.val)
@@ -142,9 +138,10 @@ end
 
 for (r, Irel) in ((0.1:0.1:10.0, -0.5..0.5),  # FloatRange
                   (22.1:0.1:32.0, -0.5..0.5),
-                  (linspace(0.1, 10.0, 100), -0.51..0.51),  # LinSpace
+                  (range(0.1, stop=10.0, length=100), -0.51..0.51),  # LinSpace
                   (IL.IntLike(1):IL.IntLike(1):IL.IntLike(100),
                    IL.IntLike(-5)..IL.IntLike(5))) # StepRange
+    local A, B
     Iabs = r[20]..r[30]
     A = AxisArray([1:100 -1:-1:-100], r, [:c1, :c2])
     @test A[Iabs, :] == A[atindex(Irel, 25), :] == [20:30 -20:-1:-30]
@@ -185,6 +182,7 @@ some_dates = DateTime(2016, 1, 2, 0):Hour(1):DateTime(2016, 1, 2, 2)
 A1 = AxisArray(reshape(1:6, 2, 3), Axis{:x}(1:2), Axis{:y}(some_dates))
 A2 = AxisArray(reshape(1:6, 2, 3), Axis{:x}(1:2), Axis{:y}(collect(some_dates)))
 for A in (A1, A2)
+    local A
     @test A[:, DateTime(2016, 1, 2, 1)] == [3; 4]
     @test A[:, DateTime(2016, 1, 2, 1) .. DateTime(2016, 1, 2, 2)] == [3 5; 4 6]
     @test_throws BoundsError A[:, DateTime(2016, 1, 2, 3)]
@@ -203,9 +201,9 @@ A = AxisArray(rand(2,2), :x, :y)
 @test_throws ArgumentError A[Axis{:y}(1), Axis{:y}(1)]
 
 # Reductions (issues #66, #62)
-@test maximum(A3, 1) == reshape([4 16; 8 20; 12 24], 1, 3, 2)
-@test maximum(A3, 2) == reshape([9 21; 10 22; 11 23; 12 24], 4, 1, 2)
-@test maximum(A3, 3) == reshape(A3[:,:,2], 4, 3, 1)
+@test maximum(A3; dims=1) == reshape([4 16; 8 20; 12 24], 1, 3, 2)
+@test maximum(A3; dims=2) == reshape([9 21; 10 22; 11 23; 12 24], 4, 1, 2)
+@test maximum(A3; dims=3) == reshape(A3[:,:,2], 4, 3, 1)
 acc = zeros(Int, 4, 1, 2)
 Base.mapreducedim!(x->x>5, +, acc, A3)
 @test acc == reshape([1 3; 2 3; 2 3; 2 3], 4, 1, 2)
@@ -281,9 +279,9 @@ A = AxisArray(1:10, Axis{:x}(map(Foo, 1:10)))
 @test_throws ArgumentError A[Foo(0)]
 
 # Test using dates
-using Base.Dates: Day, Month
-A = AxisArray(1:365, Date(2017,1,1):Date(2017,12,31))
-@test A[Date(2017,2,1) .. Date(2017,2,28)] == collect(31 + (1:28)) # February
-@test A[(-Day(13)..Day(14)) + Date(2017,2,14)] == collect(31 + (1:28))
-@test A[(-Day(14)..Day(14)) + DateTime(2017,2,14,12)] == collect(31 + (1:28))
+using Dates: Day, Month
+A = AxisArray(1:365, Date(2017,1,1):Day(1):Date(2017,12,31))
+@test A[Date(2017,2,1) .. Date(2017,2,28)] == collect(31 .+ (1:28)) # February
+@test A[(-Day(13)..Day(14)) + Date(2017,2,14)] == collect(31 .+ (1:28))
+@test A[(-Day(14)..Day(14)) + DateTime(2017,2,14,12)] == collect(31 .+ (1:28))
 @test A[(Day(0)..Day(6)) + (Date(2017,1,1):Month(1):Date(2017,4,12))] == [1:7 32:38 60:66 91:97]
