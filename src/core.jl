@@ -490,7 +490,7 @@ _summary(io, A::AxisArray{T,N}) where {T,N} = println(io, "$N-dimensional AxisAr
 function Base.summary(A::AxisArray)
     io = IOBuffer()
     summaryio(io, A)
-    String(io)
+    String(take!(io))
 end
 
 # Custom methods specific to AxisArrays

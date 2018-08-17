@@ -336,3 +336,6 @@ for op in functions  # together, cover both reduced_indices and reduced_indices0
     # @test @inferred(op(C, dims=Axis{:x}())) == C2
     # @test @inferred(op(C, dims=(Axis{:y}(),Axis{:x}()))) == C12
 end
+
+C = AxisArray(collect(reshape(1:15,3,5)), Axis{:y}([:a,:b,:c]), Axis{:x}(["a","b","c","d","e"]))
+@test occursin(r"axes:\n\s+:y,", summary(C))
