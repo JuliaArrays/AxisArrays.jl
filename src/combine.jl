@@ -13,7 +13,7 @@ sizes(As::AxisArray...) = tuple(zip(map(a -> map(length, Base.axes(a)), As)...).
 matchingdims(As::Tuple{Vararg{AxisArray}}) = all(equalvalued, sizes(As...))
 matchingdimsexcept(As::Tuple{Vararg{AxisArray}}, n::Int) = all(equalvalued, sizes(As...)[[1:n-1; n+1:end]])
 
-Base.cat(As::AxisArray{T}...; dims) where {T} = _cat(dims, As...)
+Base.cat(A1::AxisArray{T}, As::AxisArray{T}...; dims) where {T} = _cat(dims, A1, As...)
 _cat(::Val{n}, As...) where {n} = _cat(n, As...)
 
 @inline function _cat(n::Integer, As...)
