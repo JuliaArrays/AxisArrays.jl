@@ -24,7 +24,7 @@ jobs:
       os: linux
       script:
         - julia -e 'import Pkg; Pkg.clone(pwd()); Pkg.build("AxisArrays")'
-        - julia -e 'import Pkg; Pkg.add("Documenter"); Pkg.add("Unitful")'
+        - julia -e 'import Pkg; ps=Pkg.PackageSpec(name="Documenter", version="0.19"); Pkg.add(ps); Pkg.pin(ps); Pkg.add("Unitful")'
         - julia -e 'import AxisArrays; ENV["DOCUMENTER_DEBUG"] = "true"; include(joinpath("docs","make.jl"))'
 
 after_success:
