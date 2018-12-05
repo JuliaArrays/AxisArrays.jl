@@ -167,6 +167,18 @@ A = @inferred(AxisArray(reshape(1:24, 2,3,4),
 @test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == 1
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == 2
 @test axisdim(A, Axis{:z}) == axisdim(A, Axis{:z}()) == 3
+# Test that getproperty is fully inferred when a const name is supplied
+let getx(A) = A.x,
+    getz(A) = A.z,
+    getdata(A) = A.data
+    @test @inferred(getx(A)) == A.axes[1].val
+    @test @inferred(getz(A)) == A.axes[3].val
+    @test @inferred(AxisArrays.axes(A)) === A.axes
+    @test @inferred(getdata(A)) === A.data
+end
+@test propertynames(A) == (:x, :y, :z)
+@test propertynames(A, true) == (:x, :y, :z, :data, :axes)
+
 # Test axes
 @test @inferred(AxisArrays.axes(A)) == (Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//10), Axis{:z}(["a", "b", "c", "d"]))
 @test @inferred(AxisArrays.axes(A, Axis{:x})) == @inferred(AxisArrays.axes(A, Axis{:x}())) == Axis{:x}(.1:.1:.2)

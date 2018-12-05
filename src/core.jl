@@ -285,6 +285,20 @@ function axisdim(::Type{AxisArray{T,N,D,Ax}}, ::Type{<:Axis{name,S} where S}) wh
     idx
 end
 
+# Access to the values of axes by name
+function Base.getproperty(A::AxisArray, name::Symbol)
+    if name === :data || name === :axes
+        getfield(A, name)
+    else
+        # Other things are axis names
+        getfield(A, :axes)[axisdim(A, Axis{name})].val
+    end
+end
+function Base.propertynames(A::AxisArray, private=false)
+    ns = axisnames(A)
+    private ? (ns..., :data, :axes) : ns
+end
+
 # Base definitions that aren't provided by AbstractArray
 @inline Base.size(A::AxisArray) = size(A.data)
 @inline Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
