@@ -476,7 +476,7 @@ dropax(ax) = ()
 # A simple display method to include axis information. It might be nice to
 # eventually display the axis labels alongside the data array, but that is
 # much more difficult.
-function summaryio(io::IO, A::AxisArray)
+function Base.summary(io::IO, A::AxisArray)
     _summary(io, A)
     for (name, val) in zip(axisnames(A), axisvalues(A))
         print(io, "    :$name, ")
@@ -486,12 +486,6 @@ function summaryio(io::IO, A::AxisArray)
     print(io, "And data, a ", summary(A.data))
 end
 _summary(io, A::AxisArray{T,N}) where {T,N} = println(io, "$N-dimensional AxisArray{$T,$N,...} with axes:")
-
-function Base.summary(A::AxisArray)
-    io = IOBuffer()
-    summaryio(io, A)
-    String(take!(io))
-end
 
 # Custom methods specific to AxisArrays
 """
