@@ -20,7 +20,7 @@ script:
 jobs:
   include:
     - stage: deploy
-      julia: 0.7
+      julia: 1.0
       os: linux
       script:
         - julia -e 'import Pkg; Pkg.clone(pwd()); Pkg.build("AxisArrays")'

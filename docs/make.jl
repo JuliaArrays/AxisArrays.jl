@@ -2,6 +2,7 @@ using Documenter, AxisArrays
 
 makedocs(
     modules = [AxisArrays],
+    sitename = "AxisArrays",
 )
 
 deploydocs(
