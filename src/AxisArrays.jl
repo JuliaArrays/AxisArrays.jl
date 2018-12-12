@@ -11,7 +11,7 @@ using Dates
 
 function axes end
 
-export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse
+export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse, @v
 
 # From IntervalSets:
 export ClosedInterval, ..

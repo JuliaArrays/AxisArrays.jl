@@ -285,3 +285,19 @@ A = AxisArray(1:365, Date(2017,1,1):Day(1):Date(2017,12,31))
 @test A[(-Day(13)..Day(14)) + Date(2017,2,14)] == collect(31 .+ (1:28))
 @test A[(-Day(14)..Day(14)) + DateTime(2017,2,14,12)] == collect(31 .+ (1:28))
 @test A[(Day(0)..Day(6)) + (Date(2017,1,1):Month(1):Date(2017,4,12))] == [1:7 32:38 60:66 91:97]
+
+# `@v` macro for indexing by value
+## getindex behavior
+A = AxisArray(collect(reshape(1:6, 2, 3)),
+        Axis{:a}([-1.1, 0]), Axis{:b}([:cat, :lemur, :olinguito]));
+@test (@v A[-1.1, :cat]) == A[1,1]
+@test (@v A[-1.1, $2]) == A[1,2]
+@test (@v A[$(atvalue(-1.1, atol=0.2)), :olinguito]) == A[1,3]
+@test (@v A[0, :]) == A[2,:]
+@test (@v A[-0.5..0, :cat]) == AxisArray([2], Axis{:a}([0.0]))
+
+## setindex! behavior
+@v A[-1.1, :cat] = 20
+@test @v A[-1.1, :cat] == 20
+@v A[:, :lemur] .= 12
+@test @v A[:, :lemur] == [12,12]

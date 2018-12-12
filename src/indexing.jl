@@ -365,3 +365,55 @@ end
 # arrays within Base's to_index/to_indices methods, but that requires a bigger
 # refactor to merge our to_index method with Base's.
 @inline Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, A::AxisArray) = Base.checkindex(Bool, inds, A.data)
+
+"""
+    @v expr
+For a `getindex` or `setindex!` operation writen in bracket notation, wrap all indices
+except for `:` such that `i → atvalue(i)`. You can avoid wrapping in `atvalue`, or manually
+wrap so that you can specify `atol` and `rtol`, by splicing in an index as shown in the
+examples. This behavior is analogous to that of the broadcasting `@.` macro.
+
+# Examples
+
+```jldoctest
+julia> A = AxisArray(reshape(1:6, 2, 3), Axis{:a}([-1.1, 0]), Axis{:b}([:cat, :lemur, :olinguito]));
+2-dimensional AxisArray{Int64,2,...} with axes:
+    :a, -1:0
+    :b, Symbol[:cat, :lemur, :olinguito]
+And data, a 2×3 Base.ReshapedArray{Int64,2,UnitRange{Int64},Tuple{}}:
+ 1  3  5
+ 2  4  6
+
+julia> @v A[-1.1, :cat]
+1
+
+julia> @v A[-1.1,\$2]
+3
+
+julia> @v A[\$(atvalue(-1.1, atol=0.2)), :olinguito]
+5
+```
+"""
+macro v(x::Expr)
+    esc(v(x))
+end
+
+v(x) = x
+function v(x::Expr)
+    if x.head == :ref
+        for i in 2:length(x.args)
+            if x.args[i] isa Expr
+                if x.args[i].head == :$
+                    x.args[i] = x.args[i].args[1]
+                end
+            elseif x.args[i] != :(:)
+                x.args[i] = :(atvalue($(x.args[i])))
+            end
+        end
+    else
+        for i in 1:length(x.args)
+            v(x.args[i])
+        end
+    end
+    return x
+end
