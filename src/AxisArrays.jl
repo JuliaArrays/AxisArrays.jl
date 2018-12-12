@@ -9,7 +9,7 @@ using IterTools
 using Compat
 using Dates
 
-function axes end
+@deprecate axes _axes
 
 export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse
 

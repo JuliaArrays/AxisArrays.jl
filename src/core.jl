@@ -246,9 +246,9 @@ end
 
 AxisArray(A::AxisArray) = A
 AxisArray(A::AxisArray, ax::Vararg{Axis, N}) where N =
-    AxisArray(A.data, ax..., last(Base.IteratorsMD.split(axes(A), Val(N)))...)
+    AxisArray(A.data, ax..., last(Base.IteratorsMD.split(_axes(A), Val(N)))...)
 AxisArray(A::AxisArray, ax::NTuple{N, Axis}) where N =
-    AxisArray(A.data, ax..., last(Base.IteratorsMD.split(axes(A), Val(N)))...)
+    AxisArray(A.data, ax..., last(Base.IteratorsMD.split(_axes(A), Val(N)))...)
 
 # Traits
 struct HasAxes{B} end
@@ -335,7 +335,7 @@ Base.similar(A::AxisArray, ::Type{S}, ax1::Axis, axs::Axis...) where {S} = simil
     ax = Expr(:tuple)
     for d=1:N
         push!(inds.args, :(Base.axes(A, Axis{$d})))
-        push!(ax.args, :(axes(A, Axis{$d})))
+        push!(ax.args, :(_axes(A, Axis{$d})))
     end
     to_delete = Int[]
     for i=1:length(axs.parameters)
@@ -361,8 +361,8 @@ Base.similar(A::AxisArray, ::Type{S}, axs::Tuple{AxisUnitRangeLike,Vararg{AxisUn
 # Note that we only extend the following two methods, and then have it
 # dispatch to package-local `reduced_indices` and `reduced_indices0`
 # methods. This avoids a whole slew of ambiguities.
-Base.reduced_indices(A::AxisArray, region)  = map(ax->AxisArray(Base.axes(ax.val, 1), ax), reduced_indices(axes(A), region))
-Base.reduced_indices0(A::AxisArray, region) = map(ax->AxisArray(Base.axes(ax.val, 1), ax), reduced_indices0(axes(A), region))
+Base.reduced_indices(A::AxisArray, region)  = map(ax->AxisArray(Base.axes(ax.val, 1), ax), reduced_indices(_axes(A), region))
+Base.reduced_indices0(A::AxisArray, region) = map(ax->AxisArray(Base.axes(ax.val, 1), ax), reduced_indices0(_axes(A), region))
 
 reduced_indices(axs::Tuple{Vararg{Axis}}, ::Tuple{})  = axs
 reduced_indices0(axs::Tuple{Vararg{Axis}}, ::Tuple{}) = axs
@@ -420,7 +420,7 @@ reduced_axis0(ax) = ax(length(ax.val) == 0 ? Base.OneTo(0) : Base.OneTo(1))
 
 function Base.permutedims(A::AxisArray, perm)
     p = permutation(perm, axisnames(A))
-    AxisArray(permutedims(A.data, p), axes(A)[[p...]])
+    AxisArray(permutedims(A.data, p), _axes(A)[[p...]])
 end
 
 Base.transpose(A::AxisArray{T,2}) where {T}  = AxisArray(transpose(A.data), A.axes[2], A.axes[1])
@@ -485,12 +485,12 @@ end
 
 function _dropdims(A::AxisArray, dims)
     keepdims = setdiff(1:ndims(A), dims)
-    AxisArray(dropdims(A.data; dims=dims), axes(A)[keepdims])
+    AxisArray(dropdims(A.data; dims=dims), _axes(A)[keepdims])
 end
 # This version attempts to be type-stable
 function _dropdims(A::AxisArray, ::Type{Ax}) where {Ax<:Axis}
     dim = axisdim(A, Ax)
-    AxisArray(dropdims(A.data; dims=dim), dropax(Ax, axes(A)...))
+    AxisArray(dropdims(A.data; dims=dim), dropax(Ax, _axes(A)...))
 end
 
 @inline dropax(ax, ax1, axs...) = (ax1, dropax(ax, axs...)...)
@@ -525,27 +525,30 @@ axisvalues() = ()
 axisvalues(ax::Axis, axs::Axis...) = tuple(ax.val, axisvalues(axs...)...)
 
 """
-    axes(A::AxisArray) -> (Axis...)
-    axes(A::AxisArray, ax::Axis) -> Axis
-    axes(A::AxisArray, dim::Int) -> Axis
+    _axes(A::AxisArray) -> (Axis...)
+    _axes(A::AxisArray, ax::Axis) -> Axis
+    _axes(A::AxisArray, dim::Int) -> Axis
 
 Returns the tuple of axis vectors for an AxisArray. If an specific `Axis` is
 specified, then only that axis vector is returned.  Note that when extracting a
-single axis vector, `axes(A, Axis{1})`) is type-stable and will perform better
-than `axes(A)[1]`.
+single axis vector, `_axes(A, Axis{1})`) is type-stable and will perform better
+than `_axes(A)[1]`.
 
-For an AbstractArray without `Axis` information, `axes` returns the
-default axes, i.e., those that would be produced by `AxisArray(A)`.
+For an AbstractArray without `Axis` information, `_axes` returns the
+default _axes, i.e., those that would be produced by `AxisArray(A)`.
+
+Note that this is deprecated because AxisArrays is transitioning to a function
+of the same name, now exported by `Base`.
 """
-axes(A::AxisArray) = A.axes
-axes(A::AxisArray, dim::Int) = A.axes[dim]
-axes(A::AxisArray, ax::Axis) = axes(A, typeof(ax))
-@generated function axes(A::AxisArray, ax::Type{T}) where T<:Axis
+_axes(A::AxisArray) = A.axes
+_axes(A::AxisArray, dim::Int) = A.axes[dim]
+_axes(A::AxisArray, ax::Axis) = _axes(A, typeof(ax))
+@generated function _axes(A::AxisArray, ax::Type{T}) where T<:Axis
     dim = axisdim(A, T)
     :(A.axes[$dim])
 end
-axes(A::AbstractArray) = default_axes(A)
-axes(A::AbstractArray, dim::Int) = default_axes(A)[dim]
+_axes(A::AbstractArray) = default_axes(A)
+_axes(A::AbstractArray, dim::Int) = default_axes(A)[dim]
 
 """
     axisparams(::AxisArray) -> Vararg{::Type{Axis}}

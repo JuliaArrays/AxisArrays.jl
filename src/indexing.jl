@@ -48,7 +48,7 @@ Base.eachindex(A::AxisArray) = eachindex(A.data)
 This internal function determines the new set of axes that are constructed upon
 indexing with I.
 """
-reaxis(A::AxisArray, I::Idx...) = _reaxis(make_axes_match(axes(A), I), I)
+reaxis(A::AxisArray, I::Idx...) = _reaxis(make_axes_match(_axes(A), I), I)
 # Linear indexing
 reaxis(A::AxisArray{<:Any,1}, I::AbstractArray{Int}) = _new_axes(A.axes[1], I)
 reaxis(A::AxisArray, I::AbstractArray{Int}) = default_axes(I)
@@ -142,7 +142,7 @@ end
 end
 
 function Base.reshape(A::AxisArray, ::Val{N}) where N
-    axN, _ = Base.IteratorsMD.split(axes(A), Val(N))
+    axN, _ = Base.IteratorsMD.split(_axes(A), Val(N))
     AxisArray(reshape(A.data, Val(N)), Base.front(axN))
 end
 
@@ -355,7 +355,7 @@ end
 end
 
 ## Extracting the full axis (name + values) from the Axis{:name} type
-@inline Base.getindex(A::AxisArray, ::Type{Ax}) where {Ax<:Axis} = getaxis(Ax, axes(A)...)
+@inline Base.getindex(A::AxisArray, ::Type{Ax}) where {Ax<:Axis} = getaxis(Ax, _axes(A)...)
 @inline getaxis(::Type{Ax}, ax::Ax, axs...) where {Ax<:Axis} = ax
 @inline getaxis(::Type{Ax}, ax::Axis, axs...) where {Ax<:Axis} = getaxis(Ax, axs...)
 @noinline getaxis(::Type{Ax}) where {Ax<:Axis} = throw(ArgumentError("no axis of type $Ax was found"))
