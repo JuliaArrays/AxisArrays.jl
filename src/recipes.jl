@@ -1,12 +1,12 @@
 using RecipesBase
 
 @recipe function plot(a::AxisArray) where {name}
-    ax1 = AxisArrays.axes(a,1)
+    ax1 = _axes(a,1)
     xlabel --> axisname(ax1)
     if ndims(a) == 1
         ax1.val, a.data
     else
-        ax2 = AxisArrays.axes(a,2)
+        ax2 = _axes(a,2)
         # Categorical axes print as a set of labelled series
         if axistrait(ax2) === Categorical
             for i in eachindex(ax2.val)
