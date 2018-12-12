@@ -2,4 +2,5 @@ julia 0.7
 IntervalSets 0.1
 IterTools
 RangeArrays
+RecipesBase
 Compat 0.61.0

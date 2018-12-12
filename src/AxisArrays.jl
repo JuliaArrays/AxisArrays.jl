@@ -23,5 +23,6 @@ include("indexing.jl")
 include("sortedvector.jl")
 include("categoricalvector.jl")
 include("combine.jl")
+include("recipes.jl")
 
 end

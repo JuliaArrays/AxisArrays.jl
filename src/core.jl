@@ -303,7 +303,7 @@ function Base.getproperty(A::AxisArray, name::Symbol)
         getfield(A, name)
     else
         # Other things are axis names
-        getfield(A, :axes)[axisdim(A, Axis{name})].val
+        getfield(A, :axes)[axisdim(A, Axis{name})]
     end
 end
 function Base.propertynames(A::AxisArray, private=false)
