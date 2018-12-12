@@ -86,6 +86,18 @@ Base.iterate(::Axis, ::Any) = nothing
 Base.iterate(::Type{T}) where {T<:Axis} = (T, nothing)
 Base.iterate(::Type{T}, ::Any) where {T<:Axis} = nothing
 
+struct AxisUnitRange{T,R<:AbstractUnitRange{T},A<:Axis} <: AbstractUnitRange{T}
+    range::R
+    axis::A
+end
+Base.getindex(r::AxisUnitRange, i::Integer) = getindex(r.range, i)
+Base.length(r::AxisUnitRange) = length(r.range)
+Base.first(r::AxisUnitRange) = first(r.range)
+Base.last(r::AxisUnitRange) = last(r.range)
+Base.iterate(r::AxisUnitRange,s...) = iterate(r.range, s...)
+
+Base.show(io::IO, r::AxisUnitRange) = print(io, "AxisUnitRange(", r.range, ", ", r.axis, ")")
+
 """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
 adds axis names and values to each array dimension. AxisArrays can be indexed
@@ -303,7 +315,7 @@ end
 @inline Base.size(A::AxisArray) = size(A.data)
 @inline Base.size(A::AxisArray, Ax::Axis) = size(A.data, axisdim(A, Ax))
 @inline Base.size(A::AxisArray, ::Type{Ax}) where {Ax<:Axis} = size(A.data, axisdim(A, Ax))
-@inline Base.axes(A::AxisArray) = Base.axes(A.data)
+@inline Base.axes(A::AxisArray) = map((range,ax)->AxisUnitRange(range,ax), Base.axes(A.data), A.axes)
 @inline Base.axes(A::AxisArray, Ax::Axis) = Base.axes(A.data, axisdim(A, Ax))
 @inline Base.axes(A::AxisArray, ::Type{Ax}) where {Ax<:Axis} = Base.axes(A.data, axisdim(A, Ax))
 Base.convert(::Type{Array{T,N}}, A::AxisArray{T,N}) where {T,N} = convert(Array{T,N}, A.data)
@@ -341,10 +353,10 @@ Base.similar(A::AxisArray, ::Type{S}, ax1::Axis, axs::Axis...) where {S} = simil
         AxisArray(d, $ax)
     end
 end
-const AxisUnitRange{T,N,D<:AbstractUnitRange,Ax} = AxisArray{T,N,D,Ax}
-Base.similar(A::AxisArray{T}, ax1::AxisUnitRange, axs::AxisUnitRange...) where {T} = similar(A, T, (ax1, axs...))
-Base.similar(A::AxisArray, ::Type{S}, ax1::AxisUnitRange, axs::AxisUnitRange...) where {S} = similar(A, S, (ax1, axs...))
-Base.similar(A::AxisArray, ::Type{S}, axs::Tuple{AxisUnitRange,Vararg{AxisUnitRange}}) where {S} = similar(A, S, map(x->x.axes[1], axs))
+const AxisUnitRangeLike = Union{AxisArray{<:Any,<:Any,<:AbstractUnitRange,<:Any}, AxisUnitRange}
+Base.similar(A::AxisArray{T}, ax1::AxisUnitRangeLike, axs::AxisUnitRangeLike...) where {T} = similar(A, T, (ax1, axs...))
+Base.similar(A::AxisArray, ::Type{S}, ax1::AxisUnitRangeLike, axs::AxisUnitRangeLike...) where {S} = similar(A, S, (ax1, axs...))
+Base.similar(A::AxisArray, ::Type{S}, axs::Tuple{AxisUnitRangeLike,Vararg{AxisUnitRangeLike}}) where {S} = similar(A, S, map(x->x.axes[1], axs))
 # These methods allow us to preserve the AxisArray under reductions
 # Note that we only extend the following two methods, and then have it
 # dispatch to package-local `reduced_indices` and `reduced_indices0`
@@ -490,7 +502,7 @@ dropax(ax) = ()
 # A simple display method to include axis information. It might be nice to
 # eventually display the axis labels alongside the data array, but that is
 # much more difficult.
-function Base.summary(io::IO, A::AxisArray)
+function Base.summary(io::IO, A::AxisArray, inds)
     _summary(io, A)
     for (name, val) in zip(axisnames(A), axisvalues(A))
         print(io, "    :$name, ")
