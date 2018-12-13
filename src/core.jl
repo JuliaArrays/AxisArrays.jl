@@ -59,32 +59,28 @@ A[Axis{2}(2:5)] # grabs the second through 5th columns
 ```
 
 """
-struct Axis{name,T}
-    val::T
+struct Axis{name,A,T,N} <: AbstractArray{T,N}
+    val::A
 end
 # Constructed exclusively through Axis{:symbol}(...) or Axis{1}(...)
-Axis{name}(I::T=()) where {name,T} = Axis{name,T}(I)
+Axis{name}(I::AbstractArray{T,N}) where {name,T,N} = Axis{name,typeof(I),T,N}(I)
+# Constructing with a scalar gives a 0-dimensional Axis
+Axis{name}(I::T=()) where {name,T} = Axis{name,T,T,0}(I)
+
+const ArrayAxis = Axis{<:Any,<:AbstractArray}
+
 Base.:(==)(A::Axis{name}, B::Axis{name}) where {name} = A.val == B.val
 Base.hash(A::Axis{name}, hx::UInt) where {name} = hash(A.val, hash(name, hx))
 axistype(::Axis{name,T}) where {name,T} = T
 axistype(::Type{Axis{name,T}}) where {name,T} = T
-# Pass indexing and related functions straight through to the wrapped value
-# TODO: should Axis be an AbstractArray? AbstractArray{T,0} for scalar T?
-Base.getindex(A::Axis, i...) = A.val[i...]
-Base.eltype(::Type{Axis{name,T}}) where {name,T} = eltype(T)
-Base.size(A::Axis) = size(A.val)
-VERSION < v"0.7.0" && (Base.endof(A::Axis) = length(A))
-Base.lastindex(A::Axis) = length(A)
-Base.axes(A::Axis) = Base.axes(A.val)
-Base.axes(A::Axis, d) = Base.axes(A.val, d)
-Base.length(A::Axis) = length(A.val)
+Base.getindex(ax::ArrayAxis, i) = ax.val[i]
+Base.size(ax::ArrayAxis) = size(ax.val)
+Base.getindex(ax::Axis) = ax.val
+Base.size(ax::Axis) = ()
 (A::Axis{name})(i) where {name} = Axis{name}(i)
 Base.convert(::Type{Axis{name,T}}, ax::Axis{name,T}) where {name,T} = ax
 Base.convert(::Type{Axis{name,T}}, ax::Axis{name}) where {name,T} = Axis{name}(convert(T, ax.val))
-Base.iterate(a::Axis) = (a, nothing)
-Base.iterate(::Axis, ::Any) = nothing
-Base.iterate(::Type{T}) where {T<:Axis} = (T, nothing)
-Base.iterate(::Type{T}, ::Any) where {T<:Axis} = nothing
+Base.show(io::IO, ax::Axis{name}) where {name} = print(io, "Axis{", name, "}(", ax.val, ")")
 
 struct AxisUnitRange{T,R<:AbstractUnitRange{T},A<:Axis} <: AbstractUnitRange{T}
     range::R
