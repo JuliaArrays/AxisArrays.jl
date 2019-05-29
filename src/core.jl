@@ -83,8 +83,8 @@ Base.convert(::Type{Axis{name,T}}, ax::Axis{name,T}) where {name,T} = ax
 Base.convert(::Type{Axis{name,T}}, ax::Axis{name}) where {name,T} = Axis{name}(convert(T, ax.val))
 Base.iterate(A::Axis, i...) = Base.iterate(A.val, i...)
 
-Base.IteratorSize(::Type{<:Axis}) = HasShape{1}()
-Base.IteratorEltype(::Type{<:Axis}) = HasEltype()
+Base.IteratorSize(::Type{<:Axis}) = Base.HasShape{1}()
+Base.IteratorEltype(::Type{<:Axis}) = Base.HasEltype()
 
 Base.iterate(::Type{T}) where {T<:Axis} = (T, nothing)
 Base.iterate(::Type{T}, ::Any) where {T<:Axis} = nothing
