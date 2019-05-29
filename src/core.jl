@@ -81,8 +81,11 @@ Base.length(A::Axis) = length(A.val)
 (A::Axis{name})(i) where {name} = Axis{name}(i)
 Base.convert(::Type{Axis{name,T}}, ax::Axis{name,T}) where {name,T} = ax
 Base.convert(::Type{Axis{name,T}}, ax::Axis{name}) where {name,T} = Axis{name}(convert(T, ax.val))
-Base.iterate(a::Axis) = (a, nothing)
-Base.iterate(::Axis, ::Any) = nothing
+Base.iterate(A::Axis, i...) = Base.iterate(A.val, i...)
+
+Base.IteratorSize(::Type{<:Axis}) = HasShape{1}()
+Base.IteratorEltype(::Type{<:Axis}) = HasEltype()
+
 Base.iterate(::Type{T}) where {T<:Axis} = (T, nothing)
 Base.iterate(::Type{T}, ::Any) where {T<:Axis} = nothing
 
