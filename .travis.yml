@@ -5,6 +5,8 @@ os:
 julia:
   - 0.7
   - 1.0
+  - 1.1
+  - 1.2
   - nightly
 notifications:
   email: false
@@ -12,11 +14,11 @@ matrix:
   allow_failures:
     - julia: nightly
 
-# uncomment the following lines to override the default test script
-script:
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --check-bounds=yes --color=yes -e 'import Pkg; Pkg.clone(pwd()); Pkg.build("AxisArrays"); Pkg.test("AxisArrays"; coverage=true)';
+# script:
+#   # Default Travis script uses the more or less the following with Project.toml
+#   - julia -e 'using Pkg; Pkg.build(); Pkg.test(coverage=true)'
 
+# TODO: modernize doc building to use Project.toml for Documenter.
 jobs:
   include:
     - stage: deploy
