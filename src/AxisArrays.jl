@@ -6,7 +6,6 @@ using Base: tail
 import Base.Iterators: repeated
 using RangeArrays, IntervalSets
 using IterTools
-using Compat
 using Dates
 
 function axes end

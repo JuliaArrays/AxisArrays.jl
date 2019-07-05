@@ -286,13 +286,13 @@ end
 
 # Categorical axes may be indexed by their elements
 function axisindexes(::Type{Categorical}, ax::AbstractVector, idx)
-    i = Compat.findfirst(isequal(idx), ax)
+    i = findfirst(isequal(idx), ax)
     i === nothing && throw(ArgumentError("index $idx not found"))
     i
 end
 function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::Value)
     val = idx.val
-    i = Compat.findfirst(isequal(val), ax)
+    i = findfirst(isequal(val), ax)
     i === nothing && throw(ArgumentError("index $val not found"))
     i
 end
