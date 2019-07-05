@@ -303,15 +303,28 @@ function axisindexes(::Type{Categorical}, ax::AbstractVector, idx::AbstractVecto
     res
 end
 
+# Creates *instances* of axis traits for a set of axes.
+# TODO: Transition axistrait() to return trait instances in line with common
+# practice in Base and other packages.
+#
+# This function is a utility tool to ensure that `axistrait` is only called
+# from outside the generated function below. (If not, we can get world age
+# errors.)
+_axistraits(ax1, rest...) = (axistrait(ax1)(), _axistraits(rest...)...)
+_axistraits() = ()
+
 # This catch-all method attempts to convert any axis-specific non-standard
 # indexing types to their integer or integer range equivalents using axisindexes
 # It is separate from the `Base.getindex` function to allow reuse between
 # set- and get- index.
-@generated function to_index(A::AxisArray{T,N,D,Ax}, I...) where {T,N,D,Ax}
+to_index(A::AxisArray, I...) = _to_index(A, _axistraits(I...), I...)
+
+@generated function _to_index(A::AxisArray{T,N,D,Ax}, axtraits, I...) where {T,N,D,Ax}
     ex = Expr(:tuple)
     n = 0
+    axtrait_types = axtraits.parameters
     for i=1:length(I)
-        if axistrait(I[i]) <: Categorical && i <= length(Ax.parameters)
+        if axtrait_types[i] <: Categorical && i <= length(Ax.parameters)
             if I[i] <: Axis
                 push!(ex.args, :(axisindexes(A.axes[$i], I[$i].val)))
             else
