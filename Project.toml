@@ -1,0 +1,24 @@
+name = "AxisArrays"
+uuid = "39de3d68-74b9-583c-8d2d-e117c070f3a9"
+version = "0.3.0"
+
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
+IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
+RangeArrays = "b3c3ace0-ae52-54e7-9d0b-2c1406fd6b9d"
+
+[compat]
+IntervalSets = "≥ 0.1.0"
+Unitful = "≥ 0.2.6"
+julia = "≥ 0.7.0"
+
+[extras]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[targets]
+test = ["OffsetArrays", "Unitful", "Dates", "Test", "Random"]
