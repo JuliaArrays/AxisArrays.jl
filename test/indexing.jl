@@ -285,3 +285,20 @@ A = AxisArray(1:365, Date(2017,1,1):Day(1):Date(2017,12,31))
 @test A[(-Day(13)..Day(14)) + Date(2017,2,14)] == collect(31 .+ (1:28))
 @test A[(-Day(14)..Day(14)) + DateTime(2017,2,14,12)] == collect(31 .+ (1:28))
 @test A[(Day(0)..Day(6)) + (Date(2017,1,1):Month(1):Date(2017,4,12))] == [1:7 32:38 60:66 91:97]
+
+# Test using index types that AxisArrays doesn't understand
+# This example is inspired from Interpolations.jl and would implement linear interpolation
+struct WeightedIndex{T}
+    idx::Int
+    weights::Tuple{T,T}
+end
+Base.to_indices(A, I::Tuple{Vararg{Union{Int,WeightedIndex}}}) = I
+@inline function Base._getindex(::IndexStyle, A::AbstractVector, I::WeightedIndex)
+    A[I.idx]*I.weights[1] + A[I.idx+1]*I.weights[2]
+end
+idx = WeightedIndex(2, (0.2, 0.8))
+
+a = [2, 3, 7]
+@test a[idx] ≈ 6.2
+aa = AxisArray(a, :x)
+@test aa[idx] ≈ 6.2

@@ -114,12 +114,21 @@ end
 @propagate_inbounds Base.setindex!(A::AxisArray, v, idx::AbstractArray{Bool}) = (A.data[idx] = v)
 
 ### Fancier indexing capabilities provided only by AxisArrays ###
-@propagate_inbounds Base.getindex(A::AxisArray, idxs...) = A[to_index(A,idxs...)...]
-@propagate_inbounds Base.setindex!(A::AxisArray, v, idxs...) = (A[to_index(A,idxs...)...] = v)
+# To avoid StackOverflowErrors on indexes that we don't know how to convert, we
+# give AxisArrays once chance to convert into known format and then defer to the parent
+@propagate_inbounds Base.getindex(A::AxisArray, idxs...) = getindex_converted(A, to_index(A,idxs...)...)
+@propagate_inbounds Base.setindex!(A::AxisArray, v, idxs...) = setindex!_converted(A, v, to_index(A,idxs...)...)
 # Deal with lots of ambiguities here
 @propagate_inbounds Base.view(A::AxisArray, idxs::ViewIndex...) = view(A, to_index(A,idxs...)...)
 @propagate_inbounds Base.view(A::AxisArray, idxs::Union{ViewIndex,AbstractCartesianIndex}...) = view(A, to_index(A,Base.IteratorsMD.flatten(idxs)...)...)
 @propagate_inbounds Base.view(A::AxisArray, idxs...) = view(A, to_index(A,idxs...)...)
+
+@propagate_inbounds getindex_converted(A, idxs::Idx...) = A[idxs...]
+@propagate_inbounds setindex!_converted(A, v, idxs::Idx...) = (A[idxs...] = v)
+
+@propagate_inbounds getindex_converted(A, idxs...) = A.data[idxs...]
+@propagate_inbounds setindex!_converted(A, v, idxs...) = (A.data[idxs...] = v)
+
 
 # First is indexing by named axis. We simply sort the axes and re-dispatch.
 # When indexing by named axis the shapes of omitted dimensions are preserved
@@ -179,7 +188,7 @@ axisindexes(t, ax, idx) = error("cannot index $(typeof(ax)) with $(typeof(idx));
 # Maybe extend error message to all <: Numbers if Base allows it?
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::Real) =
     throw(ArgumentError("invalid index: $idx. Use `atvalue` when indexing by value."))
-function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx)
+function axisindexes(::Type{Dimensional}, ax::AbstractVector{T}, idx::T) where T
     idxs = searchsorted(ax, ClosedInterval(idx,idx))
     length(idxs) > 1 && error("more than one datapoint lies on axis value $idx; use an interval to return all values")
     if length(idxs) == 1
@@ -218,6 +227,8 @@ function axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::ExactValue)
         throw(BoundsError(ax, idx))
     end
 end
+# For index types that AxisArrays doesn't know about
+axisindexes(::Type{Dimensional}, ax::AbstractVector, idx) = idx
 
 # Dimensional axes may be indexed by intervals to select a range
 axisindexes(::Type{Dimensional}, ax::AbstractVector, idx::ClosedInterval) = searchsorted(ax, idx)
