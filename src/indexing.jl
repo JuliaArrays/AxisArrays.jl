@@ -328,7 +328,7 @@ _axistraits() = ()
 # indexing types to their integer or integer range equivalents using axisindexes
 # It is separate from the `Base.getindex` function to allow reuse between
 # set- and get- index.
-to_index(A::AxisArray, I...) = _to_index(A, _axistraits(I...), I...)
+@inline to_index(A::AxisArray, I...) = _to_index(A, _axistraits(I...), I...)
 
 @generated function _to_index(A::AxisArray{T,N,D,Ax}, axtraits, I...) where {T,N,D,Ax}
     ex = Expr(:tuple)
