@@ -38,9 +38,10 @@ path to whatever the new name will be.
 ## Example of currently-implemented behavior:
 
 ```julia
-julia> Pkg.add("AxisArrays")
+julia> using Pkg; Pkg.add("AxisArrays")
 julia> using AxisArrays, Unitful
 julia> import Unitful: s, ms, µs
+julia> using Random: MersenneTwister
 
 julia> rng = MersenneTwister(123) # Seed a random number generator for repeatable examples
 julia> fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
@@ -237,8 +238,8 @@ headers.
 
 ```julia
 B = AxisArray(reshape(1:15, 5, 3), .1:.1:0.5, [:a, :b, :c])
-B[Axis{:row}(Interval(.2,.4))] # restrict the AxisArray along the time axis
-B[Interval(0.,.3), [:a, :c]]   # select an interval and two of the columns
+B[Axis{:row}(0.2..0.4)] # restrict the AxisArray along the time axis
+B[0.0..0.3, [:a, :c]]   # select an interval and two of the columns
 ```
 
 User-defined axis types can be added along with custom indexing
@@ -248,7 +249,8 @@ behaviors.
 ```julia
 B = AxisArray(randn(100,100,100), :x, :y, :z)
 Itotal = sumz = 0.0
-for iter in CartesianRange(indices(B))  # traverses in storage order for cache efficiency
+for iter in CartesianIndices(Base.axes(B))  # traverses in storage order for cache efficiency
+    global Itotal, sumz
     I = B[iter]  # intensity in a single voxel
     Itotal += I
     sumz += I * iter[axisdim(B, Axis{:z})]  # axisdim "looks up" the z dimension
