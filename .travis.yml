@@ -3,16 +3,16 @@ os:
   - linux
   - osx
 julia:
-  - 0.7
   - 1.0
   - 1.1
   - 1.2
+  - 1
   - nightly
 notifications:
   email: false
 matrix:
   allow_failures:
-    - julia: nightly
+    # - julia: nightly
 
 # script:
 #   # Default Travis script uses the more or less the following with Project.toml
