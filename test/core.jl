@@ -197,6 +197,9 @@ T = A[AxisArrays.Axis{:x}]
 @test length(Axis{:col}(-1:2)) === 4
 @test AxisArrays.axisname(Axis{:foo}(1:2)) == :foo
 @test AxisArrays.axisname(Axis{:foo})      == :foo
+@test first(Axis{:row}(1:3)) == 1
+@test step(Axis{:row}(1:3)) == 1
+@test last(Axis{:row}(1:3)) == 3
 
 # Test Timetype axis construction
 dt, vals = DateTime(2010, 1, 2, 3, 40), randn(5,2)
