@@ -89,6 +89,10 @@ Base.IteratorEltype(::Type{<:Axis}) = Base.HasEltype()
 Base.iterate(::Type{T}) where {T<:Axis} = (T, nothing)
 Base.iterate(::Type{T}, ::Any) where {T<:Axis} = nothing
 
+Base.first(A::Axis) = first(A.val)
+Base.last(A::Axis) = last(A.val)
+Base.step(A::Axis{name,<:AbstractRange}) where {name} = step(A.val)
+
 """
 An AxisArray is an AbstractArray that wraps another AbstractArray and
 adds axis names and values to each array dimension. AxisArrays can be indexed
