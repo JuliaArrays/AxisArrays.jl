@@ -15,8 +15,14 @@ for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05]   .* 50,
 end
 
 A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
+A = AxisArray(hcat(y, 2 .* y); time = (0s:1s/fs:60s), chan = ([:c1, :c2]))
+
 A[Axis{:time}(4)]
+A[time=4]
+
 A[Axis{:chan}(:c2), Axis{:time}(1:5)]
+A[chan = :c2, time = 1:5]
+
 ax = A[40µs .. 220µs, :c1]
 AxisArrays.axes(ax, 1)
 A[atindex(-90µs .. 90µs, 5), :c2]
