@@ -42,6 +42,10 @@ Base.IndexStyle(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = IndexStyle(D)
 # Cartesian iteration
 Base.eachindex(A::AxisArray) = eachindex(A.data)
 
+# Avoid an ambiguity -- IntervalSets@0.4 takes .. from EllipsisNotation,
+# which defines A[..] for any AbstractArray, like this:
+Base.getindex(A::AxisArray, ::typeof(..)) = A
+
 """
     reaxis(A::AxisArray, I...)
 
