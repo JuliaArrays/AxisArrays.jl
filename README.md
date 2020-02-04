@@ -1,4 +1,4 @@
-# AxisArrays
+# AxisArrays.jl
 
 [![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaArrays/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaArrays/AxisArrays.jl?branch=master)
 
@@ -138,9 +138,13 @@ julia> AxisArrays.axes(ans, 1)
 AxisArrays.Axis{:time,StepRangeLen{Quantity{Float64, Dimensions:{𝐓}, Units:{s}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}}}}(5.0e-5 s:2.5e-5 s:0.0002 s)
 ```
 
-You can also index by a single value on an axis using `atvalue`. This will drop
-a dimension. Indexing with an `Interval` type retains dimensions, even
-when the ends of the interval are equal:
+You can also index by a single value using `atvalue(t)`. 
+This function is not needed for categorical axes like `:chan` here, 
+as `:c1` is a `Symbol` which can't be confused with an integer index.
+
+Using `atvalue()` will drop a dimension (like using a single integer). 
+Indexing with an `Interval(lo, hi)` type retains dimensions, even
+when the ends of the interval are equal (like using a range `1:1`):
 
 ```julia
 julia> A[atvalue(2.5e-5s), :c1]
@@ -230,8 +234,6 @@ base for each waveform, but we also have recorded the event times as the axis
 across the columns.
 
 ## Indexing
-
-### Indexing axes
 
 Two main types of Axes supported by default include:
 
