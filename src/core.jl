@@ -239,6 +239,11 @@ function AxisArray(A::AbstractArray{T,N}, names::NTuple{N,Symbol}, steps::NTuple
     AxisArray(A, axs...)
 end
 
+# Alternative constructor, takes names as keywords:
+AxisArray(A; kw...) = AxisArray(A, nt_to_axes(kw.data)...)
+@generated nt_to_axes(nt::NamedTuple) =
+    Expr(:tuple, (:(Axis{$(QuoteNode(n))}(getfield(nt, $(QuoteNode(n))))) for n in nt.names)...)
+
 AxisArray(A::AxisArray) = A
 AxisArray(A::AxisArray, ax::Vararg{Axis, N}) where N =
     AxisArray(A.data, ax..., last(Base.IteratorsMD.split(axes(A), Val(N)))...)

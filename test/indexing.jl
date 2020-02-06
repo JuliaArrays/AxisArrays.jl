@@ -302,3 +302,12 @@ a = [2, 3, 7]
 @test a[idx] ≈ 6.2
 aa = AxisArray(a, :x)
 @test aa[idx] ≈ 6.2
+
+# Keyword indexing
+A = AxisArray([1 2; 3 4], Axis{:x}(10:10:20), Axis{:y}(["c", "d"]))
+@test @inferred(A[x=1, y=1]) == 1
+@test @inferred(A[x=1]) == [1, 2]
+@test axisnames(A[x=1]) == (:y,)
+@test @inferred(view(A, x=1)) == [1,2]
+@test parent(view(A, x=1)) isa SubArray
+@test @inferred(A[x=atvalue(20), y=atvalue("d")]) == 4

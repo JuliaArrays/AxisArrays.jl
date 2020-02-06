@@ -1,31 +1,43 @@
-# AxisArrays
+# AxisArrays.jl
 
 [![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaArrays/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaArrays/AxisArrays.jl?branch=master)
 
 This package for the Julia language provides an array type (the `AxisArray`) that knows about its dimension names and axis values.
-This allows for indexing with the axis name without incurring any runtime overhead.
-AxisArrays can also be indexed by the values of their axes, allowing column names or interval selections.
+This allows for indexing by name without incurring any runtime overhead.
 This permits one to implement algorithms that are oblivious to the storage order of the underlying arrays.
+AxisArrays can also be indexed by the values along their axes, allowing column names or interval selections.
+
 In contrast to similar approaches in [Images.jl](https://github.com/timholy/Images.jl) and [NamedArrays.jl](https://github.com/davidavdav/NamedArrays), this allows for type-stable selection of dimensions and compile-time axis lookup.  It is also better suited for regularly sampled axes, like samples over time.
 
 Collaboration is welcome! This is still a work-in-progress. See [the roadmap](https://github.com/JuliaArrays/AxisArrays.jl/issues/7) for the project's current direction.
 
-### Notice regarding `axes`
+### Note about `Axis{}` and keywords
 
-Since Julia version 0.7, the name `axes` is exported by default from `Base`
-with a meaning (and behavior) that is distinct from how AxisArrays has been
-using it. Since you cannot simultaneously be `using` the same name from the two
-different modules, Julia will issue a warning, and it'll error if you try to
-use `axes` without qualification:
+An `AxisArray` stores an object of type `Axis{:name}` for each dimension, 
+containing both the name (a `Symbol`) and the "axis values" (an `AbstractVector`).
+These types are what made compile-time lookup possible.
+Instead of providing them explicitly, it is now possible to use keyword arguments
+for both construction and indexing:
 
 ```julia
-julia> axes([])
+V = AxisArray(rand(10); row='a':'j')  # AxisArray(rand(10), Axis{:row}('a':'j'))
+V[row='c'] == V[Axis{:row}('c')] == V[row=3] == V[3] 
+```
+
+### Note about `axes()` and `indices()`
+
+The function `AxisArrays.axes` returns the tuple of such `Axis` objects. 
+Since Julia version 0.7, `Base.axes(V) == (1:10,)` gives instead the range of possible 
+ordinary integer indices. (This was called `Base.indices`.) Since both names are exported, 
+this collision results in a warning if you try to use `axes` without qualification:
+
+```julia
+julia> axes([1,2])
 WARNING: both AxisArrays and Base export "axes"; uses of it in module Main must be qualified
 ERROR: UndefVarError: axes not defined
 ```
 
-Packages that are upgrading to support 0.7+ and use AxisArrays should follow
-this upgrade path:
+Packages that are upgrading to support Julia 0.7+ should:
 
 * Replace all uses of the `axes` function with the fully-qualified `AxisArrays.axes`
 * Replace all uses of the deprecated `indices` function with the un-qualified `axes`
@@ -38,14 +50,13 @@ path to whatever the new name will be.
 ## Example of currently-implemented behavior:
 
 ```julia
-julia> using Pkg; Pkg.add("AxisArrays")
-julia> using AxisArrays, Unitful
-julia> import Unitful: s, ms, µs
-julia> using Random: MersenneTwister
+julia> using Pkg; pkg"add AxisArrays Unitful"
+julia> using AxisArrays, Unitful, Random
 
-julia> rng = MersenneTwister(123) # Seed a random number generator for repeatable examples
-julia> fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
-julia> y = randn(rng, 60*fs+1)*3
+julia> fs = 40000; # Generate a 40kHz noisy signal, with spike-like stuff added for testing
+julia> import Unitful: s, ms, µs
+julia> rng = Random.MersenneTwister(123); # Seed a random number generator for repeatable examples
+julia> y = randn(rng, 60*fs+1)*3;
 julia> for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50,
                   sin.(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
            i = rand(rng, round(Int,.001fs):1fs)
@@ -55,7 +66,7 @@ julia> for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50
            end
        end
 
-julia> A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
+julia> A = AxisArray(hcat(y, 2 .* y); time = (0s:1s/fs:60s), chan = ([:c1, :c2]))
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time, 0.0 s:2.5e-5 s:60.0 s
     :chan, Symbol[:c1, :c2]
@@ -87,14 +98,14 @@ information to enable all sorts of fancy behaviors. For example, we can specify
 indices in *any* order, just so long as we annotate them with the axis name:
 
 ```julia
-julia> A[Axis{:time}(4)]
+julia> A[time=4] # or A[Axis{:time}(4)]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :chan, Symbol[:c1, :c2]
 And data, a 2-element Array{Float64,1}:
  1.37825
  2.75649
 
-julia> A[Axis{:chan}(:c2), Axis{:time}(1:5)]
+julia> A[chan = :c2, time = 1:5] # or A[Axis{:chan}(:c2), Axis{:time}(1:5)]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 0.0 s:2.5e-5 s:0.0001 s
 And data, a 5-element Array{Float64,1}:
@@ -127,9 +138,13 @@ julia> AxisArrays.axes(ans, 1)
 AxisArrays.Axis{:time,StepRangeLen{Quantity{Float64, Dimensions:{𝐓}, Units:{s}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}},Base.TwicePrecision{Quantity{Float64, Dimensions:{𝐓}, Units:{s}}}}}(5.0e-5 s:2.5e-5 s:0.0002 s)
 ```
 
-You can also index by a single value on an axis using `atvalue`. This will drop
-a dimension. Indexing with an `Interval` type retains dimensions, even
-when the ends of the interval are equal:
+You can also index by a single value using `atvalue(t)`. 
+This function is not needed for categorical axes like `:chan` here, 
+as `:c1` is a `Symbol` which can't be confused with an integer index.
+
+Using `atvalue()` will drop a dimension (like using a single integer). 
+Indexing with an `Interval(lo, hi)` type retains dimensions, even
+when the ends of the interval are equal (like using a range `1:1`):
 
 ```julia
 julia> A[atvalue(2.5e-5s), :c1]
@@ -220,8 +235,6 @@ across the columns.
 
 ## Indexing
 
-### Indexing axes
-
 Two main types of Axes supported by default include:
 
 * Categorical axis -- These are vectors of labels, normally symbols or
@@ -238,7 +251,7 @@ headers.
 
 ```julia
 B = AxisArray(reshape(1:15, 5, 3), .1:.1:0.5, [:a, :b, :c])
-B[Axis{:row}(0.2..0.4)] # restrict the AxisArray along the time axis
+B[row = (0.2..0.4)] # restrict the AxisArray along the time axis
 B[0.0..0.3, [:a, :c]]   # select an interval and two of the columns
 ```
 

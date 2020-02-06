@@ -42,6 +42,10 @@ Base.IndexStyle(::Type{AxisArray{T,N,D,Ax}}) where {T,N,D,Ax} = IndexStyle(D)
 # Cartesian iteration
 Base.eachindex(A::AxisArray) = eachindex(A.data)
 
+# Avoid an ambiguity -- IntervalSets@0.4 takes .. from EllipsisNotation,
+# which defines A[..] for any AbstractArray, like this:
+Base.getindex(A::AxisArray, ::typeof(..)) = A
+
 """
     reaxis(A::AxisArray, I...)
 
@@ -129,7 +133,6 @@ end
 @propagate_inbounds getindex_converted(A, idxs...) = A.data[idxs...]
 @propagate_inbounds setindex!_converted(A, v, idxs...) = (A.data[idxs...] = v)
 
-
 # First is indexing by named axis. We simply sort the axes and re-dispatch.
 # When indexing by named axis the shapes of omitted dimensions are preserved
 # TODO: should we handle multidimensional Axis indexes? It could be interpreted
@@ -153,6 +156,19 @@ end
 function Base.reshape(A::AxisArray, ::Val{N}) where N
     axN, _ = Base.IteratorsMD.split(axes(A), Val(N))
     AxisArray(reshape(A.data, Val(N)), Base.front(axN))
+end
+
+# Keyword indexing, reconstructs the Axis{}() objects
+@propagate_inbounds Base.view(A::AxisArray; kw...) =
+    view(A, kw_to_axes(parent(A), kw.data)...)
+@propagate_inbounds Base.getindex(A::AxisArray; kw...) =
+    getindex(A, kw_to_axes(parent(A), kw.data)...)
+@propagate_inbounds Base.setindex!(A::AxisArray, val; kw...) =
+    setindex!(A, val, kw_to_axes(parent(A), kw.data)...)
+
+function kw_to_axes(A::AbstractArray, nt::NamedTuple)
+    length(nt) == 0 && throw(BoundsError(A, ())) # Trivial case A[] lands here
+    nt_to_axes(nt)
 end
 
 ### Indexing along values of the axes ###

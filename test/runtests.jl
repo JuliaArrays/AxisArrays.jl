@@ -5,7 +5,7 @@ using Random
 import IterTools
 
 @testset "AxisArrays" begin
-    VERSION >= v"1.0.0-" && @test isempty(detect_ambiguities(AxisArrays, Base, Core))
+    VERSION >= v"1.1" && @test isempty(detect_ambiguities(AxisArrays, Base, Core))
 
     @testset "Core" begin
         include("core.jl")

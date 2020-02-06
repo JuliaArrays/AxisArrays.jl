@@ -132,6 +132,11 @@ B = AxisArray([1 4; 2 5; 3 6], (:x, :y), (0.2, 100))
 B = AxisArray([1 4; 2 5; 3 6], (:x, :y), (0.2, 100), (-3,14))
 @test axisnames(B) == (:x, :y)
 @test axisvalues(B) == (-3:0.2:-2.6, 14:100:114)
+# Keyword constructor
+C = AxisArray([1 4; 2 5; 3 6], x=10:10:30, y=[:a, :b])
+@test axisnames(C) == (:x, :y)
+@test axisvalues(C) == (10:10:30, [:a, :b])
+@test @inferred(AxisArray(parent(C), x=1:3, y=1:2)) isa AxisArray
 
 @test AxisArrays.HasAxes(A)   == AxisArrays.HasAxes{true}()
 @test AxisArrays.HasAxes([1]) == AxisArrays.HasAxes{false}()
