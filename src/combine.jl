@@ -25,7 +25,8 @@ fastcat(n::Integer, As...) = n == 1 ? vcat(As...) : n == 2 ? hcat(As...) : cat(A
         matchingdimsexcept(As, n) || error("All non-concatenated axes must be identically-valued")
         newaxis = Axis{axisnames(As[1])[n]}(vcat(map(A -> A.axes[n].val, As)...))
         checkaxis(newaxis)
-        return AxisArray(fastcat(n, map(A->A.data, As)...), (As[1].axes[1:n-1]..., newaxis, As[1].axes[n+1:end]...))
+        axes = ntuple(d -> d == n ? newaxis : As[1].axes[d], ndims(As[1]))
+        return AxisArray(fastcat(n, map(A->A.data, As)...), axes)
     else
         matchingdims(As) || error("All axes must be identically-valued")
         return AxisArray(fastcat(n, map(A->A.data, As)...), As[1].axes)
