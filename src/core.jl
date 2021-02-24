@@ -359,6 +359,11 @@ reduced_indices(axs::Tuple{Vararg{Axis,N}}, region::Dims) where {N} =
 reduced_indices0(axs::Tuple{Vararg{Axis,N}}, region::Dims) where {N} =
     map((ax,d)->d∈region ? reduced_axis0(ax) : ax, axs, ntuple(identity, N))
 
+reduced_indices(axs::Tuple{Vararg{Axis}}, regions::AbstractArray) =
+    reduced_indices(axs, Tuple(regions))
+reduced_indices0(axs::Tuple{Vararg{Axis}}, regions::AbstractArray) =
+    reduced_indices0(axs, Tuple(regions))
+
 @inline reduced_indices(axs::Tuple{Vararg{Axis}}, region::Type{<:Axis}) =
     _reduced_indices(reduced_axis, (), region, axs...)
 @inline reduced_indices0(axs::Tuple{Vararg{Axis}}, region::Type{<:Axis}) =

@@ -303,6 +303,7 @@ for C in arrays
         @test (op(C, dims=Axis{:y}())) == C1
         @test (op(C, dims=Axis{:x}())) == C2
         @test (op(C, dims=(Axis{:y}(),Axis{:x}()))) == C12
+        @test (op(C, dims=[Axis{:y}(),Axis{:x}()])) == C12
     end
 end
 
@@ -343,6 +344,7 @@ for op in functions  # together, cover both reduced_indices and reduced_indices0
     @test (op(C, dims=Axis{:y}())) == C1
     @test (op(C, dims=Axis{:x}())) == C2
     @test (op(C, dims=(Axis{:y}(),Axis{:x}()))) == C12
+    @test (op(C, dims=[Axis{:y}(),Axis{:x}()])) == C12
 end
 
 C = AxisArray(collect(reshape(1:15,3,5)), Axis{:y}([:a,:b,:c]), Axis{:x}(["a","b","c","d","e"]))
