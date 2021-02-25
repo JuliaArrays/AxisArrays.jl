@@ -427,6 +427,31 @@ function Base.map(f, As::AxisArray{T,N,D,Ax}...) where {T,N,D,Ax<:Tuple{Vararg{A
     return AxisArray(map(f, data...), As[1].axes...)
 end
 
+function Base.mapslices(f, A::AxisArray; dims)
+    new_axes = Axis[axes(A)...]
+
+    if (dims isa Integer || dims isa Vector{<:Integer})
+        for i in dims
+            ax = axes(A)[i]
+            new_axes[i] = ax(Base.OneTo(1))
+        end
+
+        return AxisArray(mapslices(f, A.data; dims=dims), new_axes...)
+    else
+        if (dims isa Axis || dims isa Type{<:Axis})
+            dims = [dims]
+        end
+
+        for ax in dims
+            i = axisdim(A, ax)
+            new_axes[i] = ax(Base.OneTo(1))
+        end
+
+        int_dims = axisdim.(Ref(A), dims)
+        return AxisArray(mapslices(f, A.data; dims=int_dims), new_axes...)
+    end
+end
+
 permutation(to::Union{AbstractVector{Int},Tuple{Int,Vararg{Int}}}, from::Symbols) = to
 
 """
