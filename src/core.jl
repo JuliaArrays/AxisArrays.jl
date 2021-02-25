@@ -278,12 +278,18 @@ axisname(::Union{Type{<:Axis{name}},Axis{name}}) where {name} = name
 """
     axisdim(::AxisArray, ::Axis) -> Int
     axisdim(::AxisArray, ::Type{Axis}) -> Int
+    axisdim(::AxisArray, ::Integer) -> Int
 
-Given an AxisArray and an Axis, return the integer dimension of
-the Axis within the array.
+Given an AxisArray and an Axis (or integer), return the integer dimension of
+the Axis within the array if it exists.
 """
 axisdim(A::AxisArray, ax::Axis) = axisdim(A, typeof(ax))
 axisdim(A::AxisArray, ax::Type{Ax}) where Ax<:Axis = axisdim(typeof(A), Ax)
+function axisdim(::AxisArray{T,N,D,Ax}, i::Integer) where {T, N, D, Ax}
+    i <= N && return i
+    error("axis $i exceeds array dimension $N")
+end
+
 # The actual computation is done in the type domain, which is a little tricky
 # due to type invariance.
 @generated function axisdim(::Type{AxisArray{T,N,D,Ax}}, ::Type{<:Axis{name,S} where S}) where {T,N,D,Ax,name}
@@ -428,28 +434,18 @@ function Base.map(f, As::AxisArray{T,N,D,Ax}...) where {T,N,D,Ax<:Tuple{Vararg{A
 end
 
 function Base.mapslices(f, A::AxisArray; dims)
-    new_axes = Axis[axes(A)...]
+    new_axes = collect(axes(A))  # ensure mutable
 
-    if (dims isa Integer || dims isa Vector{<:Integer})
-        for i in dims
-            ax = axes(A)[i]
-            new_axes[i] = ax(Base.OneTo(1))
-        end
+    dims =  dims isa Union{AbstractVector, Tuple} ? dims : [dims]
 
-        return AxisArray(mapslices(f, A.data; dims=dims), new_axes...)
-    else
-        if (dims isa Axis || dims isa Type{<:Axis})
-            dims = [dims]
-        end
-
-        for ax in dims
-            i = axisdim(A, ax)
-            new_axes[i] = ax(Base.OneTo(1))
-        end
-
-        int_dims = axisdim.(Ref(A), dims)
-        return AxisArray(mapslices(f, A.data; dims=int_dims), new_axes...)
+    for d in dims
+        i = axisdim(A, d)
+        n = axisnames(A)[i]
+        new_axes[i] = Axis{n}(Base.OneTo(1))
     end
+
+    int_dims = axisdim.(Ref(A), dims)
+    return AxisArray(mapslices(f, A.data; dims=int_dims), new_axes...)
 end
 
 permutation(to::Union{AbstractVector{Int},Tuple{Int,Vararg{Int}}}, from::Symbols) = to
