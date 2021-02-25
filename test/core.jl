@@ -172,7 +172,6 @@ A = @inferred(AxisArray(reshape(1:24, 2,3,4),
 @test axisdim(A, Axis{:x}) == axisdim(A, Axis{:x}()) == axisdim(A, 1) == 1
 @test axisdim(A, Axis{:y}) == axisdim(A, Axis{:y}()) == axisdim(A, 2) == 2
 @test axisdim(A, Axis{:z}) == axisdim(A, Axis{:z}()) == axisdim(A, 3) == 3
-@test_throws ErrorException axisdim(A, 4)
 # Test axes
 @test @inferred(AxisArrays.axes(A)) == (Axis{:x}(.1:.1:.2), Axis{:y}(1//10:1//10:3//10), Axis{:z}(["a", "b", "c", "d"]))
 @test @inferred(AxisArrays.axes(A, Axis{:x})) == @inferred(AxisArrays.axes(A, Axis{:x}())) == Axis{:x}(.1:.1:.2)

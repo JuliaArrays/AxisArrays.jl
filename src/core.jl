@@ -281,14 +281,11 @@ axisname(::Union{Type{<:Axis{name}},Axis{name}}) where {name} = name
     axisdim(::AxisArray, ::Integer) -> Int
 
 Given an AxisArray and an Axis (or integer), return the integer dimension of
-the Axis within the array if it exists.
+the Axis within the array.
 """
 axisdim(A::AxisArray, ax::Axis) = axisdim(A, typeof(ax))
 axisdim(A::AxisArray, ax::Type{Ax}) where Ax<:Axis = axisdim(typeof(A), Ax)
-function axisdim(::AxisArray{T,N,D,Ax}, i::Integer) where {T, N, D, Ax}
-    i <= N && return i
-    error("axis $i exceeds array dimension $N")
-end
+axisdim(::AxisArray, i::Integer) = i
 
 # The actual computation is done in the type domain, which is a little tricky
 # due to type invariance.
