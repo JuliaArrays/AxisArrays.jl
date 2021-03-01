@@ -336,7 +336,7 @@ expected = AxisArray([335 370 405; 370 410 450; 405 450 495], Axis{:y}(range(0.1
 
 # operation preserving original array size
 A = AxisArray(reshape(1:15,3,5), Axis{:y}(range(0.1, length=3)), Axis{:x}(range(0.1, length=5)))
-expected = AxisArray(fill(1,3,5), axes(A))
+expected = AxisArray(fill(1,3,5), AxisArrays.axes(A))
 @test mapslices(x->fill(1, 3), A, dims=1) == expected
 @test mapslices(x->fill(1, 5), A, dims=2) == expected
 @test mapslices(x->fill(1, 3, 5), A, dims=(1, 2)) == expected

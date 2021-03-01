@@ -438,12 +438,11 @@ function Base.mapslices(f, A::AxisArray; dims)
     result = mapslices(f, A.data; dims=int_dims)
 
     new_axes = Vector{Axis}(collect(axes(A)))  # ensure mutable
-    for i in int_dims
-        n = axisnames(A)[i]
-        # if Axis has changed length replace with default axis values
-        if size(result, i) !== size(A, i)
-            new_axes[i] = Axis{n}(Base.OneTo(size(result, i)))
-        end
+    # if Axis has changed length replace with default Base.OneTo(n)
+    replace!(new_axes) do ax
+        i = axisdim(A, ax)
+        n = size(result, i)
+        return n == length(ax) ? ax : ax(Base.OneTo(n))
     end
 
     return AxisArray(result, new_axes...)
