@@ -306,7 +306,7 @@ for C in arrays
     end
 end
 
-A = AxisArray(collect(reshape(1:15,3,5)), y=["a", "b", "c"], x=[1, 2, 3, 4, 5])
+A = AxisArray(reshape(1:15,3,5), y=["a", "b", "c"], x=[1, 2, 3, 4, 5])
 expected1 = AxisArray([6 15 24 33 42], y=Base.OneTo(1), x=[1, 2, 3, 4, 5])
 expected2 = AxisArray([35, 40, 45][:, :], y=["a", "b", "c"], x=Base.OneTo(1))
 expected12 = AxisArray([120][:, :], :y, :x)
@@ -323,8 +323,11 @@ expected12 = AxisArray([120][:, :], :y, :x)
 @test mapslices(sum, A; dims=Axis{:x}()) == expected2
 @test mapslices(sum, A; dims=[Axis{:y}(), Axis{:x}()]) == expected12
 
-@test mapslices(sum, A; dims=[]) == A
+A = AxisArray(reshape(1:15,3,5), Axis{:y}(range(0.1, length=3)), Axis{:x}(range(0.1, length=5)))
+@test mapslices(sum, A; dims=1) == expected1
+@test mapslices(sum, A; dims=2) == expected2
 
+@test mapslices(sum, A; dims=[]) == A
 
 function typeof_noaxis(::AxisArray{T,N,D}) where {T,N,D}
     AxisArray{T,N,D}

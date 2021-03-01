@@ -431,7 +431,7 @@ function Base.map(f, As::AxisArray{T,N,D,Ax}...) where {T,N,D,Ax<:Tuple{Vararg{A
 end
 
 function Base.mapslices(f, A::AxisArray; dims)
-    new_axes = collect(axes(A))  # ensure mutable
+    new_axes = Vector{Axis}(collect(axes(A)))  # ensure mutable
 
     dims =  dims isa Union{AbstractVector, Tuple} ? dims : [dims]
 
