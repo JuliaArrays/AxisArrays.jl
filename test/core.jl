@@ -311,6 +311,8 @@ expected1 = AxisArray([6 15 24 33 42], y=Base.OneTo(1), x=[1, 2, 3, 4, 5])
 expected2 = AxisArray([35, 40, 45][:, :], y=["a", "b", "c"], x=Base.OneTo(1))
 expected12 = AxisArray([120][:, :], :y, :x)
 
+@test mapslices(sum, A; dims=[]) == A
+
 @test mapslices(sum, A; dims=1) == expected1
 @test mapslices(sum, A; dims=2) == expected2
 @test mapslices(sum, A; dims=[1, 2]) == expected12
@@ -323,11 +325,21 @@ expected12 = AxisArray([120][:, :], :y, :x)
 @test mapslices(sum, A; dims=Axis{:x}()) == expected2
 @test mapslices(sum, A; dims=[Axis{:y}(), Axis{:x}()]) == expected12
 
-A = AxisArray(reshape(1:15,3,5), Axis{:y}(range(0.1, length=3)), Axis{:x}(range(0.1, length=5)))
+# non-integer axis
+A_non_int = AxisArray(reshape(1:15,3,5), Axis{:y}(range(0.1, length=3)), Axis{:x}(range(0.1, length=5)))
 @test mapslices(sum, A; dims=1) == expected1
 @test mapslices(sum, A; dims=2) == expected2
 
-@test mapslices(sum, A; dims=[]) == A
+# non-reducing operation
+expected = AxisArray([335 370 405; 370 410 450; 405 450 495], Axis{:y}(range(0.1, length=3)), Axis{:x}(Base.OneTo(3)))
+@test mapslices(x->x * x', A; dims=(1, 2)) == expected
+
+# operation preserving original array size
+A = AxisArray(reshape(1:15,3,5), Axis{:y}(range(0.1, length=3)), Axis{:x}(range(0.1, length=5)))
+expected = AxisArray(fill(1,3,5), axes(A))
+@test mapslices(x->fill(1, 3), A, dims=1) == expected
+@test mapslices(x->fill(1, 5), A, dims=2) == expected
+@test mapslices(x->fill(1, 3, 5), A, dims=(1, 2)) == expected
 
 function typeof_noaxis(::AxisArray{T,N,D}) where {T,N,D}
     AxisArray{T,N,D}

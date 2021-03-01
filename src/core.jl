@@ -431,18 +431,22 @@ function Base.map(f, As::AxisArray{T,N,D,Ax}...) where {T,N,D,Ax<:Tuple{Vararg{A
 end
 
 function Base.mapslices(f, A::AxisArray; dims)
-    new_axes = Vector{Axis}(collect(axes(A)))  # ensure mutable
 
     dims =  dims isa Union{AbstractVector, Tuple} ? dims : [dims]
 
-    for d in dims
-        i = axisdim(A, d)
+    int_dims = axisdim.(Ref(A), dims)
+    result = mapslices(f, A.data; dims=int_dims)
+
+    new_axes = Vector{Axis}(collect(axes(A)))  # ensure mutable
+    for i in int_dims
         n = axisnames(A)[i]
-        new_axes[i] = Axis{n}(Base.OneTo(1))
+        # if Axis has changed length replace with default axis values
+        if size(result, i) !== size(A, i)
+            new_axes[i] = Axis{n}(Base.OneTo(size(result, i)))
+        end
     end
 
-    int_dims = axisdim.(Ref(A), dims)
-    return AxisArray(mapslices(f, A.data; dims=int_dims), new_axes...)
+    return AxisArray(result, new_axes...)
 end
 
 permutation(to::Union{AbstractVector{Int},Tuple{Int,Vararg{Int}}}, from::Symbols) = to
