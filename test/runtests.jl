@@ -2,6 +2,7 @@ using AxisArrays
 using Dates
 using Test
 using Random
+using OffsetArrays
 import IterTools
 
 @testset "AxisArrays" begin
@@ -37,5 +38,9 @@ import IterTools
 
     @testset "README" begin
         include("readme.jl")
+    end
+
+    @testset "OffsetArrays" begin
+        include("offsetarrays.jl")
     end
 end

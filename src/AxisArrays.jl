@@ -7,6 +7,7 @@ import Base.Iterators: repeated
 using RangeArrays, IntervalSets
 using IterTools
 using Dates
+using OffsetArrays
 
 function axes end
 
@@ -22,5 +23,7 @@ include("indexing.jl")
 include("sortedvector.jl")
 include("categoricalvector.jl")
 include("combine.jl")
+
+include("offsetarrays.jl") # extend OffsetArrays
 
 end
