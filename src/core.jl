@@ -178,6 +178,12 @@ struct AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     AxisArray{T,N,D,Ax}(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
 end
 
+"""
+    AxisMatrix{T}
+Alias for [`AxisArray{T,2,D,Ax}`](@ref).
+"""
+const AxisMatrix{T,D,Ax} = AxisArray{T,2,D,Ax}
+
 # Helper functions: Default axis names (if not provided)
 @inline _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : i == 4 ? :dim_4 : Symbol(:dim_, i)
 
