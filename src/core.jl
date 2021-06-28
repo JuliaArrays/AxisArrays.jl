@@ -241,7 +241,7 @@ end
 
 # Alternative constructor, takes names as keywords:
 AxisArray(A; kw...) = AxisArray(A, nt_to_axes(values(kw)))
-@generated nt_to_axes(nt::NamedTuple{names,T}) where {names,T} =
+@generated nt_to_axes(nt::NamedTuple{names}) where {names} =
     Expr(:tuple, (:(Axis{$(QuoteNode(n))}(getfield(nt, $(QuoteNode(n))))) for n in names)...)
 
 AxisArray(A::AxisArray) = A
