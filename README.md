@@ -1,6 +1,8 @@
 # AxisArrays.jl
 
-[![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl) [![Coverage Status](https://coveralls.io/repos/github/JuliaArrays/AxisArrays.jl/badge.svg?branch=master)](https://coveralls.io/github/JuliaArrays/AxisArrays.jl?branch=master)
+[![][action-img]][action-url]
+[![][pkgeval-img]][pkgeval-url]
+[![][codecov-img]][codecov-url]
 
 This package for the Julia language provides an array type (the `AxisArray`) that knows about its dimension names and axis values.
 This allows for indexing by name without incurring any runtime overhead.
@@ -272,3 +274,15 @@ meanz = sumz/Itotal
 ```
 
 The intention is that all of these operations are just as efficient as they would be if you used traditional position-based indexing with all the inherent assumptions about the storage order of `B`.
+
+
+<!-- badges -->
+
+[pkgeval-img]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/A/AxisArrays.svg
+[pkgeval-url]: https://juliaci.github.io/NanosoldierReports/pkgeval_badges/report.html
+
+[action-img]: https://github.com/JuliaArrays/AxisArrays.jl/workflows/Unit%20test/badge.svg
+[action-url]: https://github.com/JuliaArrays/AxisArrays.jl/actions
+
+[codecov-img]: https://codecov.io/github/JuliaArrays/AxisArrays.jl/coverage.svg?branch=master
+[codecov-url]: https://codecov.io/gh/JuliaArrays/AxisArrays.jl
