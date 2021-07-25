@@ -180,7 +180,7 @@ end
 
 """
     AxisMatrix{T}
-Alias for [`AxisArray{T,2,D,Ax}`](@ref).
+Alias for [`AxisArray{T,2,D,Ax}`](@ref AxisArray).
 """
 const AxisMatrix{T,D,Ax} = AxisArray{T,2,D,Ax}
 
