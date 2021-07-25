@@ -183,6 +183,7 @@ end
 Alias for [`AxisArray{T,2,D,Ax}`](@ref AxisArray).
 """
 const AxisMatrix{T,D,Ax} = AxisArray{T,2,D,Ax}
+const AxisVector{T,D,Ax} = AxisArray{T,1,D,Ax}
 
 # Helper functions: Default axis names (if not provided)
 @inline _defaultdimname(i) = i == 1 ? (:row) : i == 2 ? (:col) : i == 3 ? (:page) : i == 4 ? :dim_4 : Symbol(:dim_, i)
