@@ -160,11 +160,11 @@ end
 
 # Keyword indexing, reconstructs the Axis{}() objects
 @propagate_inbounds Base.view(A::AxisArray; kw...) =
-    view(A, kw_to_axes(parent(A), kw.data)...)
+    view(A, kw_to_axes(parent(A), values(kw))...)
 @propagate_inbounds Base.getindex(A::AxisArray; kw...) =
-    getindex(A, kw_to_axes(parent(A), kw.data)...)
+    getindex(A, kw_to_axes(parent(A), values(kw))...)
 @propagate_inbounds Base.setindex!(A::AxisArray, val; kw...) =
-    setindex!(A, val, kw_to_axes(parent(A), kw.data)...)
+    setindex!(A, val, kw_to_axes(parent(A), values(kw))...)
 
 function kw_to_axes(A::AbstractArray, nt::NamedTuple)
     length(nt) == 0 && throw(BoundsError(A, ())) # Trivial case A[] lands here
