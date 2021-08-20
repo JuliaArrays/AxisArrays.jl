@@ -24,6 +24,7 @@ include("sortedvector.jl")
 include("categoricalvector.jl")
 include("combine.jl")
 
+# TODO: make this conditional when https://github.com/JuliaLang/Pkg.jl/issues/1285 is supported
 include("offsetarrays.jl") # extend OffsetArrays
 
 end
