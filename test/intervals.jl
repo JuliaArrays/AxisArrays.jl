@@ -1,10 +1,13 @@
 # Specific intervals tests
+import IntervalSets
 
 # Promotion behaviors -- we only allow concrete endpoints of the same type
 @test 1.0 .. 2 === 1.0 .. 2.0
 @test 1//2 .. 3.5 === 0.5 .. 3.5
-@test_throws ArgumentError :a .. "b"
-@test_throws ArgumentError 1 .. (2,3)
+# IntervalSets v0.7: https://github.com/JuliaMath/IntervalSets.jl/pull/93
+thrown_err = isdefined(IntervalSets, :duration) ? ArgumentError : ErrorException
+@test_throws thrown_err :a .. "b"
+@test_throws thrown_err 1 .. (2,3)
 
 v = [1 .. 2, 3.0 .. 4.0]
 @test v[1] === 1.0 .. 2.0

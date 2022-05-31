@@ -9,7 +9,7 @@ IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
 RangeArrays = "b3c3ace0-ae52-54e7-9d0b-2c1406fd6b9d"
 
 [compat]
-IntervalSets = "0.1, 0.2, 0.3, 0.4, 0.5, 0.6"
+IntervalSets = "0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7"
 IterTools = "1"
 RangeArrays = "0.3"
 julia = "1"
