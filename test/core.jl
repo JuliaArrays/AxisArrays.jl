@@ -347,3 +347,6 @@ end
 
 C = AxisArray(collect(reshape(1:15,3,5)), Axis{:y}([:a,:b,:c]), Axis{:x}(["a","b","c","d","e"]))
 @test occursin(r"axes:\n\s+:y,", summary(C))
+
+# ensure that ArrayInterface.is_forwarding_wrapper is properly propagating across wrapper
+@test @inferred(ArrayInterface.strides(AxisArray([1  2  3]'))) === (1, static(1))
