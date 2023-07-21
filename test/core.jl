@@ -1,3 +1,19 @@
+macro maybe_test_broken(brokenif, args...)
+    if VERSION < v"1.10.0-DEV.0"
+        return quote
+            @test_broken $(esc(args...))
+        end
+    else
+        return quote
+            if $(esc(brokenif))
+                @test_broken $(esc(args...))
+            else
+                @test $(esc(args...))
+            end
+        end
+    end
+end
+
 # FIXME: type stability broken. The following should NOT error
 A = @inferred(AxisArray(reshape(1:24, 2,3,4), .1:.1:.2, .1:.1:.3, .1:.1:.4))
 @test_throws ArgumentError AxisArray(reshape(1:24, 2,3,4), .1:.1:.1, .1:.1:.3, .1:.1:.4)
@@ -272,17 +288,17 @@ for C in arrays
     local C
     for op in functions  # together, cover both reduced_indices and reduced_indices0
         axv = axisvalues(C)
-        @test_broken @inferred(op(C; dims=1))
+        @maybe_test_broken (op === minimum) @inferred(op(C; dims=1)) isa AxisArray
         C1 = op(C; dims=1)
         @test typeof(C1) == typeof(C)
         @test axisnames(C1) == (:y,:x)
         @test axisvalues(C1) === (oftype(axv[1], Base.OneTo(1)), axv[2])
-        @test_broken @inferred(op(C, dims=2))
+        @maybe_test_broken (op === minimum) @inferred(op(C, dims=2)) isa AxisArray
         C2 = op(C, dims=2)
         @test typeof(C2) == typeof(C)
         @test axisnames(C2) == (:y,:x)
         @test axisvalues(C2) === (axv[1], oftype(axv[2], Base.OneTo(1)))
-        @test_broken @inferred(op(C, dims=(1,2)))
+        @maybe_test_broken (op === minimum) @inferred(op(C, dims=(1,2))) isa AxisArray
         C12 = op(C, dims=(1,2))
         @test typeof(C12) == typeof(C)
         @test axisnames(C12) == (:y,:x)
