@@ -10,7 +10,8 @@ using Dates
 
 function axes end
 
-export AxisArray, Axis, axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse
+export AxisArray, Axis, AxisMatrix, AxisVector
+export axisnames, axisvalues, axisdim, axes, atindex, atvalue, collapse
 
 # From IntervalSets:
 export ClosedInterval, ..
