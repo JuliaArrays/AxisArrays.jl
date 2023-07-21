@@ -1,5 +1,5 @@
 macro maybe_test_broken(brokenif, args...)
-    if VERSION < v"1.6"
+    if VERSION < v"1"
         return quote
             @test_broken $(esc(args...))
         end
