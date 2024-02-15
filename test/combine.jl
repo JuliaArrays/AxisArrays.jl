@@ -1,14 +1,17 @@
 # cat
+using AxisArrays, Test
 A1data, A2data = [1 3; 2 4], [5 7; 6 8]
 
 A1 = AxisArray(A1data, Axis{:Row}([:First, :Second]), Axis{:Col}([:A, :B]))
 A2 = AxisArray(A2data, Axis{:Row}([:Third, :Fourth]), Axis{:Col}([:A, :B]))
 @test isa(cat(A1, A2, dims=1), AxisArray)
+@test @inferred(vcat(A1, A2)) == cat(A1, A2, dims=1)
 @test cat(A1, A2, dims=1) == AxisArray(vcat(A1data, A2data),
                                   Axis{:Row}([:First, :Second, :Third, :Fourth]), Axis{:Col}([:A, :B]))
 
 A2 = AxisArray(A2data, Axis{:Row}([:First, :Second]), Axis{:Col}([:C, :D]))
 @test isa(cat(A1, A2, dims=2), AxisArray)
+@test @inferred(hcat(A1, A2)) == cat(A1, A2, dims=2)
 @test cat(A1, A2, dims=2) == AxisArray(hcat(A1data, A2data),
                                   Axis{:Row}([:First, :Second]), Axis{:Col}([:A, :B, :C, :D]))
 
