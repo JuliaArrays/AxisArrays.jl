@@ -178,6 +178,8 @@ struct AxisArray{T,N,D,Ax} <: AbstractArray{T,N}
     AxisArray{T,N,D,Ax}(data::AbstractArray{T,N}, axs::Tuple{Vararg{Axis,N}}) where {T,N,D,Ax} = new{T,N,D,Ax}(data, axs)
 end
 
+ArrayInterface.is_forwarding_wrapper(@nospecialize T::Type{<:AxisArray}) = true
+
 """
     AxisMatrix{T}
 Alias for [`AxisArray{T,2,D,Ax}`](@ref AxisArray).
@@ -280,6 +282,13 @@ axisnames() = ()
 @inline axisnames(::Type{<:Axis{name}}, B::Type...) where {name} = tuple(name, axisnames(B...)...)
 
 axisname(::Union{Type{<:Axis{name}},Axis{name}}) where {name} = name
+
+ArrayInterface.known_dimnames(@nospecialize T::Type{<:Axis}) = (axisname(T),)
+function ArrayInterface.known_dimnames(@nospecialize T::Type{<:AxisArray})
+    ArrayInterface.map_tuple_type(axisname, fieldtype(T, :axes))
+end
+ArrayInterface.dimnames(::Axis{name}) where {name} = (StaticSymbol(name),)
+ArrayInterface.dimnames(x::AxisArray) = static(ArrayInterface.known_dimnames(x))
 
 # Axis definitions
 """

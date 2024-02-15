@@ -2,11 +2,13 @@ VERSION < v"0.7.0-beta2.199" && __precompile__()
 
 module AxisArrays
 
+using ArrayInterface
 using Base: tail
 import Base.Iterators: repeated
 using RangeArrays, IntervalSets
 using IterTools
 using Dates
+using Static
 
 function axes end
 
