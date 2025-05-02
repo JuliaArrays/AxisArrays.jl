@@ -1,22 +1,3 @@
-```@meta
-DocTestSetup = quote
-    using AxisArrays, Unitful, Random
-    import Unitful: s, ms, µs
-    rng = MersenneTwister(123)
-    fs = 40000
-    y = randn(rng, 60*fs+1)*3
-    for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50,
-               sin.(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
-        i = rand(rng, round(Int,.001fs):1fs)
-        while i+length(spk)-1 < length(y)
-            y[i:i+length(spk)-1] += spk
-            i += rand(rng, round(Int,.001fs):1fs)
-        end
-    end
-    A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
-end
-```
-
 # AxisArrays
 
 [![Build Status](https://travis-ci.org/JuliaArrays/AxisArrays.jl.svg?branch=master)](https://travis-ci.org/JuliaArrays/AxisArrays.jl)
@@ -30,16 +11,25 @@ In contrast to similar approaches in [Images.jl](https://github.com/timholy/Imag
 
 Collaboration is welcome! This is still a work-in-progress. See [the roadmap](https://github.com/JuliaArrays/AxisArrays.jl/issues/7) for the project's current direction.
 
+## Installation
+From the Julia REPL, type
+```julia-repl
+julia> import Pkg; Pkg.add("AxisArrays")
+```
+
 ## Example of currently-implemented behavior:
 
-```julia-repl
-julia> Pkg.add("AxisArrays")
+```jldoctest index
 julia> using AxisArrays, Unitful, Random
+
 julia> import Unitful: s, ms, µs
 
-julia> rng = MersenneTwister(123) # Seed a random number generator for repeatable examples
-julia> fs = 40000 # Generate a 40kHz noisy signal, with spike-like stuff added for testing
-julia> y = randn(rng, 60*fs+1)*3
+julia> rng = MersenneTwister(123); # Seed a random number generator for repeatable examples
+
+julia> fs = 40000; # Generate a 40kHz noisy signal, with spike-like stuff added for testing
+
+julia> y = randn(rng, 60*fs+1)*3;
+
 julia> for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50,
                   sin.(0.8:0.4:8.6) .* [0:0.02:.1; .15:.1:1; 1:-.2:.1] .* 50)
            i = rand(rng, round(Int,.001fs):1fs)
@@ -50,7 +40,7 @@ julia> for spk = (sin.(0.8:0.2:8.6) .* [0:0.01:.1; .15:.1:.95; 1:-.05:.05] .* 50
        end
 ```
 
-```jldoctest
+```jldoctest index
 julia> A = AxisArray([y 2y], Axis{:time}(0s:1s/fs:60s), Axis{:chan}([:c1, :c2]))
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time, (0.0:2.5e-5:60.0) s
@@ -83,7 +73,7 @@ AxisArrays behave like regular arrays, but they additionally use the axis
 information to enable all sorts of fancy behaviors. For example, we can specify
 indices in *any* order, just so long as we annotate them with the axis name:
 
-```jldoctest
+```jldoctest index
 julia> A[Axis{:time}(4)]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :chan, [:c1, :c2]
@@ -108,7 +98,7 @@ selects all values between two endpoints `a .. b` or the axis values directly.
 Notice that the returned AxisArray still has axis information itself... and it
 still has the correct time information for those datapoints!
 
-```jldoctest
+```jldoctest index
 julia> A[40µs .. 220µs, :c1]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, (5.0e-5:2.5e-5:0.0002) s
@@ -130,7 +120,7 @@ You can also index by a single value on an axis using `atvalue`. This will drop
 a dimension. Indexing with an `Interval` type retains dimensions, even
 when the ends of the interval are equal:
 
-```jldoctest
+```jldoctest index
 julia> A[atvalue(2.5e-5s), :c1]
 -5.706943613190749
 
@@ -144,7 +134,7 @@ And data, a 1-element Vector{Float64}:
 
 You can even index by multiple values by broadcasting `atvalue` over an array:
 
-```jldoctest
+```jldoctest index
 julia> A[atvalue.([2.5e-5s, 75.0µs])]
 2-dimensional AxisArray{Float64,2,...} with axes:
     :time, Quantity{Float64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}[2.5e-5 s, 7.5e-5 s]
@@ -161,7 +151,7 @@ to 220µs) might be more clearly expressed as a symmetrical window about a
 specific index where we know something interesting happened. To represent this,
 we use the `atindex` function:
 
-```jldoctest
+```jldoctest index
 julia> A[atindex(-90µs .. 90µs, 5), :c2]
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time_sub, (-7.5e-5:2.5e-5:7.500000000000002e-5) s
@@ -181,7 +171,7 @@ interval about the given index!  This simple concept can be extended to some
 very powerful behaviors. For example, let's threshold our data and find windows
 about those threshold crossings.
 
-```jldoctest
+```jldoctest index
 julia> idxs = findall(diff(A[:,:c1] .< -15) .> 0);
 
 julia> spks = A[atindex(-200µs .. 800µs, idxs), :c1]
