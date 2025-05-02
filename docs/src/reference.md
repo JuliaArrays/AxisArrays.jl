@@ -1,5 +1,5 @@
 # API Reference
 
 ```@autodocs
-Modules = [AxisArrays]
+Modules = [AxisArrays, AxisArrays.Extrapolated]
 ```
