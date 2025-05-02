@@ -32,7 +32,7 @@ Collaboration is welcome! This is still a work-in-progress. See [the roadmap](ht
 
 ## Example of currently-implemented behavior:
 
-```julia
+```julia-repl
 julia> Pkg.add("AxisArrays")
 julia> using AxisArrays, Unitful, Random
 julia> import Unitful: s, ms, µs
