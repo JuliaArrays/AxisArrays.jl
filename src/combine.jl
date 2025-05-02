@@ -218,7 +218,7 @@ axis of type `Axis{:collapsed, CategoricalVector{Tuple}}`.
 
 ### Examples
 
-```
+```julia-repl
 julia> price_data = AxisArray(rand(10), Axis{:time}(Date(2016,01,01):Day(1):Date(2016,01,10)))
 1-dimensional AxisArray{Float64,1,...} with axes:
     :time, 2016-01-01:1 day:2016-01-10
