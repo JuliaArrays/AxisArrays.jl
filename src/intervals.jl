@@ -46,7 +46,7 @@ end
 # (<, <=, and ==) are a pain since they are non-promoting fallbacks that call
 # isless, !(y < x) (which is wrong), and ===. So implementing promotion with
 # Union{T, ClosedInterval} causes stack overflows for the base types. This is safer:
-for f in (:isless, :(<=), :(>=), :(==), :(+), :(-), :(*), :(/), :(//))
+for f in (:isless, :(<=), :(==), :(+), :(-), :(*), :(/), :(//))
     # We don't use promote here, though, because promotions can be lossy... and
     # that's particularly bad for comparisons. Just make an interval instead.
     @eval $(f)(x::ClosedInterval, y::Scalar) = $(f)(x, y..y)
