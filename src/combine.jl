@@ -14,17 +14,22 @@ matchingdims(As::Tuple{Vararg{AxisArray}}) = all(equalvalued, sizes(As...))
 matchingdimsexcept(As::Tuple{Vararg{AxisArray}}, n::Int) = all(equalvalued, sizes(As...)[[1:n-1; n+1:end]])
 
 Base.cat(A1::AxisArray{T}, As::AxisArray{T}...; dims) where {T} = _cat(dims, A1, As...)
+Base.vcat(A1::AxisArray{T}, As::AxisArray{T}...) where {T} = _cat(1, A1, As...)
+Base.hcat(A1::AxisArray{T}, As::AxisArray{T}...) where {T} = _cat(2, A1, As...)
+
 _cat(::Val{n}, As...) where {n} = _cat(n, As...)
+fastcat(n::Integer, As...) = n == 1 ? vcat(As...) : n == 2 ? hcat(As...) : cat(As...; dims = n)
 
 @inline function _cat(n::Integer, As...)
     if n <= ndims(As[1])
         matchingdimsexcept(As, n) || error("All non-concatenated axes must be identically-valued")
         newaxis = Axis{axisnames(As[1])[n]}(vcat(map(A -> A.axes[n].val, As)...))
         checkaxis(newaxis)
-        return AxisArray(cat(map(A->A.data, As)..., dims=n), (As[1].axes[1:n-1]..., newaxis, As[1].axes[n+1:end]...))
+        axes = ntuple(d -> d == n ? newaxis : As[1].axes[d], ndims(As[1]))
+        return AxisArray(fastcat(n, map(A->A.data, As)...), axes)
     else
         matchingdims(As) || error("All axes must be identically-valued")
-        return AxisArray(cat(map(A->A.data, As)..., dims=n), As[1].axes)
+        return AxisArray(fastcat(n, map(A->A.data, As)...), As[1].axes)
     end #if
 end
 
