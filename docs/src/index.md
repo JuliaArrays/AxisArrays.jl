@@ -78,8 +78,21 @@ And data, a 2400001×2 Array{Float64,2}:
 
 ```
 
-AxisArrays behave like regular arrays, but they additionally use the axis
-information to enable all sorts of fancy behaviors. For example, we can specify
+AxisArrays behave like regular arrays, but they carry extra information about
+their axes along with them:
+
+```jldoctest
+julia> A.time
+0.0 s:2.5e-5 s:60.0 s
+
+julia> A.chan
+2-element Array{Symbol,1}:
+ :c1
+ :c2
+
+```
+
+This enables all sorts of fancy indexing behaviors. For example, we can specify
 indices in *any* order, just so long as we annotate them with the axis name:
 
 ```jldoctest
