@@ -35,6 +35,12 @@ import IterTools
         include("combine.jl")
     end
 
+    @static if VERSION >= v"0.7.0-DEV.2638"
+        @testset "Broadcast" begin
+            include("broadcast.jl")
+        end
+    end
+
     @testset "README" begin
         include("readme.jl")
     end
